@@ -51,19 +51,28 @@ export function Canvas() {
     [document]
   );
 
-  const handleWheel = useCallback(
-    (e: React.WheelEvent) => {
+  // Attach wheel handler as non-passive so preventDefault() actually blocks
+  // the browser's native pinch-to-zoom on the page
+  useEffect(() => {
+    const el = canvasRef.current;
+    if (!el) return;
+
+    const onWheel = (e: WheelEvent) => {
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
-        const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
-        const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, viewport.zoom + delta));
-        setViewport(newZoom, viewport.panX, viewport.panY);
+        const { zoom, panX, panY } = useEditorStore.getState().viewport;
+        const factor = 1 - e.deltaY * 0.005;
+        const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom * factor));
+        useEditorStore.getState().setViewport(newZoom, panX, panY);
       } else {
-        setViewport(viewport.zoom, viewport.panX - e.deltaX, viewport.panY - e.deltaY);
+        const { zoom, panX, panY } = useEditorStore.getState().viewport;
+        useEditorStore.getState().setViewport(zoom, panX - e.deltaX, panY - e.deltaY);
       }
-    },
-    [viewport, setViewport]
-  );
+    };
+
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
@@ -201,7 +210,6 @@ export function Canvas() {
     <div
       ref={canvasRef}
       className="flex-1 overflow-hidden bg-gray-100 relative"
-      onWheel={handleWheel}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
