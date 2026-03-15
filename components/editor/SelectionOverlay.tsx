@@ -36,7 +36,7 @@ export function SelectionOverlay({ bounds, componentId }: Props) {
 
   if (!selectedComponent) return null;
 
-  const autoSized = selectedComponent.typeData.type === 'text' || selectedComponent.typeData.type === 'barcode';
+  const autoSized = ['text', 'barcode', 'qrcode'].includes(selectedComponent.typeData.type);
 
   return (
     <div

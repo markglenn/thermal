@@ -59,7 +59,7 @@ export function ConstraintEditor({ component }: Props) {
   };
 
   // Text and barcodes auto-size — no width/height constraints
-  const autoSized = component.typeData.type === 'text' || component.typeData.type === 'barcode';
+  const autoSized = ['text', 'barcode', 'qrcode'].includes(component.typeData.type);
 
   return (
     <div className="p-3 border-b border-gray-200">

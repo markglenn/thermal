@@ -17,7 +17,7 @@ interface Props {
   onMeasure?: (id: string, width: number, height: number) => void;
 }
 
-const AUTO_SIZED_TYPES = new Set(['text', 'barcode']);
+const AUTO_SIZED_TYPES = new Set(['text', 'barcode', 'qrcode']);
 
 export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: Props) {
   const ref = useRef<HTMLDivElement>(null);
@@ -48,7 +48,7 @@ export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: P
       case 'barcode':
         return <BarcodeElement props={component.typeData.props} />;
       case 'qrcode':
-        return <QrCodeElement />;
+        return <QrCodeElement props={component.typeData.props} />;
       case 'line':
         return <LineElement props={component.typeData.props} />;
       case 'rectangle':

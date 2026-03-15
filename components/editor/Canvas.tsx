@@ -12,6 +12,7 @@ import type { LabelComponent, ResolvedBounds } from '@/lib/types';
 
 export function Canvas() {
   const canvasRef = useRef<HTMLDivElement>(null);
+  const labelRef = useRef<HTMLDivElement>(null);
   const hasInitialized = useRef(false);
   const document = useDocument();
   const viewport = useViewport();
@@ -25,6 +26,9 @@ export function Canvas() {
   const setResizeState = useEditorStore((s) => s.setResizeState);
   const showGrid = useEditorStore((s) => s.showGrid);
   const gridSize = useEditorStore((s) => s.gridSize);
+  const paletteDropState = useEditorStore((s) => s.paletteDropState);
+  const setPaletteDropState = useEditorStore((s) => s.setPaletteDropState);
+  const addComponent = useEditorStore((s) => s.addComponent);
 
   const widthDots = labelWidthDots(document.label);
   const heightDots = labelHeightDots(document.label);
@@ -185,10 +189,36 @@ export function Canvas() {
     [dragState, resizeState, viewport.zoom, updateConstraints]
   );
 
-  const handlePointerUp = useCallback(() => {
-    if (dragState) setDragState(null);
-    if (resizeState) setResizeState(null);
-  }, [dragState, resizeState, setDragState, setResizeState]);
+  // Convert screen coordinates to dot coordinates on the label
+  const screenToDots = useCallback(
+    (clientX: number, clientY: number): { left: number; top: number } | null => {
+      if (!labelRef.current) return null;
+      const labelRect = labelRef.current.getBoundingClientRect();
+      const { zoom } = useEditorStore.getState().viewport;
+      const left = Math.round((clientX - labelRect.left) / zoom);
+      const top = Math.round((clientY - labelRect.top) / zoom);
+      return { left, top };
+    },
+    []
+  );
+
+  const handlePointerUp = useCallback(
+    (e: React.PointerEvent) => {
+      if (dragState) setDragState(null);
+      if (resizeState) setResizeState(null);
+
+      // Handle palette drop
+      const dropState = useEditorStore.getState().paletteDropState;
+      if (dropState) {
+        const dots = screenToDots(e.clientX, e.clientY);
+        if (dots && dots.left >= 0 && dots.top >= 0) {
+          addComponent(dropState.type, { left: dots.left, top: dots.top });
+        }
+        setPaletteDropState(null);
+      }
+    },
+    [dragState, resizeState, setDragState, setResizeState, screenToDots, addComponent, setPaletteDropState]
+  );
 
   // Collect all bounds for selection overlay rendering with absolute positions.
   // Text components use DOM-measured sizes for accurate bounding boxes.
@@ -204,7 +234,7 @@ export function Canvas() {
       if (!b) continue;
       let w = b.width;
       let h = b.height;
-      if (comp.typeData.type === 'text' || comp.typeData.type === 'barcode') {
+      if (['text', 'barcode', 'qrcode'].includes(comp.typeData.type)) {
         const measured = measuredSizes.get(comp.id);
         if (measured) {
           w = measured.width;
@@ -247,6 +277,7 @@ export function Canvas() {
       >
         {/* Label surface */}
         <div
+          ref={labelRef}
           className="bg-white shadow-lg relative"
           style={{ width: widthDots, height: heightDots }}
           onPointerDown={(e) => {

@@ -8,6 +8,7 @@ import { Toolbar } from '../toolbar/Toolbar';
 import { ZplPreview } from '../preview/ZplPreview';
 import { LabelaryPreview } from '../preview/LabelaryPreview';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
+import { DragGhost } from './DragGhost';
 
 type PreviewTab = 'zpl' | 'labelary';
 
@@ -17,6 +18,7 @@ export function Editor() {
 
   return (
     <div className="h-screen flex flex-col bg-white text-gray-900">
+      <DragGhost />
       <Toolbar />
       <div className="flex-1 flex overflow-hidden">
         <ComponentPalette />

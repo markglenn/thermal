@@ -53,7 +53,7 @@ export function qrcodeCommand(props: QrCodeProperties, bounds: ResolvedBounds): 
   const lines: string[] = [];
   lines.push(fieldOrigin(bounds.x, bounds.y));
   lines.push(`^BQN,2,${props.magnification}`);
-  lines.push(`^FDQA,${props.content}^FS`);
+  lines.push(`^FD${props.errorCorrection}A,${props.content}^FS`);
   return lines;
 }
 

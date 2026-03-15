@@ -6,6 +6,7 @@ import { LabelSettings } from '../toolbar/LabelSettings';
 import { ConstraintEditor } from './ConstraintEditor';
 import { TextProperties } from './TextProperties';
 import { BarcodeProperties } from './BarcodeProperties';
+import { QrCodeProperties } from './QrCodeProperties';
 import { BoxProperties } from './BoxProperties';
 
 export function PropertiesPanel() {
@@ -30,6 +31,9 @@ export function PropertiesPanel() {
           )}
           {selected.typeData.type === 'barcode' && (
             <BarcodeProperties componentId={selected.id} props={selected.typeData.props} />
+          )}
+          {selected.typeData.type === 'qrcode' && (
+            <QrCodeProperties componentId={selected.id} props={selected.typeData.props} />
           )}
           {(selected.typeData.type === 'rectangle' || selected.typeData.type === 'line') && (
             <BoxProperties componentId={selected.id} component={selected} />

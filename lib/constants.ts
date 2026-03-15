@@ -26,7 +26,7 @@ export const LABEL_PRESETS: Record<string, LabelConfig> = {
 export const DEFAULT_COMPONENT_CONSTRAINTS: Record<ComponentType, Constraints> = {
   text: { left: 0, top: 0 },
   barcode: { left: 0, top: 0 },
-  qrcode: { left: 0, top: 0, width: 100, height: 100 },
+  qrcode: { left: 0, top: 0 },
   image: { left: 0, top: 0, width: 200, height: 200 },
   line: { left: 0, top: 0, width: 200, height: 2 },
   rectangle: { left: 0, top: 0, width: 150, height: 100 },
