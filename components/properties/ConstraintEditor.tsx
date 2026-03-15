@@ -117,7 +117,7 @@ export function ConstraintEditor({ component }: Props) {
       <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Constraints</h3>
 
       {/* Visual constraint diagram — fixed layout grid */}
-      <div className="flex flex-col items-center">
+      <div className="flex flex-col items-center gap-1">
         {/* Top row */}
         <div className="flex flex-col items-center h-12 justify-end gap-1">
           <InlineValue value={c.top} isSet={c.top !== undefined} onToggle={() => toggle('top')} onChange={(v) => set('top', v)} />
