@@ -38,6 +38,7 @@ export function QrCodeElement({ props, isSelected }: Props) {
         size={size}
         level={props.errorCorrection}
         marginSize={0}
+        bgColor="transparent"
       />
     </div>
   );

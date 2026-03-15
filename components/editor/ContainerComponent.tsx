@@ -8,9 +8,10 @@ interface Props {
   component: LabelComponent;
   bounds: ResolvedBounds;
   boundsMap: Map<string, ResolvedBounds>;
+  onDragStart?: (e: React.PointerEvent, componentId: string) => void;
 }
 
-export function ContainerComponent({ component, bounds, boundsMap }: Props) {
+export function ContainerComponent({ component, bounds, boundsMap, onDragStart }: Props) {
   const selectedId = useEditorStore((s) => s.selectedComponentId);
   const selectComponent = useEditorStore((s) => s.selectComponent);
   const isSelected = selectedId === component.id;
@@ -27,6 +28,7 @@ export function ContainerComponent({ component, bounds, boundsMap }: Props) {
       onPointerDown={(e) => {
         e.stopPropagation();
         selectComponent(component.id);
+        if (onDragStart) onDragStart(e, component.id);
       }}
     >
       {/* Container visual indicator */}
@@ -48,6 +50,7 @@ export function ContainerComponent({ component, bounds, boundsMap }: Props) {
               component={child}
               bounds={childBounds}
               boundsMap={boundsMap}
+              onDragStart={onDragStart}
             />
           );
         }
@@ -56,6 +59,7 @@ export function ContainerComponent({ component, bounds, boundsMap }: Props) {
             key={child.id}
             component={child}
             bounds={childBounds}
+            onDragStart={onDragStart}
           />
         );
       })}

@@ -284,8 +284,13 @@ export function Canvas() {
   return (
     <div
       ref={canvasRef}
-      className="flex-1 overflow-hidden bg-gray-100 relative"
-      onPointerDown={handlePointerDown}
+      tabIndex={0}
+      className="flex-1 overflow-hidden bg-gray-100 relative outline-none"
+      onPointerDown={(e) => {
+        // Grab focus so keyboard shortcuts work after clicking canvas
+        canvasRef.current?.focus();
+        handlePointerDown(e);
+      }}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
     >
@@ -347,6 +352,7 @@ export function Canvas() {
                   component={comp}
                   bounds={b}
                   boundsMap={boundsMap}
+                  onDragStart={handleComponentPointerDown}
                 />
               );
             }
