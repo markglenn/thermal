@@ -3,7 +3,7 @@
 import type { TextProperties as TextPropsType, ZplFont, Rotation, TextJustification, FieldBlockProperties } from '@/lib/types';
 import { useEditorStore } from '@/lib/store/editor-store';
 import { findComponent } from '@/lib/utils';
-import { NumberInput } from './NumberInput';
+import { NumberInput } from '@/components/properties/NumberInput';
 
 interface Props {
   componentId: string;

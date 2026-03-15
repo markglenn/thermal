@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useDocument } from '@/hooks/use-editor-store';
 import { resolveDocument } from '@/lib/constraints/resolver';
 import type { LabelComponent, ResolvedBounds } from '@/lib/types';
-import { isAutoSized, hasFieldBlock } from '@/lib/component-traits';
+import { getSizingMode } from '@/lib/components';
 
 export function useAbsoluteBounds() {
   const document = useDocument();
@@ -35,10 +35,11 @@ export function useAbsoluteBounds() {
         if (!b) continue;
         let w = b.width;
         let h = b.height;
-        if (hasFieldBlock(comp)) {
+        const sizing = getSizingMode(comp);
+        if (sizing === 'width-only') {
           const m = measured.get(comp.id);
           if (m) h = m.height;
-        } else if (isAutoSized(comp)) {
+        } else if (sizing === 'auto') {
           const m = measured.get(comp.id);
           if (m) { w = m.width; h = m.height; }
         }

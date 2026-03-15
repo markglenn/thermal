@@ -4,6 +4,7 @@ import type { RectangleProperties } from '@/lib/types';
 
 interface Props {
   props: RectangleProperties;
+  isSelected: boolean;
 }
 
 export function RectangleElement({ props }: Props) {

@@ -1,7 +1,7 @@
 import type { LabelDocument, LabelComponent, ResolvedBounds } from '../types';
 import { labelWidthDots, labelHeightDots } from '../constants';
 import { resolveDocument } from '../constraints/resolver';
-import { textCommand, barcodeCommand, qrcodeCommand, lineCommand, rectangleCommand, fieldOrigin } from './commands';
+import { getDefinition } from '../components';
 
 function generateComponentZpl(
   component: LabelComponent,
@@ -12,7 +12,6 @@ function generateComponentZpl(
   const localBounds = boundsMap.get(component.id);
   if (!localBounds) return [];
 
-  // Absolute bounds = local + parent offset
   const bounds: ResolvedBounds = {
     x: localBounds.x + parentOffsetX,
     y: localBounds.y + parentOffsetY,
@@ -20,35 +19,10 @@ function generateComponentZpl(
     height: localBounds.height,
   };
 
-  const lines: string[] = [];
+  const def = getDefinition(component.typeData.type);
+  const lines = [...def.generateZpl(component.typeData.props, bounds)];
 
-  switch (component.typeData.type) {
-    case 'text':
-      lines.push(...textCommand(component.typeData.props, bounds));
-      break;
-    case 'barcode':
-      lines.push(...barcodeCommand(component.typeData.props, bounds));
-      break;
-    case 'qrcode':
-      lines.push(...qrcodeCommand(component.typeData.props, bounds));
-      break;
-    case 'line':
-      lines.push(...lineCommand(component.typeData.props, bounds));
-      break;
-    case 'rectangle':
-      lines.push(...rectangleCommand(component.typeData.props, bounds));
-      break;
-    case 'image':
-      // Image ZPL (^GF) is complex, placeholder for now
-      lines.push(fieldOrigin(bounds.x, bounds.y));
-      lines.push(`^FD[IMAGE]^FS`);
-      break;
-    case 'container':
-      // Container has no ZPL output itself, just recurse children
-      break;
-  }
-
-  // Recurse children (containers, or any component with children)
+  // Recurse children
   if (component.children) {
     for (const child of component.children) {
       lines.push(...generateComponentZpl(child, boundsMap, bounds.x, bounds.y));

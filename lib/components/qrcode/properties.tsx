@@ -2,7 +2,7 @@
 
 import type { QrCodeProperties as QrCodePropsType, QrErrorCorrection } from '@/lib/types';
 import { useEditorStore } from '@/lib/store/editor-store';
-import { NumberInput } from './NumberInput';
+import { NumberInput } from '@/components/properties/NumberInput';
 
 interface Props {
   componentId: string;

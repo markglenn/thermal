@@ -1,19 +1,13 @@
 'use client';
 
+import { getAllDefinitions } from '@/lib/components';
 import { PaletteItem } from './PaletteItem';
 import { LayerHierarchy } from './LayerHierarchy';
-
-const paletteItems = [
-  { type: 'text' as const, label: 'Text', icon: 'T' },
-  { type: 'barcode' as const, label: 'Barcode', icon: '║' },
-  { type: 'qrcode' as const, label: 'QR Code', icon: '▣' },
-  { type: 'rectangle' as const, label: 'Rectangle', icon: '□' },
-  { type: 'line' as const, label: 'Line', icon: '―' },
-  { type: 'container' as const, label: 'Container', icon: '⊞' },
-  { type: 'image' as const, label: 'Image', icon: '▨' },
-];
+import type { ComponentType } from '@/lib/types';
 
 export function ComponentPalette() {
+  const definitions = getAllDefinitions();
+
   return (
     <div className="w-52 border-r border-gray-200 bg-white flex flex-col overflow-hidden">
       {/* Components palette */}
@@ -22,8 +16,8 @@ export function ComponentPalette() {
           <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Components</h2>
         </div>
         <div className="p-1 flex flex-col gap-0.5">
-          {paletteItems.map((item) => (
-            <PaletteItem key={item.type} {...item} />
+          {definitions.map((def) => (
+            <PaletteItem key={def.type} type={def.type as ComponentType} label={def.label} icon={def.icon} />
           ))}
         </div>
       </div>

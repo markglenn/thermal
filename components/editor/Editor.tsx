@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import '@/lib/components'; // Register all component plugins
 import { ComponentPalette } from '../palette/ComponentPalette';
 import { Canvas } from './Canvas';
 import { PropertiesPanel } from '../properties/PropertiesPanel';

@@ -3,7 +3,7 @@
 import type { ResolvedBounds, ResizeHandle, PinnableEdge } from '@/lib/types';
 import { useEditorStore } from '@/lib/store/editor-store';
 import { findComponent } from '@/lib/utils';
-import { isAutoSized } from '@/lib/component-traits';
+import { getSizingMode } from '@/lib/components';
 
 interface Props {
   bounds: ResolvedBounds;
@@ -31,7 +31,7 @@ export function SelectionOverlay({ bounds, componentId }: Props) {
 
   if (!selectedComponent) return null;
 
-  const autoSized = isAutoSized(selectedComponent);
+  const autoSized = getSizingMode(selectedComponent) === 'auto';
 
   // Auto-sized components render their own selection outline (handles rotation/transforms)
   if (autoSized) return null;

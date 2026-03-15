@@ -3,13 +3,7 @@
 import { useRef, useEffect } from 'react';
 import type { LabelComponent, ResolvedBounds } from '@/lib/types';
 import { useEditorStore } from '@/lib/store/editor-store';
-import { TextElement } from './canvas/TextElement';
-import { BarcodeElement } from './canvas/BarcodeElement';
-import { QrCodeElement } from './canvas/QrCodeElement';
-import { LineElement } from './canvas/LineElement';
-import { RectangleElement } from './canvas/RectangleElement';
-import { ImageElement } from './canvas/ImageElement';
-import { isAutoSized, hasFieldBlock } from '@/lib/component-traits';
+import { getDefinition, getSizingMode } from '@/lib/components';
 
 interface Props {
   component: LabelComponent;
@@ -24,11 +18,12 @@ export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: P
   const selectComponent = useEditorStore((s) => s.selectComponent);
   const isSelected = selectedId === component.id;
 
-  const fieldBlock = hasFieldBlock(component);
-  const autoSize = isAutoSized(component);
+  const def = getDefinition(component.typeData.type);
+  const sizingMode = getSizingMode(component);
+  const needsMeasure = sizingMode !== 'fixed';
 
   useEffect(() => {
-    if ((autoSize || fieldBlock) && ref.current && onMeasure) {
+    if (needsMeasure && ref.current && onMeasure) {
       const rect = ref.current.getBoundingClientRect();
       const zoom = useEditorStore.getState().viewport.zoom;
       onMeasure(component.id, rect.width / zoom, rect.height / zoom);
@@ -42,31 +37,15 @@ export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: P
     cursor: 'default',
   };
 
-  if (!autoSize) {
+  if (sizingMode === 'fixed') {
     style.width = bounds.width;
-    if (!fieldBlock) {
-      style.height = bounds.height;
-    }
+    style.height = bounds.height;
+  } else if (sizingMode === 'width-only') {
+    style.width = bounds.width;
   }
 
-  function renderContent() {
-    switch (component.typeData.type) {
-      case 'text':
-        return <TextElement props={component.typeData.props} isSelected={isSelected && autoSize} />;
-      case 'barcode':
-        return <BarcodeElement props={component.typeData.props} isSelected={isSelected} />;
-      case 'qrcode':
-        return <QrCodeElement props={component.typeData.props} isSelected={isSelected} />;
-      case 'line':
-        return <LineElement props={component.typeData.props} />;
-      case 'rectangle':
-        return <RectangleElement props={component.typeData.props} />;
-      case 'image':
-        return <ImageElement />;
-      default:
-        return null;
-    }
-  }
+  const Element = def.Element;
+  const showSelectionOnElement = isSelected && sizingMode === 'auto';
 
   return (
     <div
@@ -78,7 +57,7 @@ export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: P
         if (onDragStart) onDragStart(e, component.id);
       }}
     >
-      {renderContent()}
+      <Element props={component.typeData.props} isSelected={showSelectionOnElement} />
     </div>
   );
 }

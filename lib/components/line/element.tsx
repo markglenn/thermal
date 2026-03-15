@@ -4,6 +4,7 @@ import type { LineProperties } from '@/lib/types';
 
 interface Props {
   props: LineProperties;
+  isSelected: boolean;
 }
 
 export function LineElement({ props }: Props) {

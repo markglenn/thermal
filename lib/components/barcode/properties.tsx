@@ -2,7 +2,7 @@
 
 import type { BarcodeProperties as BarcodePropsType, BarcodeEncoding, Rotation } from '@/lib/types';
 import { useEditorStore } from '@/lib/store/editor-store';
-import { NumberInput } from './NumberInput';
+import { NumberInput } from '@/components/properties/NumberInput';
 
 interface Props {
   componentId: string;
@@ -51,10 +51,10 @@ export function BarcodeProperties({ componentId, props }: Props) {
               onChange={(e) => update({ rotation: parseInt(e.target.value) as Rotation })}
               className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm"
             >
-              <option value={0}>0°</option>
-              <option value={90}>90°</option>
-              <option value={180}>180°</option>
-              <option value={270}>270°</option>
+              <option value={0}>0</option>
+              <option value={90}>90</option>
+              <option value={180}>180</option>
+              <option value={270}>270</option>
             </select>
           </label>
         </div>
