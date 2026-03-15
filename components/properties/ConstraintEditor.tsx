@@ -58,6 +58,9 @@ export function ConstraintEditor({ component }: Props) {
     updateConstraints(component.id, { [key]: value });
   };
 
+  // Text auto-sizes from font metrics — no width/height constraints
+  const isText = component.typeData.type === 'text';
+
   return (
     <div className="p-3 border-b border-gray-200">
       <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Constraints</h3>
@@ -66,8 +69,12 @@ export function ConstraintEditor({ component }: Props) {
         <ConstraintInput label="B" value={c.bottom} isSet={c.bottom !== undefined} onToggle={() => toggle('bottom')} onChange={(v) => set('bottom', v)} />
         <ConstraintInput label="L" value={c.left} isSet={c.left !== undefined} onToggle={() => toggle('left')} onChange={(v) => set('left', v)} />
         <ConstraintInput label="R" value={c.right} isSet={c.right !== undefined} onToggle={() => toggle('right')} onChange={(v) => set('right', v)} />
-        <ConstraintInput label="W" value={c.width} isSet={c.width !== undefined} onToggle={() => toggle('width')} onChange={(v) => set('width', v)} />
-        <ConstraintInput label="H" value={c.height} isSet={c.height !== undefined} onToggle={() => toggle('height')} onChange={(v) => set('height', v)} />
+        {!isText && (
+          <>
+            <ConstraintInput label="W" value={c.width} isSet={c.width !== undefined} onToggle={() => toggle('width')} onChange={(v) => set('width', v)} />
+            <ConstraintInput label="H" value={c.height} isSet={c.height !== undefined} onToggle={() => toggle('height')} onChange={(v) => set('height', v)} />
+          </>
+        )}
       </div>
     </div>
   );

@@ -24,7 +24,7 @@ export const LABEL_PRESETS: Record<string, LabelConfig> = {
 
 // Default constraints when dropping new components
 export const DEFAULT_COMPONENT_CONSTRAINTS: Record<ComponentType, Constraints> = {
-  text: { left: 0, top: 0, width: 200, height: 40 },
+  text: { left: 0, top: 0 },
   barcode: { left: 0, top: 0, width: 300, height: 80 },
   qrcode: { left: 0, top: 0, width: 100, height: 100 },
   image: { left: 0, top: 0, width: 200, height: 200 },
@@ -65,17 +65,40 @@ export const DEFAULT_RECTANGLE_PROPS: RectangleProperties = {
   filled: false,
 };
 
-// ZPL font size mapping (approximate pixel heights for ZPL fonts)
+// ZPL font size mapping (native bitmap dimensions in dots: height x width)
 export const ZPL_FONT_SIZES: Record<string, { width: number; height: number }> = {
-  A: { width: 9, height: 5 },
-  B: { width: 11, height: 7 },
-  C: { width: 18, height: 10 },
-  D: { width: 18, height: 10 },
-  E: { width: 28, height: 15 },
-  F: { width: 26, height: 13 },
-  G: { width: 60, height: 40 },
-  H: { width: 21, height: 13 },
-  '0': { width: 15, height: 12 }, // Default scalable font
+  A: { width: 5, height: 9 },
+  B: { width: 7, height: 11 },
+  C: { width: 10, height: 18 },
+  D: { width: 10, height: 18 },
+  E: { width: 15, height: 28 },
+  F: { width: 13, height: 26 },
+  G: { width: 40, height: 60 },
+  H: { width: 13, height: 21 },
+  '0': { width: 12, height: 15 }, // Default scalable font
+};
+
+// CSS font-family mapping: ZPL font letter → closest screen substitute
+// Font 0: CG Triumvirate Bold Condensed → Roboto Condensed Bold
+// Fonts A-D, F-G: proprietary bitmaps → Source Code Pro (monospace approximation)
+// Font E: OCR-B variant → Source Code Pro (closest available without custom font)
+// Font H: OCR-A variant → Source Code Pro (closest available without custom font)
+export const ZPL_FONT_FAMILY: Record<string, string> = {
+  '0': 'var(--font-zpl-0), Arial Narrow, Helvetica Neue Condensed, sans-serif',
+  A: 'var(--font-zpl-bitmap), monospace',
+  B: 'var(--font-zpl-bitmap), monospace',
+  C: 'var(--font-zpl-bitmap), monospace',
+  D: 'var(--font-zpl-bitmap), monospace',
+  E: 'var(--font-zpl-bitmap), monospace',
+  F: 'var(--font-zpl-bitmap), monospace',
+  G: 'var(--font-zpl-bitmap), monospace',
+  H: 'var(--font-zpl-bitmap), monospace',
+};
+
+// Font weight mapping — Font 0 is bold condensed, bitmaps render at regular weight
+export const ZPL_FONT_WEIGHT: Record<string, number> = {
+  '0': 700,
+  A: 400, B: 400, C: 400, D: 400, E: 400, F: 400, G: 400, H: 400,
 };
 
 export const LABELARY_BASE_URL = 'http://api.labelary.com/v1/printers';
@@ -88,4 +111,27 @@ export function labelWidthDots(label: LabelConfig): number {
 
 export function labelHeightDots(label: LabelConfig): number {
   return Math.round(label.heightInches * label.dpi);
+}
+
+// Estimate text bounds in dots based on ZPL font metrics.
+// For font 0 (scalable): fontSize sets the height, width ≈ 60% of height (condensed).
+// For bitmap fonts A-H: fontSize is ignored, native cell size is used.
+export function estimateTextBounds(props: TextProperties): { width: number; height: number } {
+  const { font, fontSize, content } = props;
+  const len = content.length;
+
+  if (font === '0') {
+    // Font 0 is scalable — fontSize = height in dots, width ≈ 0.6 * height per char
+    const charWidth = Math.round(fontSize * 0.6);
+    return { width: charWidth * len, height: fontSize };
+  }
+
+  // Bitmap fonts — use native cell sizes, fontSize param is ignored by ZPL
+  const size = ZPL_FONT_SIZES[font];
+  if (size) {
+    return { width: size.width * len, height: size.height };
+  }
+
+  // Fallback
+  return { width: fontSize * 0.6 * len, height: fontSize };
 }

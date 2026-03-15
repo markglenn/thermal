@@ -36,6 +36,8 @@ export function SelectionOverlay({ bounds, componentId }: Props) {
 
   if (!selectedComponent) return null;
 
+  const isText = selectedComponent.typeData.type === 'text';
+
   return (
     <div
       className="pointer-events-none"
@@ -47,7 +49,9 @@ export function SelectionOverlay({ bounds, componentId }: Props) {
         height: bounds.height,
       }}
     >
-      {handles.map((h) => (
+      {/* Text auto-sizes — no resize handles, just a selection border */}
+      <div className="absolute inset-0 border-2 border-blue-500 pointer-events-none" />
+      {!isText && handles.map((h) => (
         <div
           key={h.position}
           className="pointer-events-auto absolute bg-white border-2 border-blue-500"

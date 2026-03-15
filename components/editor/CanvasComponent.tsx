@@ -1,7 +1,8 @@
 'use client';
 
-import type { LabelComponent, ResolvedBounds } from '@/lib/types';
+import type { LabelComponent, ResolvedBounds, TextProperties } from '@/lib/types';
 import { useEditorStore } from '@/lib/store/editor-store';
+import { ZPL_FONT_FAMILY, ZPL_FONT_WEIGHT, estimateTextBounds } from '@/lib/constants';
 
 interface Props {
   component: LabelComponent;
@@ -14,26 +15,38 @@ export function CanvasComponent({ component, bounds, onDragStart }: Props) {
   const selectComponent = useEditorStore((s) => s.selectComponent);
   const isSelected = selectedId === component.id;
 
+  // For text, compute size from font metrics instead of constraint bounds
+  const isText = component.typeData.type === 'text';
+  const textBounds = isText ? estimateTextBounds(component.typeData.props as TextProperties) : null;
+
   const style: React.CSSProperties = {
     position: 'absolute',
     left: bounds.x,
     top: bounds.y,
-    width: bounds.width,
-    height: bounds.height,
+    width: isText ? textBounds!.width : bounds.width,
+    height: isText ? textBounds!.height : bounds.height,
     cursor: 'default',
   };
 
   function renderContent() {
     switch (component.typeData.type) {
-      case 'text':
+      case 'text': {
+        const font = component.typeData.props.font;
         return (
           <div
-            className="w-full h-full flex items-center overflow-hidden whitespace-nowrap text-black"
-            style={{ fontSize: component.typeData.props.fontSize * 0.75 }}
+            className="whitespace-nowrap text-black"
+            style={{
+              fontSize: component.typeData.props.fontSize,
+              lineHeight: 1,
+              fontFamily: ZPL_FONT_FAMILY[font] || ZPL_FONT_FAMILY['0'],
+              fontWeight: ZPL_FONT_WEIGHT[font] || 400,
+              letterSpacing: font === '0' ? '-0.02em' : '0.05em',
+            }}
           >
             {component.typeData.props.content}
           </div>
         );
+      }
       case 'barcode':
         return (
           <div className="w-full h-full flex flex-col items-center justify-center border border-gray-400 bg-white">
@@ -49,7 +62,10 @@ export function CanvasComponent({ component, bounds, onDragStart }: Props) {
               </div>
             </div>
             {component.typeData.props.showText && (
-              <div className="text-xs text-black text-center pb-0.5">
+              <div
+                className="text-xs text-black text-center pb-0.5"
+                style={{ fontFamily: ZPL_FONT_FAMILY['0'], fontWeight: ZPL_FONT_WEIGHT['0'] }}
+              >
                 {component.typeData.props.content}
               </div>
             )}
@@ -114,9 +130,6 @@ export function CanvasComponent({ component, bounds, onDragStart }: Props) {
       }}
     >
       {renderContent()}
-      {isSelected && (
-        <div className="absolute inset-0 border-2 border-blue-500 pointer-events-none" />
-      )}
     </div>
   );
 }
