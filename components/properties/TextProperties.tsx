@@ -37,11 +37,20 @@ export function TextProperties({ componentId, props }: Props) {
       <div className="space-y-2">
         <label>
           <span className="text-xs text-gray-500">Content</span>
-          <input
-            value={props.content}
-            onChange={(e) => update({ content: e.target.value })}
-            className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm"
-          />
+          {hasFieldBlock ? (
+            <textarea
+              value={props.content}
+              onChange={(e) => update({ content: e.target.value })}
+              rows={3}
+              className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm resize-y"
+            />
+          ) : (
+            <input
+              value={props.content}
+              onChange={(e) => update({ content: e.target.value })}
+              className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm"
+            />
+          )}
         </label>
         <div className="flex gap-2">
           <label className="flex-1">

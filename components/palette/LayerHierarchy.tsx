@@ -31,10 +31,6 @@ const TYPE_ICONS: Record<string, string> = {
 };
 
 function defaultLabel(component: LabelComponent): string {
-  if (component.typeData.type === 'text') {
-    const content = component.typeData.props.content;
-    return content.length > 20 ? content.slice(0, 20) + '...' : content;
-  }
   return component.typeData.type.charAt(0).toUpperCase() + component.typeData.type.slice(1);
 }
 
@@ -93,7 +89,7 @@ function SortableLayerItem({ component, depth }: { component: LabelComponent; de
         }`}
         onClick={() => selectComponent(component.id)}
         onDoubleClick={() => {
-          setEditText(component.name);
+          setEditText(displayName);
           setEditing(true);
         }}
         {...attributes}

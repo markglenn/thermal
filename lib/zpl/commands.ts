@@ -20,7 +20,10 @@ export function textCommand(props: TextProperties, bounds: ResolvedBounds): stri
     const fb = props.fieldBlock;
     lines.push(`^FB${fb.width},${fb.maxLines},${fb.lineSpacing},${fb.justification},0`);
   }
-  lines.push(`^FD${props.content}^FS`);
+  const content = props.fieldBlock
+    ? props.content.replace(/\n/g, '\\&')
+    : props.content;
+  lines.push(`^FD${content}^FS`);
   return lines;
 }
 

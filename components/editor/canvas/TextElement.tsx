@@ -85,6 +85,7 @@ export function TextElement({ props, isSelected }: Props) {
           ...baseStyle,
           width: scaleX !== 1 ? fb.width / scaleX : fb.width,
           textAlign: JUSTIFICATION_MAP[fb.justification] || 'left',
+          whiteSpace: 'pre-wrap',
           wordWrap: 'break-word',
           overflowWrap: 'break-word',
           overflow: 'hidden',
