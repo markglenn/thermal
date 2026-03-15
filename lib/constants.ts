@@ -79,12 +79,10 @@ export const ZPL_FONT_SIZES: Record<string, { width: number; height: number }> =
 };
 
 // CSS font-family mapping: ZPL font letter → closest screen substitute
-// Font 0: CG Triumvirate Bold Condensed → Roboto Condensed Bold
-// Fonts A-D, F-G: proprietary bitmaps → Source Code Pro (monospace approximation)
-// Font E: OCR-B variant → Source Code Pro (closest available without custom font)
-// Font H: OCR-A variant → Source Code Pro (closest available without custom font)
+// Font 0: CG Triumvirate Bold Condensed → Roboto Condensed Bold (proportional condensed)
+// Fonts A-H: proprietary bitmaps → Source Code Pro (monospace)
 export const ZPL_FONT_FAMILY: Record<string, string> = {
-  '0': 'var(--font-zpl-0), Arial Narrow, Helvetica Neue Condensed, sans-serif',
+  '0': 'var(--font-zpl-0), Arial Narrow, sans-serif',
   A: 'var(--font-zpl-bitmap), monospace',
   B: 'var(--font-zpl-bitmap), monospace',
   C: 'var(--font-zpl-bitmap), monospace',

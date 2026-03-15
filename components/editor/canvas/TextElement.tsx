@@ -17,8 +17,8 @@ export function TextElement({ props }: Props) {
         lineHeight: 1,
         fontFamily: ZPL_FONT_FAMILY[font] || ZPL_FONT_FAMILY['0'],
         fontWeight: ZPL_FONT_WEIGHT[font] || 400,
-        letterSpacing: font === '0' ? '-0.027em' : '0.05em',
-        marginTop: font === '0' ? '-0.12em' : '-0.08em',
+        letterSpacing: '-0.027em',
+        marginTop: '-0.12em',
       }}
     >
       {props.content}
