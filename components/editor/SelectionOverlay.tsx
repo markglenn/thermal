@@ -49,8 +49,8 @@ export function SelectionOverlay({ bounds, componentId }: Props) {
         height: bounds.height,
       }}
     >
-      {/* Text auto-sizes — no resize handles, just a selection border */}
-      <div className="absolute inset-0 border-2 border-blue-500 pointer-events-none" />
+      {/* Outline instead of border so it doesn't overlap content */}
+      <div className="absolute inset-0 pointer-events-none" style={{ outline: '2px solid #3b82f6' }} />
       {!isText && handles.map((h) => (
         <div
           key={h.position}

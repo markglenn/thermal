@@ -1,10 +1,10 @@
 'use client';
 
-import { useRef, useCallback, useMemo, useEffect } from 'react';
+import { useRef, useCallback, useMemo, useEffect, useState } from 'react';
 import { useEditorStore } from '@/lib/store/editor-store';
 import { useDocument, useViewport } from '@/hooks/use-editor-store';
 import { resolveDocument } from '@/lib/constraints/resolver';
-import { labelWidthDots, labelHeightDots, MIN_ZOOM, MAX_ZOOM, ZOOM_STEP, estimateTextBounds } from '@/lib/constants';
+import { labelWidthDots, labelHeightDots, MIN_ZOOM, MAX_ZOOM, ZOOM_STEP } from '@/lib/constants';
 import { CanvasComponent } from './CanvasComponent';
 import { ContainerComponent } from './ContainerComponent';
 import { SelectionOverlay } from './SelectionOverlay';
@@ -28,6 +28,18 @@ export function Canvas() {
 
   const widthDots = labelWidthDots(document.label);
   const heightDots = labelHeightDots(document.label);
+
+  // Track actual measured sizes for text components (DOM-measured, not estimated)
+  const [measuredSizes, setMeasuredSizes] = useState<Map<string, { width: number; height: number }>>(new Map());
+  const handleMeasure = useCallback((id: string, width: number, height: number) => {
+    setMeasuredSizes((prev) => {
+      const existing = prev.get(id);
+      if (existing && existing.width === width && existing.height === height) return prev;
+      const next = new Map(prev);
+      next.set(id, { width, height });
+      return next;
+    });
+  }, []);
 
   // Fit label in viewport on mount (deferred to ensure layout is computed)
   useEffect(() => {
@@ -179,7 +191,7 @@ export function Canvas() {
   }, [dragState, resizeState, setDragState, setResizeState]);
 
   // Collect all bounds for selection overlay rendering with absolute positions.
-  // Text components use auto-sized bounds from font metrics.
+  // Text components use DOM-measured sizes for accurate bounding boxes.
   function getAbsoluteBounds(
     components: LabelComponent[],
     boundsMap: Map<string, ResolvedBounds>,
@@ -193,9 +205,11 @@ export function Canvas() {
       let w = b.width;
       let h = b.height;
       if (comp.typeData.type === 'text') {
-        const tb = estimateTextBounds(comp.typeData.props);
-        w = tb.width;
-        h = tb.height;
+        const measured = measuredSizes.get(comp.id);
+        if (measured) {
+          w = measured.width;
+          h = measured.height;
+        }
       }
       const abs = { x: b.x + offsetX, y: b.y + offsetY, width: w, height: h };
       result.set(comp.id, abs);
@@ -209,7 +223,7 @@ export function Canvas() {
 
   const absoluteBoundsMap = useMemo(
     () => getAbsoluteBounds(document.components, boundsMap, 0, 0),
-    [document.components, boundsMap]
+    [document.components, boundsMap, measuredSizes]
   );
 
   const selectedBounds = selectedId ? absoluteBoundsMap.get(selectedId) : null;
@@ -288,6 +302,7 @@ export function Canvas() {
                 component={comp}
                 bounds={b}
                 onDragStart={handleComponentPointerDown}
+                onMeasure={handleMeasure}
               />
             );
           })}

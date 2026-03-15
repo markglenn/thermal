@@ -1,30 +1,38 @@
 'use client';
 
-import type { LabelComponent, ResolvedBounds, TextProperties } from '@/lib/types';
+import { useRef, useEffect } from 'react';
+import type { LabelComponent, ResolvedBounds } from '@/lib/types';
 import { useEditorStore } from '@/lib/store/editor-store';
-import { ZPL_FONT_FAMILY, ZPL_FONT_WEIGHT, estimateTextBounds } from '@/lib/constants';
+import { ZPL_FONT_FAMILY, ZPL_FONT_WEIGHT } from '@/lib/constants';
 
 interface Props {
   component: LabelComponent;
   bounds: ResolvedBounds;
   onDragStart?: (e: React.PointerEvent, componentId: string) => void;
+  onMeasure?: (id: string, width: number, height: number) => void;
 }
 
-export function CanvasComponent({ component, bounds, onDragStart }: Props) {
+export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: Props) {
+  const ref = useRef<HTMLDivElement>(null);
   const selectedId = useEditorStore((s) => s.selectedComponentId);
   const selectComponent = useEditorStore((s) => s.selectComponent);
   const isSelected = selectedId === component.id;
 
-  // For text, compute size from font metrics instead of constraint bounds
   const isText = component.typeData.type === 'text';
-  const textBounds = isText ? estimateTextBounds(component.typeData.props as TextProperties) : null;
+
+  // Report actual measured size for text components
+  useEffect(() => {
+    if (isText && ref.current && onMeasure) {
+      const { offsetWidth, offsetHeight } = ref.current;
+      onMeasure(component.id, offsetWidth, offsetHeight);
+    }
+  });
 
   const style: React.CSSProperties = {
     position: 'absolute',
     left: bounds.x,
     top: bounds.y,
-    width: isText ? textBounds!.width : bounds.width,
-    height: isText ? textBounds!.height : bounds.height,
+    ...(isText ? {} : { width: bounds.width, height: bounds.height }),
     cursor: 'default',
   };
 
@@ -40,7 +48,7 @@ export function CanvasComponent({ component, bounds, onDragStart }: Props) {
               lineHeight: 1,
               fontFamily: ZPL_FONT_FAMILY[font] || ZPL_FONT_FAMILY['0'],
               fontWeight: ZPL_FONT_WEIGHT[font] || 400,
-              letterSpacing: font === '0' ? '-0.02em' : '0.05em',
+              letterSpacing: font === '0' ? '-0.027em' : '0.05em',
             }}
           >
             {component.typeData.props.content}
@@ -122,6 +130,7 @@ export function CanvasComponent({ component, bounds, onDragStart }: Props) {
 
   return (
     <div
+      ref={ref}
       style={style}
       onPointerDown={(e) => {
         e.stopPropagation();
