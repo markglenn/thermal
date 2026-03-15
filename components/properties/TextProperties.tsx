@@ -12,6 +12,7 @@ interface Props {
 export function TextProperties({ componentId, props }: Props) {
   const updateProperties = useEditorStore((s) => s.updateProperties);
   const updateConstraints = useEditorStore((s) => s.updateConstraints);
+  const togglePin = useEditorStore((s) => s.togglePin);
   const update = (changes: Partial<TextPropsType>) => updateProperties(componentId, changes);
 
   const fb = props.fieldBlock;
@@ -20,13 +21,26 @@ export function TextProperties({ componentId, props }: Props) {
   const toggleFieldBlock = () => {
     if (hasFieldBlock) {
       update({ fieldBlock: undefined });
-      // Remove width constraint when disabling field block
-      updateConstraints(componentId, { width: undefined });
+      // Clean up constraints invalid for auto-sized text
+      updateConstraints(componentId, { width: undefined, right: undefined, bottom: undefined });
+      // Remove right/bottom pins if active
+      const comp = useEditorStore.getState().document.components;
+      const find = (cs: typeof comp): typeof comp[0] | null => {
+        for (const c of cs) {
+          if (c.id === componentId) return c;
+          if (c.children) { const f = find(c.children); if (f) return f; }
+        }
+        return null;
+      };
+      const current = find(comp);
+      if (current) {
+        if (current.pins.includes('right')) togglePin(componentId, 'right');
+        if (current.pins.includes('bottom')) togglePin(componentId, 'bottom');
+      }
     } else {
       update({
         fieldBlock: { maxLines: 3, lineSpacing: 0, justification: 'L' },
       });
-      // Set a default width constraint
       updateConstraints(componentId, { width: 200 });
     }
   };

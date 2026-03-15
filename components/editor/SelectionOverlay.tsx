@@ -1,6 +1,6 @@
 'use client';
 
-import type { ResolvedBounds, ResizeHandle } from '@/lib/types';
+import type { ResolvedBounds, ResizeHandle, PinnableEdge } from '@/lib/types';
 import { useEditorStore } from '@/lib/store/editor-store';
 
 interface Props {
@@ -54,28 +54,50 @@ export function SelectionOverlay({ bounds, componentId }: Props) {
       }}
     >
       <div className="absolute inset-0 pointer-events-none" style={{ outline: '2px solid #3b82f6' }} />
-      {handles.map((h) => (
-        <div
-          key={h.position}
-          className="pointer-events-auto absolute bg-white border-2 border-blue-500"
-          style={{
-            width: HANDLE_SIZE,
-            height: HANDLE_SIZE,
-            ...h.style,
-          }}
-          onPointerDown={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            setResizeState({
-              componentId,
-              handle: h.position,
-              startX: e.clientX,
-              startY: e.clientY,
-              startConstraints: { ...selectedComponent.constraints },
-            });
-          }}
-        />
-      ))}
+      {handles.map((h) => {
+        // Hide handles that touch a pinned edge
+        const pins = selectedComponent.pins ?? [];
+        const isText = selectedComponent.typeData.type === 'text';
+        const handleEdges: Record<ResizeHandle, PinnableEdge[]> = {
+          'top-left': ['top', 'left'],
+          'top': ['top'],
+          'top-right': ['top', 'right'],
+          'right': ['right'],
+          'bottom-right': ['bottom', 'right'],
+          'bottom': ['bottom'],
+          'bottom-left': ['bottom', 'left'],
+          'left': ['left'],
+        };
+        const touchesPinnedEdge = handleEdges[h.position].some((e) => pins.includes(e));
+        if (touchesPinnedEdge) return null;
+
+        // Text components: hide all handles that affect height
+        const affectsHeight = ['top', 'bottom', 'top-left', 'top-right', 'bottom-left', 'bottom-right'].includes(h.position);
+        if (isText && affectsHeight) return null;
+
+        return (
+          <div
+            key={h.position}
+            className="pointer-events-auto absolute bg-white border-2 border-blue-500"
+            style={{
+              width: HANDLE_SIZE,
+              height: HANDLE_SIZE,
+              ...h.style,
+            }}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              setResizeState({
+                componentId,
+                handle: h.position,
+                startX: e.clientX,
+                startY: e.clientY,
+                startConstraints: { ...selectedComponent.constraints },
+              });
+            }}
+          />
+        );
+      })}
     </div>
   );
 }
