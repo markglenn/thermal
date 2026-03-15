@@ -30,7 +30,7 @@ export function BarcodeElement({ props }: Props) {
         font: 'Source Code Pro, monospace',
         fontSize: 22,
         fontOptions: '',
-        textMargin: 1,
+        textMargin: -1,
         margin: 0,
         background: 'transparent',
       });
