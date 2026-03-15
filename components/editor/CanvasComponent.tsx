@@ -1,9 +1,10 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
-import type { LabelComponent, ResolvedBounds } from '@/lib/types';
+import { useRef, useEffect, useCallback } from 'react';
+import type { LabelComponent, ResolvedBounds, BarcodeEncoding } from '@/lib/types';
 import { useEditorStore } from '@/lib/store/editor-store';
 import { ZPL_FONT_FAMILY, ZPL_FONT_WEIGHT } from '@/lib/constants';
+import JsBarcode from 'jsbarcode';
 
 interface Props {
   component: LabelComponent;
@@ -19,10 +20,12 @@ export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: P
   const isSelected = selectedId === component.id;
 
   const isText = component.typeData.type === 'text';
+  const isBarcode = component.typeData.type === 'barcode';
+  const autoSize = isText || isBarcode;
 
-  // Report actual measured size for text components
+  // Report actual measured size for auto-sized components
   useEffect(() => {
-    if (isText && ref.current && onMeasure) {
+    if (autoSize && ref.current && onMeasure) {
       const { offsetWidth, offsetHeight } = ref.current;
       onMeasure(component.id, offsetWidth, offsetHeight);
     }
@@ -32,7 +35,7 @@ export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: P
     position: 'absolute',
     left: bounds.x,
     top: bounds.y,
-    ...(isText ? {} : { width: bounds.width, height: bounds.height }),
+    ...(autoSize ? {} : { width: bounds.width, height: bounds.height }),
     cursor: 'default',
   };
 
@@ -50,37 +53,32 @@ export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: P
               fontWeight: ZPL_FONT_WEIGHT[font] || 400,
               letterSpacing: font === '0' ? '-0.027em' : '0.05em',
               // Compensate for CSS ascender gap — ZPL positions at glyph top, not line box top
-              marginTop: font === '0' ? '-0.22em' : '-0.15em',
+              marginTop: font === '0' ? '-0.12em' : '-0.08em',
             }}
           >
             {component.typeData.props.content}
           </div>
         );
       }
-      case 'barcode':
+      case 'barcode': {
+        const bcProps = component.typeData.props;
+        // ZPL ^BC uses Code 128 subset B (one symbol per character)
+        const jsBarcodeFormat: Record<BarcodeEncoding, string> = {
+          code128: 'CODE128B',
+          code39: 'CODE39',
+          ean13: 'EAN13',
+          upca: 'UPC',
+          itf: 'ITF',
+        };
         return (
-          <div className="w-full h-full flex flex-col items-center justify-center border border-gray-400 bg-white">
-            <div className="flex-1 w-full flex items-center justify-center">
-              <div className="flex gap-px h-3/4">
-                {Array.from({ length: 30 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="bg-black"
-                    style={{ width: Math.random() > 0.5 ? 2 : 1, height: '100%' }}
-                  />
-                ))}
-              </div>
-            </div>
-            {component.typeData.props.showText && (
-              <div
-                className="text-xs text-black text-center pb-0.5"
-                style={{ fontFamily: ZPL_FONT_FAMILY['0'], fontWeight: ZPL_FONT_WEIGHT['0'] }}
-              >
-                {component.typeData.props.content}
-              </div>
-            )}
-          </div>
+          <BarcodeRenderer
+            content={bcProps.content}
+            format={jsBarcodeFormat[bcProps.encoding]}
+            height={bcProps.height}
+            showText={bcProps.showText}
+          />
         );
+      }
       case 'qrcode':
         return (
           <div className="w-full h-full border border-gray-400 bg-white flex items-center justify-center">
@@ -143,4 +141,43 @@ export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: P
       {renderContent()}
     </div>
   );
+}
+
+function BarcodeRenderer({
+  content,
+  format,
+  height,
+  showText,
+}: {
+  content: string;
+  format: string;
+  height: number;
+  showText: boolean;
+}) {
+  const svgRef = useRef<SVGSVGElement>(null);
+
+  useEffect(() => {
+    if (!svgRef.current || !content) return;
+    try {
+      JsBarcode(svgRef.current, content, {
+        format,
+        width: 2,
+        height,
+        displayValue: showText,
+        font: 'Source Code Pro, monospace',
+        fontSize: 22,
+        fontOptions: '',
+        textMargin: 1,
+        margin: 0,
+        background: 'transparent',
+      });
+    } catch {
+      // Invalid barcode data — show placeholder
+      if (svgRef.current) {
+        svgRef.current.innerHTML = '';
+      }
+    }
+  }, [content, format, height, showText]);
+
+  return <svg ref={svgRef} />;
 }

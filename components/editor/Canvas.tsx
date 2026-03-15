@@ -204,7 +204,7 @@ export function Canvas() {
       if (!b) continue;
       let w = b.width;
       let h = b.height;
-      if (comp.typeData.type === 'text') {
+      if (comp.typeData.type === 'text' || comp.typeData.type === 'barcode') {
         const measured = measuredSizes.get(comp.id);
         if (measured) {
           w = measured.width;

@@ -25,7 +25,7 @@ export function Editor() {
             <Canvas />
           </div>
           {/* Bottom preview panel */}
-          <div className="h-56 border-t border-gray-200 flex flex-col">
+          <div className="h-80 border-t border-gray-200 flex flex-col">
             <div className="flex border-b border-gray-200">
               <button
                 onClick={() => setPreviewTab('zpl')}

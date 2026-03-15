@@ -25,7 +25,7 @@ export const LABEL_PRESETS: Record<string, LabelConfig> = {
 // Default constraints when dropping new components
 export const DEFAULT_COMPONENT_CONSTRAINTS: Record<ComponentType, Constraints> = {
   text: { left: 0, top: 0 },
-  barcode: { left: 0, top: 0, width: 300, height: 80 },
+  barcode: { left: 0, top: 0 },
   qrcode: { left: 0, top: 0, width: 100, height: 100 },
   image: { left: 0, top: 0, width: 200, height: 200 },
   line: { left: 0, top: 0, width: 200, height: 2 },

@@ -36,7 +36,7 @@ export function SelectionOverlay({ bounds, componentId }: Props) {
 
   if (!selectedComponent) return null;
 
-  const isText = selectedComponent.typeData.type === 'text';
+  const autoSized = selectedComponent.typeData.type === 'text' || selectedComponent.typeData.type === 'barcode';
 
   return (
     <div
@@ -51,7 +51,7 @@ export function SelectionOverlay({ bounds, componentId }: Props) {
     >
       {/* Outline instead of border so it doesn't overlap content */}
       <div className="absolute inset-0 pointer-events-none" style={{ outline: '2px solid #3b82f6' }} />
-      {!isText && handles.map((h) => (
+      {!autoSized && handles.map((h) => (
         <div
           key={h.position}
           className="pointer-events-auto absolute bg-white border-2 border-blue-500"
