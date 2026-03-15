@@ -9,7 +9,7 @@ import { QrCodeElement } from './canvas/QrCodeElement';
 import { LineElement } from './canvas/LineElement';
 import { RectangleElement } from './canvas/RectangleElement';
 import { ImageElement } from './canvas/ImageElement';
-import { isAutoSized, hasFieldBlock } from '@/lib/utils';
+import { isAutoSized, hasFieldBlock } from '@/lib/component-traits';
 
 interface Props {
   component: LabelComponent;
@@ -39,16 +39,15 @@ export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: P
     position: 'absolute',
     left: bounds.x,
     top: bounds.y,
-    // Field block text: constraint width, auto height
-    // Auto-sized: no width/height
-    // Everything else: both from constraints
-    ...(autoSize
-      ? {}
-      : fieldBlock
-        ? { width: bounds.width }
-        : { width: bounds.width, height: bounds.height }),
     cursor: 'default',
   };
+
+  if (!autoSize) {
+    style.width = bounds.width;
+    if (!fieldBlock) {
+      style.height = bounds.height;
+    }
+  }
 
   function renderContent() {
     switch (component.typeData.type) {

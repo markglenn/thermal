@@ -45,18 +45,14 @@ export function BarcodeElement({ props, isSelected }: Props) {
 
   const rot = props.rotation;
 
-  // ZPL rotation: ^FO marks the starting corner of the content flow.
-  // Use CSS transforms that keep the ^FO point at the element's CSS position.
-  const rotationStyle: React.CSSProperties = rot === 90
-    ? { transform: 'rotate(90deg) translateY(-100%)', transformOrigin: 'top left' }
-    : rot === 180
-      ? { transform: 'rotate(180deg)', transformOrigin: 'center' }
-      : rot === 270
-        ? { transform: 'rotate(-90deg) translateX(-100%)', transformOrigin: 'top left' }
-        : {};
+  const ROTATION_STYLES: Record<number, React.CSSProperties> = {
+    90: { transform: 'rotate(90deg) translateY(-100%)', transformOrigin: 'top left' },
+    180: { transform: 'rotate(180deg)', transformOrigin: 'center' },
+    270: { transform: 'rotate(-90deg) translateX(-100%)', transformOrigin: 'top left' },
+  };
 
   const style: React.CSSProperties = {
-    ...rotationStyle,
+    ...(ROTATION_STYLES[rot] ?? {}),
     ...(isSelected ? { outline: '2px solid #3b82f6' } : {}),
   };
 

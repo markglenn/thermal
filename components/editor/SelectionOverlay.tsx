@@ -2,7 +2,8 @@
 
 import type { ResolvedBounds, ResizeHandle, PinnableEdge } from '@/lib/types';
 import { useEditorStore } from '@/lib/store/editor-store';
-import { findComponent, isAutoSized } from '@/lib/utils';
+import { findComponent } from '@/lib/utils';
+import { isAutoSized } from '@/lib/component-traits';
 
 interface Props {
   bounds: ResolvedBounds;

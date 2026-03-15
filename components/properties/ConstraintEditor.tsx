@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import type { LabelComponent, PinnableEdge } from '@/lib/types';
 import { useEditorStore } from '@/lib/store/editor-store';
-import { isAutoSized } from '@/lib/utils';
+import { isAutoSized } from '@/lib/component-traits';
 import { useDocument } from '@/hooks/use-editor-store';
 import { resolveDocument } from '@/lib/constraints/resolver';
 import { NumberInput } from './NumberInput';
@@ -46,13 +46,26 @@ function Strut({
   disabled?: boolean;
 }) {
   const isH = direction === 'horizontal';
-  const color = disabled ? 'bg-gray-200' : isSet ? 'bg-red-500' : 'bg-gray-300';
+
+  let color = 'bg-gray-300';
+  let className = 'hover:opacity-60';
+  let title = 'Pin to edge';
+
+  if (disabled) {
+    color = 'bg-gray-200';
+    className = 'opacity-30 cursor-not-allowed';
+    title = 'Cannot pin both edges on auto-sized component';
+  } else if (isSet) {
+    color = 'bg-red-500';
+    className = '';
+    title = 'Unpin';
+  }
 
   return (
     <button
       onClick={disabled ? undefined : onToggle}
-      className={`flex items-center justify-center shrink-0 ${disabled ? 'opacity-30 cursor-not-allowed' : isSet ? '' : 'hover:opacity-60'}`}
-      title={disabled ? 'Cannot pin both edges on auto-sized component' : isSet ? 'Unpin' : 'Pin to edge'}
+      className={`flex items-center justify-center shrink-0 ${className}`}
+      title={title}
     >
       {isH ? (
         <div className="flex items-center h-4 w-7">

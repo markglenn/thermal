@@ -13,6 +13,7 @@ import { CanvasComponent } from './CanvasComponent';
 import { ContainerComponent } from './ContainerComponent';
 import { SelectionOverlay } from './SelectionOverlay';
 import { ConstraintGuides } from './ConstraintGuides';
+import { GridOverlay } from './GridOverlay';
 
 export function Canvas() {
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -89,31 +90,7 @@ export function Canvas() {
             if (e.target === e.currentTarget) selectComponent(null);
           }}
         >
-          {/* Grid */}
-          {showGrid && (
-            <svg
-              className="absolute inset-0 pointer-events-none"
-              width={widthDots}
-              height={heightDots}
-            >
-              <defs>
-                <pattern
-                  id="grid"
-                  width={gridSize}
-                  height={gridSize}
-                  patternUnits="userSpaceOnUse"
-                >
-                  <path
-                    d={`M ${gridSize} 0 L 0 0 0 ${gridSize}`}
-                    fill="none"
-                    stroke="#e5e7eb"
-                    strokeWidth="0.5"
-                  />
-                </pattern>
-              </defs>
-              <rect width="100%" height="100%" fill="url(#grid)" />
-            </svg>
-          )}
+          {showGrid && <GridOverlay width={widthDots} height={heightDots} gridSize={gridSize} />}
 
           {/* Components */}
           {document.components.map((comp) => {

@@ -1,6 +1,5 @@
 'use client';
 
-import { useEditorStore } from '@/lib/store/editor-store';
 import { useSelectedComponent } from '@/hooks/use-editor-store';
 import { LabelSettings } from '../toolbar/LabelSettings';
 import { ConstraintEditor } from './ConstraintEditor';

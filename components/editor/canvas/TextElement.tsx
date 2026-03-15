@@ -42,14 +42,12 @@ export function TextElement({ props, isSelected }: Props) {
 
   // ZPL rotation: ^FO marks the starting corner of the content flow.
   // Use percentage-based translates so they work regardless of element size.
-  const rotationTransform = rot === 90
-    ? 'rotate(90deg) translateY(-100%)'
-    : rot === 180
-      ? 'rotate(180deg)'
-      : rot === 270
-        ? 'rotate(-90deg) translateX(-100%)'
-        : '';
-
+  const ROTATION_TRANSFORMS: Record<number, string> = {
+    90: 'rotate(90deg) translateY(-100%)',
+    180: 'rotate(180deg)',
+    270: 'rotate(-90deg) translateX(-100%)',
+  };
+  const rotationTransform = ROTATION_TRANSFORMS[rot] ?? '';
   const scaleTransform = scaleX !== 1 ? ` scaleX(${scaleX})` : '';
   const fullTransform = rotationTransform + scaleTransform;
 
