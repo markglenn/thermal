@@ -49,6 +49,8 @@ export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: P
               fontFamily: ZPL_FONT_FAMILY[font] || ZPL_FONT_FAMILY['0'],
               fontWeight: ZPL_FONT_WEIGHT[font] || 400,
               letterSpacing: font === '0' ? '-0.027em' : '0.05em',
+              // Compensate for CSS ascender gap — ZPL positions at glyph top, not line box top
+              marginTop: font === '0' ? '-0.22em' : '-0.15em',
             }}
           >
             {component.typeData.props.content}
