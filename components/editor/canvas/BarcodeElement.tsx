@@ -14,9 +14,10 @@ const JSBARCODE_FORMAT: Record<BarcodeEncoding, string> = {
 
 interface Props {
   props: BarcodeProperties;
+  isSelected?: boolean;
 }
 
-export function BarcodeElement({ props }: Props) {
+export function BarcodeElement({ props, isSelected }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
@@ -41,5 +42,5 @@ export function BarcodeElement({ props }: Props) {
     }
   }, [props.content, props.encoding, props.height, props.showText]);
 
-  return <svg ref={svgRef} />;
+  return <svg ref={svgRef} style={isSelected ? { outline: '2px solid #3b82f6' } : undefined} />;
 }

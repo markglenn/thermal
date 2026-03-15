@@ -23,13 +23,17 @@ export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: P
   const ref = useRef<HTMLDivElement>(null);
   const selectedId = useEditorStore((s) => s.selectedComponentId);
   const selectComponent = useEditorStore((s) => s.selectComponent);
+  const isSelected = selectedId === component.id;
 
   const autoSize = AUTO_SIZED_TYPES.has(component.typeData.type);
 
   useEffect(() => {
     if (autoSize && ref.current && onMeasure) {
-      const { offsetWidth, offsetHeight } = ref.current;
-      onMeasure(component.id, offsetWidth, offsetHeight);
+      // Use getBoundingClientRect to account for child transforms (rotation, scaleX)
+      // then divide by zoom to get dot-space dimensions
+      const rect = ref.current.getBoundingClientRect();
+      const zoom = useEditorStore.getState().viewport.zoom;
+      onMeasure(component.id, rect.width / zoom, rect.height / zoom);
     }
   });
 
@@ -44,11 +48,11 @@ export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: P
   function renderContent() {
     switch (component.typeData.type) {
       case 'text':
-        return <TextElement props={component.typeData.props} />;
+        return <TextElement props={component.typeData.props} isSelected={isSelected} />;
       case 'barcode':
-        return <BarcodeElement props={component.typeData.props} />;
+        return <BarcodeElement props={component.typeData.props} isSelected={isSelected} />;
       case 'qrcode':
-        return <QrCodeElement props={component.typeData.props} />;
+        return <QrCodeElement props={component.typeData.props} isSelected={isSelected} />;
       case 'line':
         return <LineElement props={component.typeData.props} />;
       case 'rectangle':

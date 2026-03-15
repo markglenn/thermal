@@ -6,11 +6,12 @@ import type { QrCodeProperties } from '@/lib/types';
 
 interface Props {
   props: QrCodeProperties;
+  isSelected?: boolean;
 }
 
 // ZPL ^BQ renders QR with no left margin but a small top gap.
 // Render with no quiet zone and let the container handle positioning.
-export function QrCodeElement({ props }: Props) {
+export function QrCodeElement({ props, isSelected }: Props) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [moduleCount, setModuleCount] = useState(21);
 
@@ -31,7 +32,7 @@ export function QrCodeElement({ props }: Props) {
   const size = moduleCount * props.magnification;
 
   return (
-    <div ref={wrapperRef}>
+    <div ref={wrapperRef} style={isSelected ? { outline: '2px solid #3b82f6' } : undefined}>
       <QRCodeSVG
         value={props.content || ' '}
         size={size}

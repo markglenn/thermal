@@ -94,10 +94,10 @@ export const ZPL_FONT_FAMILY: Record<string, string> = {
   H: 'var(--font-zpl-bitmap), monospace',
 };
 
-// Font weight mapping — Font 0 is bold condensed, bitmaps render at regular weight
+// Font weight mapping — Font 0 is bold condensed, bitmap fonts are heavy/bold
 export const ZPL_FONT_WEIGHT: Record<string, number> = {
   '0': 700,
-  A: 400, B: 400, C: 400, D: 400, E: 400, F: 400, G: 400, H: 400,
+  A: 700, B: 700, C: 700, D: 700, E: 700, F: 700, G: 700, H: 700,
 };
 
 export const LABELARY_BASE_URL = 'http://api.labelary.com/v1/printers';

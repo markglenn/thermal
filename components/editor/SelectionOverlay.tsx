@@ -38,6 +38,9 @@ export function SelectionOverlay({ bounds, componentId }: Props) {
 
   const autoSized = ['text', 'barcode', 'qrcode'].includes(selectedComponent.typeData.type);
 
+  // Auto-sized components render their own selection outline (handles rotation/transforms)
+  if (autoSized) return null;
+
   return (
     <div
       className="pointer-events-none"
@@ -49,9 +52,8 @@ export function SelectionOverlay({ bounds, componentId }: Props) {
         height: bounds.height,
       }}
     >
-      {/* Outline instead of border so it doesn't overlap content */}
       <div className="absolute inset-0 pointer-events-none" style={{ outline: '2px solid #3b82f6' }} />
-      {!autoSized && handles.map((h) => (
+      {handles.map((h) => (
         <div
           key={h.position}
           className="pointer-events-auto absolute bg-white border-2 border-blue-500"
