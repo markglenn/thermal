@@ -1,12 +1,5 @@
 import type { ZplFont } from '../types';
 
-// Maps our font identifiers to ZPL font letters
-export function getZplFontCommand(font: ZplFont, fontSize: number): string {
-  // ^A<font>,<height>,<width>
-  // For font '0' (scalable), height and width can be set freely
-  return `^A${font}N,${fontSize},${fontSize}`;
-}
-
 // Rotation field values for ZPL
 export function getZplRotation(rotation: number): string {
   switch (rotation) {
@@ -17,7 +10,8 @@ export function getZplRotation(rotation: number): string {
   }
 }
 
-export function getZplFontWithRotation(font: ZplFont, fontSize: number, rotation: number): string {
+// ^A<font><rotation>,<height>,<width>
+export function getZplFontWithRotation(font: ZplFont, height: number, width: number, rotation: number): string {
   const rot = getZplRotation(rotation);
-  return `^A${font}${rot},${fontSize},${fontSize}`;
+  return `^A${font}${rot},${height},${width}`;
 }

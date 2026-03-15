@@ -2,6 +2,7 @@
 
 import type { LabelComponent } from '@/lib/types';
 import { useEditorStore } from '@/lib/store/editor-store';
+import { NumberInput } from './NumberInput';
 
 interface Props {
   componentId: string;
@@ -19,25 +20,11 @@ export function BoxProperties({ componentId, component }: Props) {
         <div className="space-y-2">
           <label>
             <span className="text-xs text-gray-500">Border Thickness</span>
-            <input
-              type="number"
-              min={1}
-              max={50}
-              value={props.borderThickness}
-              onChange={(e) => updateProperties(componentId, { borderThickness: parseInt(e.target.value) || 1 })}
-              className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm"
-            />
+            <NumberInput value={props.borderThickness} onChange={(v) => updateProperties(componentId, { borderThickness: v })} min={1} max={50} fallback={1} />
           </label>
           <label>
             <span className="text-xs text-gray-500">Corner Radius</span>
-            <input
-              type="number"
-              min={0}
-              max={20}
-              value={props.cornerRadius}
-              onChange={(e) => updateProperties(componentId, { cornerRadius: parseInt(e.target.value) || 0 })}
-              className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm"
-            />
+            <NumberInput value={props.cornerRadius} onChange={(v) => updateProperties(componentId, { cornerRadius: v })} min={0} max={20} fallback={0} />
           </label>
           <label className="flex items-center gap-2">
             <input
@@ -60,14 +47,7 @@ export function BoxProperties({ componentId, component }: Props) {
         <div className="space-y-2">
           <label>
             <span className="text-xs text-gray-500">Thickness</span>
-            <input
-              type="number"
-              min={1}
-              max={20}
-              value={props.thickness}
-              onChange={(e) => updateProperties(componentId, { thickness: parseInt(e.target.value) || 1 })}
-              className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm"
-            />
+            <NumberInput value={props.thickness} onChange={(v) => updateProperties(componentId, { thickness: v })} min={1} max={20} fallback={1} />
           </label>
           <label>
             <span className="text-xs text-gray-500">Orientation</span>

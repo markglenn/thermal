@@ -37,6 +37,7 @@ export const DEFAULT_TEXT_PROPS: TextProperties = {
   content: 'Label Text',
   font: '0',
   fontSize: 30,
+  fontWidth: 30,
   rotation: 0,
 };
 
@@ -115,21 +116,18 @@ export function labelHeightDots(label: LabelConfig): number {
 // For font 0 (scalable): fontSize sets the height, width ≈ 60% of height (condensed).
 // For bitmap fonts A-H: fontSize is ignored, native cell size is used.
 export function estimateTextBounds(props: TextProperties): { width: number; height: number } {
-  const { font, fontSize, content } = props;
+  const { font, fontSize, fontWidth, content } = props;
   const len = content.length;
 
   if (font === '0') {
-    // Font 0 is scalable — fontSize = height in dots, width ≈ 0.6 * height per char
-    const charWidth = Math.round(fontSize * 0.6);
+    const charWidth = Math.round(fontWidth * 0.6);
     return { width: charWidth * len, height: fontSize };
   }
 
-  // Bitmap fonts — use native cell sizes, fontSize param is ignored by ZPL
   const size = ZPL_FONT_SIZES[font];
   if (size) {
     return { width: size.width * len, height: size.height };
   }
 
-  // Fallback
-  return { width: fontSize * 0.6 * len, height: fontSize };
+  return { width: fontWidth * 0.6 * len, height: fontSize };
 }

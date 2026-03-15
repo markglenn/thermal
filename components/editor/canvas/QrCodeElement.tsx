@@ -8,27 +8,25 @@ interface Props {
   props: QrCodeProperties;
 }
 
-// ZPL ^BQ magnification = dots per module.
-// Render QR at 1px per module, then scale up by magnification.
+// ZPL ^BQ renders QR with no left margin but a small top gap.
+// Render with no quiet zone and let the container handle positioning.
 export function QrCodeElement({ props }: Props) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [moduleCount, setModuleCount] = useState(21);
 
-  // Detect actual module count from the rendered SVG
   useEffect(() => {
     if (!wrapperRef.current) return;
     const svg = wrapperRef.current.querySelector('svg');
     if (!svg) return;
-    // qrcode.react sets viewBox to "0 0 <modules> <modules>"
     const viewBox = svg.getAttribute('viewBox');
     if (viewBox) {
       const parts = viewBox.split(' ');
-      const modules = parseInt(parts[2]);
-      if (modules > 0 && modules !== moduleCount) {
-        setModuleCount(modules);
+      const total = parseInt(parts[2]);
+      if (total > 0 && total !== moduleCount) {
+        setModuleCount(total);
       }
     }
-  });
+  }, [moduleCount, props.content, props.errorCorrection]);
 
   const size = moduleCount * props.magnification;
 

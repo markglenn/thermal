@@ -30,11 +30,22 @@ export type QrErrorCorrection = 'H' | 'Q' | 'M' | 'L';
 export type ZplFont = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | '0';
 export type Rotation = 0 | 90 | 180 | 270;
 
+export type TextJustification = 'L' | 'C' | 'R' | 'J';
+
+export interface FieldBlockProperties {
+  width: number;
+  maxLines: number;
+  lineSpacing: number;
+  justification: TextJustification;
+}
+
 export interface TextProperties {
   content: string;
   font: ZplFont;
   fontSize: number;
+  fontWidth: number;
   rotation: Rotation;
+  fieldBlock?: FieldBlockProperties;
 }
 
 export interface BarcodeProperties {

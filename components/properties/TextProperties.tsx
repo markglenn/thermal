@@ -1,7 +1,8 @@
 'use client';
 
-import type { TextProperties as TextPropsType, ZplFont, Rotation } from '@/lib/types';
+import type { TextProperties as TextPropsType, ZplFont, Rotation, TextJustification, FieldBlockProperties } from '@/lib/types';
 import { useEditorStore } from '@/lib/store/editor-store';
+import { NumberInput } from './NumberInput';
 
 interface Props {
   componentId: string;
@@ -11,6 +12,24 @@ interface Props {
 export function TextProperties({ componentId, props }: Props) {
   const updateProperties = useEditorStore((s) => s.updateProperties);
   const update = (changes: Partial<TextPropsType>) => updateProperties(componentId, changes);
+
+  const fb = props.fieldBlock;
+  const hasFieldBlock = !!fb;
+
+  const toggleFieldBlock = () => {
+    if (hasFieldBlock) {
+      update({ fieldBlock: undefined });
+    } else {
+      update({
+        fieldBlock: { width: 200, maxLines: 3, lineSpacing: 0, justification: 'L' },
+      });
+    }
+  };
+
+  const updateFieldBlock = (changes: Partial<FieldBlockProperties>) => {
+    if (!fb) return;
+    update({ fieldBlock: { ...fb, ...changes } });
+  };
 
   return (
     <div className="p-3 border-b border-gray-200">
@@ -38,15 +57,12 @@ export function TextProperties({ componentId, props }: Props) {
             </select>
           </label>
           <label className="flex-1">
-            <span className="text-xs text-gray-500">Size</span>
-            <input
-              type="number"
-              min={10}
-              max={300}
-              value={props.fontSize}
-              onChange={(e) => update({ fontSize: parseInt(e.target.value) || 30 })}
-              className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm"
-            />
+            <span className="text-xs text-gray-500">Height</span>
+            <NumberInput value={props.fontSize} onChange={(v) => update({ fontSize: v })} min={10} max={300} fallback={30} />
+          </label>
+          <label className="flex-1">
+            <span className="text-xs text-gray-500">Width</span>
+            <NumberInput value={props.fontWidth} onChange={(v) => update({ fontWidth: v })} min={10} max={300} fallback={30} />
           </label>
         </div>
         <label>
@@ -62,6 +78,52 @@ export function TextProperties({ componentId, props }: Props) {
             <option value={270}>270°</option>
           </select>
         </label>
+
+        {/* Field Block */}
+        <div className="pt-1 border-t border-gray-100">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={hasFieldBlock}
+              onChange={toggleFieldBlock}
+            />
+            <span className="text-xs text-gray-500">Field Block (multi-line)</span>
+          </label>
+        </div>
+
+        {hasFieldBlock && fb && (
+          <div className="space-y-2 pl-1 border-l-2 border-blue-200 ml-1">
+            <div className="flex gap-2">
+              <label className="flex-1">
+                <span className="text-xs text-gray-500">Block Width</span>
+                <NumberInput value={fb.width} onChange={(v) => updateFieldBlock({ width: v })} min={10} max={2000} fallback={200} />
+              </label>
+              <label className="flex-1">
+                <span className="text-xs text-gray-500">Max Lines</span>
+                <NumberInput value={fb.maxLines} onChange={(v) => updateFieldBlock({ maxLines: v })} min={1} max={99} fallback={3} />
+              </label>
+            </div>
+            <div className="flex gap-2">
+              <label className="flex-1">
+                <span className="text-xs text-gray-500">Justify</span>
+                <select
+                  value={fb.justification}
+                  onChange={(e) => updateFieldBlock({ justification: e.target.value as TextJustification })}
+                  className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm"
+                >
+                  <option value="L">Left</option>
+                  <option value="C">Center</option>
+                  <option value="R">Right</option>
+                  <option value="J">Justify</option>
+                </select>
+              </label>
+              <label className="flex-1">
+                <span className="text-xs text-gray-500">Line Spacing</span>
+                <NumberInput value={fb.lineSpacing} onChange={(v) => updateFieldBlock({ lineSpacing: v })} min={-20} max={100} fallback={0} />
+              </label>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

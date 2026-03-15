@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import type { LabelComponent, Constraints } from '@/lib/types';
 import { useEditorStore } from '@/lib/store/editor-store';
 
@@ -20,6 +21,26 @@ function ConstraintInput({
   onToggle: () => void;
   onChange: (v: number) => void;
 }) {
+  const [text, setText] = useState(value !== undefined ? String(value) : '');
+
+  useEffect(() => {
+    setText(value !== undefined ? String(value) : '');
+  }, [value]);
+
+  const handleChange = (raw: string) => {
+    setText(raw);
+    if (!isSet) return;
+    const parsed = parseInt(raw);
+    if (!isNaN(parsed)) onChange(parsed);
+  };
+
+  const handleBlur = () => {
+    if (!isSet) return;
+    const parsed = parseInt(text);
+    onChange(isNaN(parsed) ? 0 : parsed);
+    setText(String(isNaN(parsed) ? 0 : parsed));
+  };
+
   return (
     <div className="flex items-center gap-1">
       <button
@@ -32,10 +53,12 @@ function ConstraintInput({
       </button>
       <span className="text-xs text-gray-500 w-6">{label}</span>
       <input
-        type="number"
-        value={value ?? ''}
+        type="text"
+        inputMode="numeric"
+        value={text}
         disabled={!isSet}
-        onChange={(e) => onChange(parseInt(e.target.value) || 0)}
+        onChange={(e) => handleChange(e.target.value)}
+        onBlur={handleBlur}
         className="flex-1 px-1.5 py-0.5 border border-gray-300 rounded text-xs disabled:bg-gray-50 disabled:text-gray-300"
       />
     </div>

@@ -15,7 +15,11 @@ export function fieldOrigin(x: number, y: number): string {
 export function textCommand(props: TextProperties, bounds: ResolvedBounds): string[] {
   const lines: string[] = [];
   lines.push(fieldOrigin(bounds.x, bounds.y));
-  lines.push(getZplFontWithRotation(props.font, props.fontSize, props.rotation));
+  lines.push(getZplFontWithRotation(props.font, props.fontSize, props.fontWidth, props.rotation));
+  if (props.fieldBlock) {
+    const fb = props.fieldBlock;
+    lines.push(`^FB${fb.width},${fb.maxLines},${fb.lineSpacing},${fb.justification},0`);
+  }
   lines.push(`^FD${props.content}^FS`);
   return lines;
 }

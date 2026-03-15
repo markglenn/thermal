@@ -2,6 +2,7 @@
 
 import type { QrCodeProperties as QrCodePropsType, QrErrorCorrection } from '@/lib/types';
 import { useEditorStore } from '@/lib/store/editor-store';
+import { NumberInput } from './NumberInput';
 
 interface Props {
   componentId: string;
@@ -27,14 +28,7 @@ export function QrCodeProperties({ componentId, props }: Props) {
         <div className="flex gap-2">
           <label className="flex-1">
             <span className="text-xs text-gray-500">Magnification</span>
-            <input
-              type="number"
-              min={1}
-              max={10}
-              value={props.magnification}
-              onChange={(e) => update({ magnification: parseInt(e.target.value) || 5 })}
-              className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm"
-            />
+            <NumberInput value={props.magnification} onChange={(v) => update({ magnification: v })} min={1} max={10} fallback={5} />
           </label>
           <label className="flex-1">
             <span className="text-xs text-gray-500">Error Correction</span>

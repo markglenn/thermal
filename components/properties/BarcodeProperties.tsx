@@ -2,6 +2,7 @@
 
 import type { BarcodeProperties as BarcodePropsType, BarcodeEncoding, Rotation } from '@/lib/types';
 import { useEditorStore } from '@/lib/store/editor-store';
+import { NumberInput } from './NumberInput';
 
 interface Props {
   componentId: string;
@@ -41,14 +42,7 @@ export function BarcodeProperties({ componentId, props }: Props) {
         <div className="flex gap-2">
           <label className="flex-1">
             <span className="text-xs text-gray-500">Height</span>
-            <input
-              type="number"
-              min={20}
-              max={300}
-              value={props.height}
-              onChange={(e) => update({ height: parseInt(e.target.value) || 80 })}
-              className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm"
-            />
+            <NumberInput value={props.height} onChange={(v) => update({ height: v })} min={20} max={300} fallback={80} />
           </label>
           <label className="flex-1">
             <span className="text-xs text-gray-500">Rotation</span>
