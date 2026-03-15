@@ -4,7 +4,7 @@ import { useRef, useCallback, useMemo, useEffect } from 'react';
 import { useEditorStore } from '@/lib/store/editor-store';
 import { useDocument, useViewport } from '@/hooks/use-editor-store';
 import { resolveDocument } from '@/lib/constraints/resolver';
-import { labelWidthDots, labelHeightDots, MIN_ZOOM, MAX_ZOOM, ZOOM_STEP } from '@/lib/constants';
+import { labelWidthDots, labelHeightDots, MIN_ZOOM, MAX_ZOOM, ZOOM_STEP, estimateTextBounds } from '@/lib/constants';
 import { CanvasComponent } from './CanvasComponent';
 import { ContainerComponent } from './ContainerComponent';
 import { SelectionOverlay } from './SelectionOverlay';
@@ -58,8 +58,8 @@ export function Canvas() {
     if (!el) return;
 
     const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
       if (e.ctrlKey || e.metaKey) {
-        e.preventDefault();
         const { zoom, panX, panY } = useEditorStore.getState().viewport;
         const factor = 1 - e.deltaY * 0.005;
         const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom * factor));
@@ -178,7 +178,8 @@ export function Canvas() {
     if (resizeState) setResizeState(null);
   }, [dragState, resizeState, setDragState, setResizeState]);
 
-  // Collect all bounds for selection overlay rendering with absolute positions
+  // Collect all bounds for selection overlay rendering with absolute positions.
+  // Text components use auto-sized bounds from font metrics.
   function getAbsoluteBounds(
     components: LabelComponent[],
     boundsMap: Map<string, ResolvedBounds>,
@@ -189,7 +190,14 @@ export function Canvas() {
     for (const comp of components) {
       const b = boundsMap.get(comp.id);
       if (!b) continue;
-      const abs = { x: b.x + offsetX, y: b.y + offsetY, width: b.width, height: b.height };
+      let w = b.width;
+      let h = b.height;
+      if (comp.typeData.type === 'text') {
+        const tb = estimateTextBounds(comp.typeData.props);
+        w = tb.width;
+        h = tb.height;
+      }
+      const abs = { x: b.x + offsetX, y: b.y + offsetY, width: w, height: h };
       result.set(comp.id, abs);
       if (comp.children) {
         const childAbs = getAbsoluteBounds(comp.children, boundsMap, abs.x, abs.y);

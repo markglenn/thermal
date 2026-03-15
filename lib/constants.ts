@@ -3,8 +3,8 @@ import type { LabelConfig, Constraints, ComponentType, TextProperties, BarcodePr
 export const DPI_VALUES = [203, 300, 600] as const;
 
 export const DEFAULT_LABEL: LabelConfig = {
-  widthInches: 4,
-  heightInches: 6,
+  widthInches: 2,
+  heightInches: 1,
   dpi: 203,
 };
 

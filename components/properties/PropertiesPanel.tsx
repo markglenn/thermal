@@ -10,7 +10,6 @@ import { BoxProperties } from './BoxProperties';
 
 export function PropertiesPanel() {
   const selected = useSelectedComponent();
-  const renameComponent = useEditorStore((s) => s.renameComponent);
 
   return (
     <div className="w-64 border-l border-gray-200 bg-white flex flex-col overflow-y-auto">
@@ -18,15 +17,10 @@ export function PropertiesPanel() {
 
       {selected ? (
         <>
-          <div className="p-3 border-b border-gray-200">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+          <div className="px-3 py-2 border-b border-gray-200">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
               {selected.typeData.type}
             </h3>
-            <input
-              value={selected.name}
-              onChange={(e) => renameComponent(selected.id, e.target.value)}
-              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-            />
           </div>
 
           <ConstraintEditor component={selected} />
