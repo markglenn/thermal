@@ -67,6 +67,7 @@ export interface EditorActions {
   updateConstraints: (id: string, constraints: Partial<Constraints>) => void;
   updateProperties: (id: string, props: Record<string, unknown>) => void;
   renameComponent: (id: string, name: string) => void;
+  reorderComponents: (fromIndex: number, toIndex: number) => void;
   reparentComponent: (id: string, newParentId: string | null) => void;
 
   // Selection
@@ -179,6 +180,17 @@ export const useEditorStore = create<EditorStore>()(
       set((state) => {
         const comp = findComponent(state.document.components, id);
         if (comp) comp.name = name;
+      });
+    },
+
+    reorderComponents: (fromIndex, toIndex) => {
+      set((state) => {
+        const comps = state.document.components;
+        if (fromIndex < 0 || fromIndex >= comps.length) return;
+        if (toIndex < 0 || toIndex >= comps.length) return;
+        if (fromIndex === toIndex) return;
+        const [moved] = comps.splice(fromIndex, 1);
+        comps.splice(toIndex, 0, moved);
       });
     },
 

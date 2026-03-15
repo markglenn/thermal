@@ -1,9 +1,24 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import type { LabelComponent } from '@/lib/types';
 import { useEditorStore } from '@/lib/store/editor-store';
 import { useDocument } from '@/hooks/use-editor-store';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import { restrictToVerticalAxis, restrictToParentElement } from '@dnd-kit/modifiers';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 const TYPE_ICONS: Record<string, string> = {
   text: 'T',
@@ -23,7 +38,7 @@ function defaultLabel(component: LabelComponent): string {
   return component.typeData.type.charAt(0).toUpperCase() + component.typeData.type.slice(1);
 }
 
-function LayerItem({ component, depth }: { component: LabelComponent; depth: number }) {
+function SortableLayerItem({ component, depth }: { component: LabelComponent; depth: number }) {
   const selectedId = useEditorStore((s) => s.selectedComponentId);
   const selectComponent = useEditorStore((s) => s.selectComponent);
   const removeComponent = useEditorStore((s) => s.removeComponent);
@@ -32,6 +47,21 @@ function LayerItem({ component, depth }: { component: LabelComponent; depth: num
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(component.name);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: component.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  };
 
   useEffect(() => {
     if (editing && inputRef.current) {
@@ -48,22 +78,26 @@ function LayerItem({ component, depth }: { component: LabelComponent; depth: num
     setEditing(false);
   };
 
-  // Show custom name if it differs from the default type name
-  const hasCustomName = component.name !== component.typeData.type.charAt(0).toUpperCase() + component.typeData.type.slice(1);
+  const hasCustomName =
+    component.name !==
+    component.typeData.type.charAt(0).toUpperCase() + component.typeData.type.slice(1);
   const displayName = hasCustomName ? component.name : defaultLabel(component);
 
   return (
     <>
       <div
+        ref={setNodeRef}
+        style={{ ...style, paddingLeft: 8 + depth * 12 }}
         className={`flex items-center gap-1.5 px-2 py-1 text-xs rounded cursor-pointer select-none group ${
           isSelected ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-50 text-gray-700'
         }`}
-        style={{ paddingLeft: 8 + depth * 12 }}
         onClick={() => selectComponent(component.id)}
         onDoubleClick={() => {
           setEditText(component.name);
           setEditing(true);
         }}
+        {...attributes}
+        {...listeners}
       >
         <span className="w-4 text-center text-gray-400 shrink-0">
           {TYPE_ICONS[component.typeData.type] || '?'}
@@ -79,6 +113,7 @@ function LayerItem({ component, depth }: { component: LabelComponent; depth: num
               if (e.key === 'Escape') setEditing(false);
             }}
             onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
             className="flex-1 min-w-0 px-1 py-0 text-xs border border-blue-400 rounded outline-none bg-white"
           />
         ) : (
@@ -89,13 +124,14 @@ function LayerItem({ component, depth }: { component: LabelComponent; depth: num
             e.stopPropagation();
             removeComponent(component.id);
           }}
+          onPointerDown={(e) => e.stopPropagation()}
           className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 shrink-0"
         >
           ×
         </button>
       </div>
       {component.children?.map((child) => (
-        <LayerItem key={child.id} component={child} depth={depth + 1} />
+        <SortableLayerItem key={child.id} component={child} depth={depth + 1} />
       ))}
     </>
   );
@@ -103,6 +139,31 @@ function LayerItem({ component, depth }: { component: LabelComponent; depth: num
 
 export function LayerHierarchy() {
   const document = useDocument();
+  const reorderComponents = useEditorStore((s) => s.reorderComponents);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 5 },
+    })
+  );
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+
+      const components = useEditorStore.getState().document.components;
+      const fromIndex = components.findIndex((c) => c.id === active.id);
+      const toIndex = components.findIndex((c) => c.id === over.id);
+
+      if (fromIndex !== -1 && toIndex !== -1) {
+        reorderComponents(fromIndex, toIndex);
+      }
+    },
+    [reorderComponents]
+  );
+
+  const ids = document.components.map((c) => c.id);
 
   return (
     <div className="flex flex-col">
@@ -113,9 +174,13 @@ export function LayerHierarchy() {
         {document.components.length === 0 ? (
           <div className="px-3 py-3 text-xs text-gray-400 text-center">No components</div>
         ) : (
-          document.components.map((comp) => (
-            <LayerItem key={comp.id} component={comp} depth={0} />
-          ))
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd} modifiers={[restrictToVerticalAxis, restrictToParentElement]}>
+            <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+              {document.components.map((comp) => (
+                <SortableLayerItem key={comp.id} component={comp} depth={0} />
+              ))}
+            </SortableContext>
+          </DndContext>
         )}
       </div>
     </div>
