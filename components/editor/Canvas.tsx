@@ -4,12 +4,13 @@ import { useRef, useCallback, useMemo, useEffect, useState } from 'react';
 import { useEditorStore } from '@/lib/store/editor-store';
 import { useDocument, useViewport } from '@/hooks/use-editor-store';
 import { resolveDocument } from '@/lib/constraints/resolver';
-import { labelWidthDots, labelHeightDots, MIN_ZOOM, MAX_ZOOM, ZOOM_STEP } from '@/lib/constants';
+import { labelWidthDots, labelHeightDots, MIN_ZOOM, MAX_ZOOM } from '@/lib/constants';
 import { CanvasComponent } from './CanvasComponent';
 import { ContainerComponent } from './ContainerComponent';
 import { SelectionOverlay } from './SelectionOverlay';
 import { ConstraintGuides } from './ConstraintGuides';
 import type { LabelComponent, ResolvedBounds, Constraints } from '@/lib/types';
+import { findComponent, isAutoSized, hasFieldBlock } from '@/lib/utils';
 
 export function Canvas() {
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -27,14 +28,13 @@ export function Canvas() {
   const setResizeState = useEditorStore((s) => s.setResizeState);
   const showGrid = useEditorStore((s) => s.showGrid);
   const gridSize = useEditorStore((s) => s.gridSize);
-  const paletteDropState = useEditorStore((s) => s.paletteDropState);
   const setPaletteDropState = useEditorStore((s) => s.setPaletteDropState);
   const addComponent = useEditorStore((s) => s.addComponent);
 
   const widthDots = labelWidthDots(document.label);
   const heightDots = labelHeightDots(document.label);
 
-  // Track actual measured sizes for text components (DOM-measured, not estimated)
+  // Track actual measured sizes for auto-sized components
   const [measuredSizes, setMeasuredSizes] = useState<Map<string, { width: number; height: number }>>(new Map());
   const handleMeasure = useCallback((id: string, width: number, height: number) => {
     setMeasuredSizes((prev) => {
@@ -46,7 +46,7 @@ export function Canvas() {
     });
   }, []);
 
-  // Fit label in viewport on mount (deferred to ensure layout is computed)
+  // Fit label in viewport on mount
   useEffect(() => {
     if (hasInitialized.current) return;
     const frame = requestAnimationFrame(() => {
@@ -63,27 +63,43 @@ export function Canvas() {
     return () => cancelAnimationFrame(frame);
   }, [widthDots, heightDots, setViewport]);
 
-  const boundsMap = useMemo(
-    () => resolveDocument(document),
-    [document]
-  );
+  const boundsMap = useMemo(() => resolveDocument(document), [document]);
 
-  // Attach wheel handler as non-passive so preventDefault() actually blocks
-  // the browser's native pinch-to-zoom on the page
+  // Clamp pan so at least 15px of the label stays visible
+  const clampPanRef = useRef((panX: number, panY: number, zoom: number) => ({ panX, panY }));
+  useEffect(() => {
+    clampPanRef.current = (panX: number, panY: number, zoom: number) => {
+      if (!canvasRef.current) return { panX, panY };
+      const canvas = canvasRef.current.getBoundingClientRect();
+      const margin = 15;
+      const labelW = widthDots * zoom;
+      const labelH = heightDots * zoom;
+      const maxPanX = canvas.width / 2 + labelW / 2 - margin;
+      const maxPanY = canvas.height / 2 + labelH / 2 - margin;
+      return {
+        panX: Math.max(-maxPanX, Math.min(maxPanX, panX)),
+        panY: Math.max(-maxPanY, Math.min(maxPanY, panY)),
+      };
+    };
+  }, [widthDots, heightDots]);
+
+  // Non-passive wheel handler for zoom/pan
   useEffect(() => {
     const el = canvasRef.current;
     if (!el) return;
 
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
+      const store = useEditorStore.getState();
+      const { zoom, panX, panY } = store.viewport;
       if (e.ctrlKey || e.metaKey) {
-        const { zoom, panX, panY } = useEditorStore.getState().viewport;
         const factor = 1 - e.deltaY * 0.005;
         const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom * factor));
-        useEditorStore.getState().setViewport(newZoom, panX, panY);
+        const clamped = clampPanRef.current(panX, panY, newZoom);
+        store.setViewport(newZoom, clamped.panX, clamped.panY);
       } else {
-        const { zoom, panX, panY } = useEditorStore.getState().viewport;
-        useEditorStore.getState().setViewport(zoom, panX - e.deltaX, panY - e.deltaY);
+        const clamped = clampPanRef.current(panX - e.deltaX, panY - e.deltaY, zoom);
+        store.setViewport(zoom, clamped.panX, clamped.panY);
       }
     };
 
@@ -93,20 +109,19 @@ export function Canvas() {
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
-      // Middle mouse for panning
       if (e.button === 1) {
         e.preventDefault();
         const startX = e.clientX;
         const startY = e.clientY;
-        const startPanX = viewport.panX;
-        const startPanY = viewport.panY;
+        const { panX: startPanX, panY: startPanY, zoom } = useEditorStore.getState().viewport;
 
         const onMove = (me: PointerEvent) => {
-          setViewport(
-            viewport.zoom,
+          const clamped = clampPanRef.current(
             startPanX + (me.clientX - startX),
-            startPanY + (me.clientY - startY)
+            startPanY + (me.clientY - startY),
+            zoom
           );
+          useEditorStore.getState().setViewport(zoom, clamped.panX, clamped.panY);
         };
         const onUp = () => {
           window.removeEventListener('pointermove', onMove);
@@ -117,12 +132,11 @@ export function Canvas() {
         return;
       }
 
-      // Left click on blank canvas deselects
       if (e.button === 0) {
         selectComponent(null);
       }
     },
-    [viewport, setViewport, selectComponent]
+    [selectComponent]
   );
 
   const handleComponentPointerDown = useCallback(
@@ -131,7 +145,7 @@ export function Canvas() {
       e.stopPropagation();
       selectComponent(componentId);
 
-      const comp = findComponentInTree(document.components, componentId);
+      const comp = findComponent(useEditorStore.getState().document.components, componentId);
       if (!comp) return;
 
       setDragState({
@@ -141,26 +155,25 @@ export function Canvas() {
         startConstraints: { ...comp.constraints },
       });
     },
-    [document.components, selectComponent, setDragState]
+    [selectComponent, setDragState]
   );
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
       if (dragState) {
-        const dx = (e.clientX - dragState.startX) / viewport.zoom;
-        const dy = (e.clientY - dragState.startY) / viewport.zoom;
+        const zoom = useEditorStore.getState().viewport.zoom;
+        const dx = (e.clientX - dragState.startX) / zoom;
+        const dy = (e.clientY - dragState.startY) / zoom;
         const sc = dragState.startConstraints;
-        const comp = findComponentInTree(document.components, dragState.componentId);
+        const comp = findComponent(useEditorStore.getState().document.components, dragState.componentId);
         const pins = comp?.pins ?? [];
         const newConstraints: Partial<Constraints> = {};
 
-        // Horizontal: only move if no horizontal pins
         const hPinned = pins.includes('left') || pins.includes('right');
         if (!hPinned) {
           newConstraints.left = Math.round((sc.left ?? 0) + dx);
         }
 
-        // Vertical: only move if no vertical pins
         const vPinned = pins.includes('top') || pins.includes('bottom');
         if (!vPinned) {
           newConstraints.top = Math.round((sc.top ?? 0) + dy);
@@ -172,13 +185,13 @@ export function Canvas() {
       }
 
       if (resizeState) {
-        const dx = (e.clientX - resizeState.startX) / viewport.zoom;
-        const dy = (e.clientY - resizeState.startY) / viewport.zoom;
+        const zoom = useEditorStore.getState().viewport.zoom;
+        const dx = (e.clientX - resizeState.startX) / zoom;
+        const dy = (e.clientY - resizeState.startY) / zoom;
         const sc = resizeState.startConstraints;
         const newConstraints = { ...sc };
         const handle = resizeState.handle;
 
-        // Horizontal
         if (handle.includes('left')) {
           if (sc.left !== undefined) newConstraints.left = Math.round(sc.left + dx);
           if (sc.width !== undefined && sc.right === undefined) newConstraints.width = Math.round(Math.max(10, sc.width - dx));
@@ -188,7 +201,6 @@ export function Canvas() {
           if (sc.width !== undefined && sc.left !== undefined && sc.right === undefined) newConstraints.width = Math.round(Math.max(10, sc.width + dx));
         }
 
-        // Vertical
         if (handle.startsWith('top')) {
           if (sc.top !== undefined) newConstraints.top = Math.round(sc.top + dy);
           if (sc.height !== undefined && sc.bottom === undefined) newConstraints.height = Math.round(Math.max(10, sc.height - dy));
@@ -201,10 +213,9 @@ export function Canvas() {
         updateConstraints(resizeState.componentId, newConstraints);
       }
     },
-    [dragState, resizeState, viewport.zoom, updateConstraints]
+    [dragState, resizeState, updateConstraints]
   );
 
-  // Convert screen coordinates to dot coordinates on the label
   const screenToDots = useCallback(
     (clientX: number, clientY: number): { left: number; top: number } | null => {
       if (!labelRef.current) return null;
@@ -222,7 +233,6 @@ export function Canvas() {
       if (dragState) setDragState(null);
       if (resizeState) setResizeState(null);
 
-      // Handle palette drop
       const dropState = useEditorStore.getState().paletteDropState;
       if (dropState) {
         const dots = screenToDots(e.clientX, e.clientY);
@@ -235,62 +245,55 @@ export function Canvas() {
     [dragState, resizeState, setDragState, setResizeState, screenToDots, addComponent, setPaletteDropState]
   );
 
-  // Collect all bounds for selection overlay rendering with absolute positions.
-  // Text components use DOM-measured sizes for accurate bounding boxes.
-  function getAbsoluteBounds(
-    components: LabelComponent[],
-    boundsMap: Map<string, ResolvedBounds>,
-    offsetX: number,
-    offsetY: number
-  ): Map<string, ResolvedBounds> {
-    const result = new Map<string, ResolvedBounds>();
-    for (const comp of components) {
-      const b = boundsMap.get(comp.id);
-      if (!b) continue;
-      let w = b.width;
-      let h = b.height;
-      const hasFieldBlock = comp.typeData.type === 'text' && !!comp.typeData.props.fieldBlock;
-      if (hasFieldBlock) {
-        // Field block: width from constraints, height from measurement
-        const measured = measuredSizes.get(comp.id);
-        if (measured) {
-          h = measured.height;
+  const absoluteBoundsMap = useMemo(() => {
+    function walk(
+      components: LabelComponent[],
+      bMap: Map<string, ResolvedBounds>,
+      measured: Map<string, { width: number; height: number }>,
+      offsetX: number,
+      offsetY: number,
+      result: Map<string, ResolvedBounds>
+    ) {
+      for (const comp of components) {
+        const b = bMap.get(comp.id);
+        if (!b) continue;
+        let w = b.width;
+        let h = b.height;
+        if (hasFieldBlock(comp)) {
+          const m = measured.get(comp.id);
+          if (m) h = m.height;
+        } else if (isAutoSized(comp)) {
+          const m = measured.get(comp.id);
+          if (m) { w = m.width; h = m.height; }
         }
-      } else if (['text', 'barcode', 'qrcode'].includes(comp.typeData.type)) {
-        // Auto-sized: both from measurement
-        const measured = measuredSizes.get(comp.id);
-        if (measured) {
-          w = measured.width;
-          h = measured.height;
+        const abs = { x: b.x + offsetX, y: b.y + offsetY, width: w, height: h };
+        result.set(comp.id, abs);
+        if (comp.children) {
+          walk(comp.children, bMap, measured, abs.x, abs.y, result);
         }
-      }
-      const abs = { x: b.x + offsetX, y: b.y + offsetY, width: w, height: h };
-      result.set(comp.id, abs);
-      if (comp.children) {
-        const childAbs = getAbsoluteBounds(comp.children, boundsMap, abs.x, abs.y);
-        childAbs.forEach((v, k) => result.set(k, v));
       }
     }
+    const result = new Map<string, ResolvedBounds>();
+    walk(document.components, boundsMap, measuredSizes, 0, 0, result);
     return result;
-  }
-
-  const absoluteBoundsMap = useMemo(
-    () => getAbsoluteBounds(document.components, boundsMap, 0, 0),
-    [document.components, boundsMap, measuredSizes]
-  );
+  }, [document, boundsMap, measuredSizes]);
 
   const selectedBounds = selectedId ? absoluteBoundsMap.get(selectedId) : null;
+
+  const handleCanvasPointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      canvasRef.current?.focus();
+      handlePointerDown(e);
+    },
+    [handlePointerDown]
+  );
 
   return (
     <div
       ref={canvasRef}
       tabIndex={0}
       className="flex-1 overflow-hidden bg-gray-100 relative outline-none"
-      onPointerDown={(e) => {
-        // Grab focus so keyboard shortcuts work after clicking canvas
-        canvasRef.current?.focus();
-        handlePointerDown(e);
-      }}
+      onPointerDown={handleCanvasPointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
     >
@@ -309,7 +312,6 @@ export function Canvas() {
           className="bg-white shadow-lg relative"
           style={{ width: widthDots, height: heightDots }}
           onPointerDown={(e) => {
-            // Click on the label background (not a component) deselects
             if (e.target === e.currentTarget) {
               selectComponent(null);
             }
@@ -383,15 +385,4 @@ export function Canvas() {
       </div>
     </div>
   );
-}
-
-function findComponentInTree(components: LabelComponent[], id: string): LabelComponent | null {
-  for (const c of components) {
-    if (c.id === id) return c;
-    if (c.children) {
-      const found = findComponentInTree(c.children, id);
-      if (found) return found;
-    }
-  }
-  return null;
 }

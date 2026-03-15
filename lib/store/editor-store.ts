@@ -10,6 +10,7 @@ import type {
 } from '../types';
 import { DEFAULT_LABEL, DEFAULT_ZOOM, GRID_SIZE } from '../constants';
 import { createComponent, generateId } from './editor-actions';
+import { findComponent } from '@/lib/utils';
 
 const initialDocument: LabelDocument = {
   version: 1,
@@ -28,21 +29,6 @@ const initialState: EditorState = {
   showGrid: true,
   gridSize: GRID_SIZE,
 };
-
-// Helper to find and operate on a component within the tree
-function findComponent(
-  components: LabelComponent[],
-  id: string
-): LabelComponent | null {
-  for (const comp of components) {
-    if (comp.id === id) return comp;
-    if (comp.children) {
-      const found = findComponent(comp.children, id);
-      if (found) return found;
-    }
-  }
-  return null;
-}
 
 function findParentArray(
   components: LabelComponent[],

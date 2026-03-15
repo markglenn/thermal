@@ -2,6 +2,7 @@
 
 import type { ResolvedBounds, ResizeHandle, PinnableEdge } from '@/lib/types';
 import { useEditorStore } from '@/lib/store/editor-store';
+import { findComponent, isAutoSized } from '@/lib/utils';
 
 interface Props {
   bounds: ResolvedBounds;
@@ -23,21 +24,13 @@ const handles: { position: ResizeHandle; style: React.CSSProperties }[] = [
 
 export function SelectionOverlay({ bounds, componentId }: Props) {
   const setResizeState = useEditorStore((s) => s.setResizeState);
-  const selectedComponent = useEditorStore((s) => {
-    function find(comps: typeof s.document.components): typeof s.document.components[0] | undefined {
-      for (const c of comps) {
-        if (c.id === componentId) return c;
-        if (c.children) { const f = find(c.children); if (f) return f; }
-      }
-      return undefined;
-    }
-    return find(s.document.components);
-  });
+  const selectedComponent = useEditorStore((s) =>
+    findComponent(s.document.components, componentId)
+  );
 
   if (!selectedComponent) return null;
 
-  const hasFieldBlock = selectedComponent.typeData.type === 'text' && !!selectedComponent.typeData.props.fieldBlock;
-  const autoSized = ['text', 'barcode', 'qrcode'].includes(selectedComponent.typeData.type) && !hasFieldBlock;
+  const autoSized = isAutoSized(selectedComponent);
 
   // Auto-sized components render their own selection outline (handles rotation/transforms)
   if (autoSized) return null;

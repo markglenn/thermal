@@ -9,6 +9,7 @@ import { QrCodeElement } from './canvas/QrCodeElement';
 import { LineElement } from './canvas/LineElement';
 import { RectangleElement } from './canvas/RectangleElement';
 import { ImageElement } from './canvas/ImageElement';
+import { isAutoSized, hasFieldBlock } from '@/lib/utils';
 
 interface Props {
   component: LabelComponent;
@@ -17,19 +18,17 @@ interface Props {
   onMeasure?: (id: string, width: number, height: number) => void;
 }
 
-const AUTO_SIZED_TYPES = new Set(['text', 'barcode', 'qrcode']);
-
 export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const selectedId = useEditorStore((s) => s.selectedComponentId);
   const selectComponent = useEditorStore((s) => s.selectComponent);
   const isSelected = selectedId === component.id;
 
-  const hasFieldBlock = component.typeData.type === 'text' && !!component.typeData.props.fieldBlock;
-  const autoSize = AUTO_SIZED_TYPES.has(component.typeData.type) && !hasFieldBlock;
+  const fieldBlock = hasFieldBlock(component);
+  const autoSize = isAutoSized(component);
 
   useEffect(() => {
-    if ((autoSize || hasFieldBlock) && ref.current && onMeasure) {
+    if ((autoSize || fieldBlock) && ref.current && onMeasure) {
       const rect = ref.current.getBoundingClientRect();
       const zoom = useEditorStore.getState().viewport.zoom;
       onMeasure(component.id, rect.width / zoom, rect.height / zoom);
@@ -45,7 +44,7 @@ export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: P
     // Everything else: both from constraints
     ...(autoSize
       ? {}
-      : hasFieldBlock
+      : fieldBlock
         ? { width: bounds.width }
         : { width: bounds.width, height: bounds.height }),
     cursor: 'default',

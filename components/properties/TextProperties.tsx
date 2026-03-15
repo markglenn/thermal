@@ -2,6 +2,7 @@
 
 import type { TextProperties as TextPropsType, ZplFont, Rotation, TextJustification, FieldBlockProperties } from '@/lib/types';
 import { useEditorStore } from '@/lib/store/editor-store';
+import { findComponent } from '@/lib/utils';
 import { NumberInput } from './NumberInput';
 
 interface Props {
@@ -24,15 +25,7 @@ export function TextProperties({ componentId, props }: Props) {
       // Clean up constraints invalid for auto-sized text
       updateConstraints(componentId, { width: undefined, right: undefined, bottom: undefined });
       // Remove right/bottom pins if active
-      const comp = useEditorStore.getState().document.components;
-      const find = (cs: typeof comp): typeof comp[0] | null => {
-        for (const c of cs) {
-          if (c.id === componentId) return c;
-          if (c.children) { const f = find(c.children); if (f) return f; }
-        }
-        return null;
-      };
-      const current = find(comp);
+      const current = findComponent(useEditorStore.getState().document.components, componentId);
       if (current) {
         if (current.pins.includes('right')) togglePin(componentId, 'right');
         if (current.pins.includes('bottom')) togglePin(componentId, 'bottom');

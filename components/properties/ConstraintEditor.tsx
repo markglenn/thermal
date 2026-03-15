@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import type { LabelComponent, PinnableEdge } from '@/lib/types';
 import { useEditorStore } from '@/lib/store/editor-store';
+import { isAutoSized } from '@/lib/utils';
 import { useDocument } from '@/hooks/use-editor-store';
 import { resolveDocument } from '@/lib/constraints/resolver';
 import { NumberInput } from './NumberInput';
@@ -86,8 +87,7 @@ export function ConstraintEditor({ component }: Props) {
   const w = Math.round(bounds?.width ?? 0);
   const h = Math.round(bounds?.height ?? 0);
 
-  const hasFieldBlock = component.typeData.type === 'text' && !!component.typeData.props.fieldBlock;
-  const autoSized = ['text', 'barcode', 'qrcode'].includes(component.typeData.type) && !hasFieldBlock;
+  const autoSized = isAutoSized(component);
 
   const hPinned = isPinned('left') || isPinned('right');
   const vPinned = isPinned('top') || isPinned('bottom');

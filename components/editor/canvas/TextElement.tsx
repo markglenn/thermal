@@ -38,31 +38,20 @@ export function TextElement({ props, isSelected }: Props) {
     }
   }
 
-  // Build transform: ZPL rotation positions the field origin at the start of text flow.
-  // R (90° CW): text flows downward, origin = top-left of vertical text
-  // I (180°): text flows leftward, origin = top-left (becomes bottom-right of flipped text)
-  // B (270° CW): text flows upward, origin = bottom-left of vertical text
-  // CSS rotate pivots around transform-origin, so we translate to compensate.
-  const transforms: string[] = [];
   const rot = props.rotation;
 
-  // Translate to keep the visual origin at the CSS position
-  // After rotate(90deg) with origin top-left, text swings left → translate right by fontSize
-  // After rotate(180deg), text swings up-left → translate right by width, down by height
-  // After rotate(270deg), text swings down → translate down... but ZPL 270 goes up
-  if (rot === 90) {
-    transforms.push(`translateX(${props.fontSize}px)`);
-    transforms.push('rotate(90deg)');
-  } else if (rot === 180) {
-    transforms.push('rotate(180deg)');
-  } else if (rot === 270) {
-    transforms.push(`translateY(${props.fontSize}px)`);
-    transforms.push('rotate(270deg)');
-  }
+  // ZPL rotation: ^FO marks the starting corner of the content flow.
+  // Use percentage-based translates so they work regardless of element size.
+  const rotationTransform = rot === 90
+    ? 'rotate(90deg) translateY(-100%)'
+    : rot === 180
+      ? 'rotate(180deg)'
+      : rot === 270
+        ? 'rotate(-90deg) translateX(-100%)'
+        : '';
 
-  if (scaleX !== 1) {
-    transforms.push(`scaleX(${scaleX})`);
-  }
+  const scaleTransform = scaleX !== 1 ? ` scaleX(${scaleX})` : '';
+  const fullTransform = rotationTransform + scaleTransform;
 
   const baseStyle: React.CSSProperties = {
     fontSize: props.fontSize,
@@ -72,8 +61,11 @@ export function TextElement({ props, isSelected }: Props) {
     letterSpacing: isScalable ? '-0.027em' : '0.05em',
     marginTop: rot === 0 ? '-0.12em' : 0,
     color: 'black',
-    ...(transforms.length > 0
-      ? { transform: transforms.join(' '), transformOrigin: 'left top' }
+    ...(fullTransform
+      ? {
+          transform: fullTransform,
+          transformOrigin: rot === 180 ? 'center' : 'top left',
+        }
       : {}),
     ...(isSelected ? { outline: '2px solid #3b82f6' } : {}),
   };

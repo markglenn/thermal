@@ -5,18 +5,7 @@ import { useDocument } from '@/hooks/use-editor-store';
 import { useMemo } from 'react';
 import { resolveDocument } from '@/lib/constraints/resolver';
 import { labelWidthDots, labelHeightDots } from '@/lib/constants';
-import type { LabelComponent } from '@/lib/types';
-
-function findComponentInTree(components: LabelComponent[], id: string): LabelComponent | null {
-  for (const c of components) {
-    if (c.id === id) return c;
-    if (c.children) {
-      const found = findComponentInTree(c.children, id);
-      if (found) return found;
-    }
-  }
-  return null;
-}
+import { findComponent } from '@/lib/utils';
 
 export function ConstraintGuides() {
   const dragState = useEditorStore((s) => s.dragState);
@@ -31,7 +20,7 @@ export function ConstraintGuides() {
   const compId = dragState?.componentId ?? selectedId;
   if (!compId) return null;
 
-  const comp = findComponentInTree(doc.components, compId);
+  const comp = findComponent(doc.components, compId);
   if (!comp || comp.pins.length === 0) return null;
 
   const bounds = boundsMap.get(compId);
