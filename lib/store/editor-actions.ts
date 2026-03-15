@@ -42,6 +42,7 @@ export function createComponent(
     id: generateId(),
     name: `${type.charAt(0).toUpperCase() + type.slice(1)}`,
     constraints: { ...defaults, ...constraintOverrides },
+    pins: [],
     typeData: getDefaultTypeData(type),
     children: type === 'container' ? [] : undefined,
   };

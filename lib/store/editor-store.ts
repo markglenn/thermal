@@ -67,6 +67,7 @@ export interface EditorActions {
   updateConstraints: (id: string, constraints: Partial<Constraints>) => void;
   updateProperties: (id: string, props: Record<string, unknown>) => void;
   renameComponent: (id: string, name: string) => void;
+  togglePin: (id: string, edge: import('../types').PinnableEdge) => void;
   reorderComponents: (fromIndex: number, toIndex: number) => void;
   reparentComponent: (id: string, newParentId: string | null) => void;
 
@@ -180,6 +181,69 @@ export const useEditorStore = create<EditorStore>()(
       set((state) => {
         const comp = findComponent(state.document.components, id);
         if (comp) comp.name = name;
+      });
+    },
+
+    togglePin: (id, edge) => {
+      // Compute pin value before mutating so we don't need imports inside immer
+      const currentState = get();
+      const currentComp = findComponent(currentState.document.components, id);
+      if (!currentComp) return;
+
+      const alreadyPinned = currentComp.pins.includes(edge);
+
+      let pinValue = 0;
+      if (!alreadyPinned && currentComp.constraints[edge] === undefined) {
+        // Compute from resolved bounds so component doesn't jump
+        const { label, components } = currentState.document;
+        const lw = Math.round(label.widthInches * label.dpi);
+        const lh = Math.round(label.heightInches * label.dpi);
+
+        // Simple resolve for this component to get current position
+        const c = currentComp.constraints;
+        const resolveH = () => {
+          if (c.left !== undefined && c.right !== undefined) return { x: c.left, w: lw - c.left - c.right };
+          if (c.left !== undefined && c.width !== undefined) return { x: c.left, w: c.width };
+          if (c.right !== undefined && c.width !== undefined) return { x: lw - c.right - c.width, w: c.width };
+          if (c.width !== undefined) return { x: Math.round((lw - c.width) / 2), w: c.width };
+          if (c.left !== undefined) return { x: c.left, w: 100 };
+          return { x: 0, w: 100 };
+        };
+        const resolveV = () => {
+          if (c.top !== undefined && c.bottom !== undefined) return { y: c.top, h: lh - c.top - c.bottom };
+          if (c.top !== undefined && c.height !== undefined) return { y: c.top, h: c.height };
+          if (c.bottom !== undefined && c.height !== undefined) return { y: lh - c.bottom - c.height, h: c.height };
+          if (c.height !== undefined) return { y: Math.round((lh - c.height) / 2), h: c.height };
+          if (c.top !== undefined) return { y: c.top, h: 40 };
+          return { y: 0, h: 40 };
+        };
+
+        const h = resolveH();
+        const v = resolveV();
+
+        switch (edge) {
+          case 'left': pinValue = h.x; break;
+          case 'top': pinValue = v.y; break;
+          case 'right': pinValue = Math.max(0, lw - h.x - h.w); break;
+          case 'bottom': pinValue = Math.max(0, lh - v.y - v.h); break;
+        }
+      }
+
+      set((state) => {
+        const comp = findComponent(state.document.components, id);
+        if (!comp) return;
+        const idx = comp.pins.indexOf(edge);
+        if (idx >= 0) {
+          comp.pins.splice(idx, 1);
+          if (edge === 'right' || edge === 'bottom') {
+            delete comp.constraints[edge];
+          }
+        } else {
+          comp.pins.push(edge);
+          if (comp.constraints[edge] === undefined) {
+            comp.constraints[edge] = pinValue;
+          }
+        }
       });
     },
 

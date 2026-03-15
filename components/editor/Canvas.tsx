@@ -8,7 +8,8 @@ import { labelWidthDots, labelHeightDots, MIN_ZOOM, MAX_ZOOM, ZOOM_STEP } from '
 import { CanvasComponent } from './CanvasComponent';
 import { ContainerComponent } from './ContainerComponent';
 import { SelectionOverlay } from './SelectionOverlay';
-import type { LabelComponent, ResolvedBounds } from '@/lib/types';
+import { ConstraintGuides } from './ConstraintGuides';
+import type { LabelComponent, ResolvedBounds, Constraints } from '@/lib/types';
 
 export function Canvas() {
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -148,12 +149,26 @@ export function Canvas() {
       if (dragState) {
         const dx = (e.clientX - dragState.startX) / viewport.zoom;
         const dy = (e.clientY - dragState.startY) / viewport.zoom;
-        const newConstraints = { ...dragState.startConstraints };
-        if (newConstraints.left !== undefined) newConstraints.left = Math.round(dragState.startConstraints.left! + dx);
-        if (newConstraints.top !== undefined) newConstraints.top = Math.round(dragState.startConstraints.top! + dy);
-        if (newConstraints.right !== undefined) newConstraints.right = Math.round(dragState.startConstraints.right! - dx);
-        if (newConstraints.bottom !== undefined) newConstraints.bottom = Math.round(dragState.startConstraints.bottom! - dy);
-        updateConstraints(dragState.componentId, newConstraints);
+        const sc = dragState.startConstraints;
+        const comp = findComponentInTree(document.components, dragState.componentId);
+        const pins = comp?.pins ?? [];
+        const newConstraints: Partial<Constraints> = {};
+
+        // Horizontal: only move if no horizontal pins
+        const hPinned = pins.includes('left') || pins.includes('right');
+        if (!hPinned) {
+          newConstraints.left = Math.round((sc.left ?? 0) + dx);
+        }
+
+        // Vertical: only move if no vertical pins
+        const vPinned = pins.includes('top') || pins.includes('bottom');
+        if (!vPinned) {
+          newConstraints.top = Math.round((sc.top ?? 0) + dy);
+        }
+
+        if (Object.keys(newConstraints).length > 0) {
+          updateConstraints(dragState.componentId, newConstraints);
+        }
       }
 
       if (resizeState) {
@@ -234,7 +249,15 @@ export function Canvas() {
       if (!b) continue;
       let w = b.width;
       let h = b.height;
-      if (['text', 'barcode', 'qrcode'].includes(comp.typeData.type)) {
+      const hasFieldBlock = comp.typeData.type === 'text' && !!comp.typeData.props.fieldBlock;
+      if (hasFieldBlock) {
+        // Field block: width from constraints, height from measurement
+        const measured = measuredSizes.get(comp.id);
+        if (measured) {
+          h = measured.height;
+        }
+      } else if (['text', 'barcode', 'qrcode'].includes(comp.typeData.type)) {
+        // Auto-sized: both from measurement
         const measured = measuredSizes.get(comp.id);
         if (measured) {
           w = measured.width;
@@ -342,6 +365,9 @@ export function Canvas() {
           {selectedId && selectedBounds && (
             <SelectionOverlay bounds={selectedBounds} componentId={selectedId} />
           )}
+
+          {/* Constraint guides (shown during drag) */}
+          <ConstraintGuides />
         </div>
       </div>
 

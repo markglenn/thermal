@@ -11,6 +11,7 @@ interface Props {
 
 export function TextProperties({ componentId, props }: Props) {
   const updateProperties = useEditorStore((s) => s.updateProperties);
+  const updateConstraints = useEditorStore((s) => s.updateConstraints);
   const update = (changes: Partial<TextPropsType>) => updateProperties(componentId, changes);
 
   const fb = props.fieldBlock;
@@ -19,10 +20,14 @@ export function TextProperties({ componentId, props }: Props) {
   const toggleFieldBlock = () => {
     if (hasFieldBlock) {
       update({ fieldBlock: undefined });
+      // Remove width constraint when disabling field block
+      updateConstraints(componentId, { width: undefined });
     } else {
       update({
-        fieldBlock: { width: 200, maxLines: 3, lineSpacing: 0, justification: 'L' },
+        fieldBlock: { maxLines: 3, lineSpacing: 0, justification: 'L' },
       });
+      // Set a default width constraint
+      updateConstraints(componentId, { width: 200 });
     }
   };
 
@@ -103,10 +108,6 @@ export function TextProperties({ componentId, props }: Props) {
         {hasFieldBlock && fb && (
           <div className="space-y-2 pl-1 border-l-2 border-blue-200 ml-1">
             <div className="flex gap-2">
-              <label className="flex-1">
-                <span className="text-xs text-gray-500">Block Width</span>
-                <NumberInput value={fb.width} onChange={(v) => updateFieldBlock({ width: v })} min={10} max={2000} fallback={200} />
-              </label>
               <label className="flex-1">
                 <span className="text-xs text-gray-500">Max Lines</span>
                 <NumberInput value={fb.maxLines} onChange={(v) => updateFieldBlock({ maxLines: v })} min={1} max={99} fallback={3} />

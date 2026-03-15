@@ -36,7 +36,8 @@ export function SelectionOverlay({ bounds, componentId }: Props) {
 
   if (!selectedComponent) return null;
 
-  const autoSized = ['text', 'barcode', 'qrcode'].includes(selectedComponent.typeData.type);
+  const hasFieldBlock = selectedComponent.typeData.type === 'text' && !!selectedComponent.typeData.props.fieldBlock;
+  const autoSized = ['text', 'barcode', 'qrcode'].includes(selectedComponent.typeData.type) && !hasFieldBlock;
 
   // Auto-sized components render their own selection outline (handles rotation/transforms)
   if (autoSized) return null;

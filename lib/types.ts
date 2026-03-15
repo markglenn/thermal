@@ -33,7 +33,6 @@ export type Rotation = 0 | 90 | 180 | 270;
 export type TextJustification = 'L' | 'C' | 'R' | 'J';
 
 export interface FieldBlockProperties {
-  width: number;
   maxLines: number;
   lineSpacing: number;
   justification: TextJustification;
@@ -90,10 +89,13 @@ export type ComponentProperties =
   | { type: 'rectangle'; props: RectangleProperties }
   | { type: 'container'; props: ContainerProperties };
 
+export type PinnableEdge = 'top' | 'bottom' | 'left' | 'right';
+
 export interface LabelComponent {
   id: string;
   name: string;
   constraints: Constraints;
+  pins: PinnableEdge[];
   children?: LabelComponent[];
   // Discriminated union for type + props
   typeData: ComponentProperties;

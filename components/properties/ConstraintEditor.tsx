@@ -1,59 +1,34 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import type { LabelComponent, Constraints } from '@/lib/types';
+import { useMemo } from 'react';
+import type { LabelComponent, PinnableEdge } from '@/lib/types';
 import { useEditorStore } from '@/lib/store/editor-store';
+import { useDocument } from '@/hooks/use-editor-store';
+import { resolveDocument } from '@/lib/constraints/resolver';
+import { NumberInput } from './NumberInput';
 
 interface Props {
   component: LabelComponent;
 }
 
-function InlineValue({
+function PinValue({
   value,
-  isSet,
-  onToggle,
+  isPinned,
   onChange,
 }: {
-  value: number | undefined;
-  isSet: boolean;
-  onToggle: () => void;
+  value: number;
+  isPinned: boolean;
   onChange: (v: number) => void;
 }) {
-  const [text, setText] = useState(value !== undefined ? String(value) : '');
-
-  useEffect(() => {
-    setText(value !== undefined ? String(value) : '');
-  }, [value]);
-
-  const handleChange = (raw: string) => {
-    setText(raw);
-    const parsed = parseInt(raw);
-    if (!isNaN(parsed)) onChange(parsed);
-  };
-
-  const handleBlur = () => {
-    if (!isSet) return;
-    const parsed = parseInt(text);
-    if (isNaN(parsed)) {
-      onChange(0);
-      setText('0');
-    }
-  };
-
+  if (!isPinned) {
+    return <div className="w-10 h-5" />;
+  }
   return (
-    <input
-      type="text"
-      inputMode="numeric"
-      value={isSet ? text : '—'}
-      readOnly={!isSet}
-      onClick={!isSet ? onToggle : undefined}
-      onChange={(e) => handleChange(e.target.value)}
-      onBlur={handleBlur}
-      className={`w-10 h-5 text-xs text-center rounded outline-none ${
-        isSet
-          ? 'bg-white border border-blue-400 text-blue-600 font-medium'
-          : 'bg-transparent border border-transparent text-gray-300 cursor-pointer hover:text-blue-400'
-      }`}
+    <NumberInput
+      value={value}
+      onChange={onChange}
+      fallback={0}
+      className="w-10 h-5 text-xs text-center rounded outline-none bg-white border border-blue-400 text-blue-600 font-medium"
     />
   );
 }
@@ -62,20 +37,21 @@ function Strut({
   isSet,
   onToggle,
   direction,
+  disabled,
 }: {
   isSet: boolean;
   onToggle: () => void;
   direction: 'horizontal' | 'vertical';
+  disabled?: boolean;
 }) {
   const isH = direction === 'horizontal';
-  const color = isSet ? 'bg-red-500' : 'bg-gray-300';
-  const hoverClass = isSet ? '' : 'hover:opacity-60';
+  const color = disabled ? 'bg-gray-200' : isSet ? 'bg-red-500' : 'bg-gray-300';
 
   return (
     <button
-      onClick={onToggle}
-      className={`flex items-center justify-center shrink-0 ${hoverClass}`}
-      title={isSet ? 'Remove constraint' : 'Add constraint'}
+      onClick={disabled ? undefined : onToggle}
+      className={`flex items-center justify-center shrink-0 ${disabled ? 'opacity-30 cursor-not-allowed' : isSet ? '' : 'hover:opacity-60'}`}
+      title={disabled ? 'Cannot pin both edges on auto-sized component' : isSet ? 'Unpin' : 'Pin to edge'}
     >
       {isH ? (
         <div className="flex items-center h-4 w-7">
@@ -96,85 +72,98 @@ function Strut({
 
 export function ConstraintEditor({ component }: Props) {
   const updateConstraints = useEditorStore((s) => s.updateConstraints);
+  const togglePin = useEditorStore((s) => s.togglePin);
+  const doc = useDocument();
+
+  const pins = component.pins;
+  const isPinned = (edge: PinnableEdge) => pins.includes(edge);
   const c = component.constraints;
 
-  const toggle = (key: keyof Constraints) => {
-    if (c[key] !== undefined) {
-      updateConstraints(component.id, { [key]: undefined });
-    } else {
-      updateConstraints(component.id, { [key]: 0 });
-    }
-  };
+  const boundsMap = useMemo(() => resolveDocument(doc), [doc]);
+  const bounds = boundsMap.get(component.id);
+  const x = Math.round(bounds?.x ?? 0);
+  const y = Math.round(bounds?.y ?? 0);
+  const w = Math.round(bounds?.width ?? 0);
+  const h = Math.round(bounds?.height ?? 0);
 
-  const set = (key: keyof Constraints, value: number) => {
-    updateConstraints(component.id, { [key]: value });
-  };
+  const hasFieldBlock = component.typeData.type === 'text' && !!component.typeData.props.fieldBlock;
+  const autoSized = ['text', 'barcode', 'qrcode'].includes(component.typeData.type) && !hasFieldBlock;
 
-  const autoSized = ['text', 'barcode', 'qrcode'].includes(component.typeData.type);
+  const hPinned = isPinned('left') || isPinned('right');
+  const vPinned = isPinned('top') || isPinned('bottom');
+
+  const setX = (val: number) => {
+    if (hPinned) return;
+    updateConstraints(component.id, { left: val });
+  };
+  const setY = (val: number) => {
+    if (vPinned) return;
+    updateConstraints(component.id, { top: val });
+  };
+  const setW = (val: number) => updateConstraints(component.id, { width: val });
+  const setH = (val: number) => updateConstraints(component.id, { height: val });
 
   return (
     <div className="p-3 border-b border-gray-200">
-      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Constraints</h3>
-
-      {/* Visual constraint diagram — fixed layout grid */}
-      <div className="flex flex-col items-center gap-1">
-        {/* Top row */}
-        <div className="flex flex-col items-center h-12 justify-end gap-1">
-          <InlineValue value={c.top} isSet={c.top !== undefined} onToggle={() => toggle('top')} onChange={(v) => set('top', v)} />
-          <Strut isSet={c.top !== undefined} onToggle={() => toggle('top')} direction="vertical" />
-        </div>
-
-        {/* Middle row */}
-        <div className="flex items-center h-10">
-          <div className="flex items-center justify-end w-20 gap-1">
-            <InlineValue value={c.left} isSet={c.left !== undefined} onToggle={() => toggle('left')} onChange={(v) => set('left', v)} />
-            <Strut isSet={c.left !== undefined} onToggle={() => toggle('left')} direction="horizontal" />
-          </div>
-
-          <div className="w-10 h-10 border-2 border-gray-300 rounded-sm bg-gray-50 shrink-0 mx-1" />
-
-          <div className="flex items-center w-20 gap-1">
-            <Strut isSet={c.right !== undefined} onToggle={() => toggle('right')} direction="horizontal" />
-            <InlineValue value={c.right} isSet={c.right !== undefined} onToggle={() => toggle('right')} onChange={(v) => set('right', v)} />
-          </div>
-        </div>
-
-        {/* Bottom row */}
-        <div className="flex flex-col items-center h-12 justify-start gap-1">
-          <Strut isSet={c.bottom !== undefined} onToggle={() => toggle('bottom')} direction="vertical" />
-          <InlineValue value={c.bottom} isSet={c.bottom !== undefined} onToggle={() => toggle('bottom')} onChange={(v) => set('bottom', v)} />
-        </div>
+      {/* Position */}
+      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Position</h3>
+      <div className="grid grid-cols-4 gap-1 mb-3">
+        <label className="flex items-center gap-1 col-span-2">
+          <span className={`text-xs shrink-0 ${hPinned ? 'text-gray-300' : 'text-gray-500'}`}>X</span>
+          <NumberInput
+            value={x}
+            onChange={setX}
+            fallback={0}
+            className={`w-full px-1.5 py-0.5 border rounded text-xs ${hPinned ? 'border-gray-200 text-gray-300 bg-gray-50' : 'border-gray-300'}`}
+          />
+        </label>
+        <label className="flex items-center gap-1 col-span-2">
+          <span className={`text-xs shrink-0 ${vPinned ? 'text-gray-300' : 'text-gray-500'}`}>Y</span>
+          <NumberInput
+            value={y}
+            onChange={setY}
+            fallback={0}
+            className={`w-full px-1.5 py-0.5 border rounded text-xs ${vPinned ? 'border-gray-200 text-gray-300 bg-gray-50' : 'border-gray-300'}`}
+          />
+        </label>
+        {!autoSized && (
+          <>
+            <label className="flex items-center gap-1 col-span-2">
+              <span className="text-xs text-gray-500 shrink-0">W</span>
+              <NumberInput value={w} onChange={setW} fallback={100} className="w-full px-1.5 py-0.5 border border-gray-300 rounded text-xs" />
+            </label>
+            <label className="flex items-center gap-1 col-span-2">
+              <span className="text-xs text-gray-500 shrink-0">H</span>
+              <NumberInput value={h} onChange={setH} fallback={40} className="w-full px-1.5 py-0.5 border border-gray-300 rounded text-xs" />
+            </label>
+          </>
+        )}
       </div>
 
-      {/* Width / Height */}
-      {!autoSized && (
-        <div className="flex gap-3 pt-2 mt-2 border-t border-gray-100">
-          <div className="flex-1 flex items-center gap-1.5">
-            <button
-              onClick={() => toggle('width')}
-              className={`w-4 h-4 rounded-sm border text-xs flex items-center justify-center shrink-0 ${
-                c.width !== undefined ? 'bg-blue-500 border-blue-500 text-white' : 'border-gray-300'
-              }`}
-            >
-              {c.width !== undefined ? '✓' : ''}
-            </button>
-            <span className="text-xs text-gray-500">W</span>
-            <InlineValue value={c.width} isSet={c.width !== undefined} onToggle={() => toggle('width')} onChange={(v) => set('width', v)} />
-          </div>
-          <div className="flex-1 flex items-center gap-1.5">
-            <button
-              onClick={() => toggle('height')}
-              className={`w-4 h-4 rounded-sm border text-xs flex items-center justify-center shrink-0 ${
-                c.height !== undefined ? 'bg-blue-500 border-blue-500 text-white' : 'border-gray-300'
-              }`}
-            >
-              {c.height !== undefined ? '✓' : ''}
-            </button>
-            <span className="text-xs text-gray-500">H</span>
-            <InlineValue value={c.height} isSet={c.height !== undefined} onToggle={() => toggle('height')} onChange={(v) => set('height', v)} />
-          </div>
+      {/* Pin diagram with inline values */}
+      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Pins</h3>
+      <div className="flex flex-col items-center gap-1">
+        {/* Top */}
+        <div className="flex flex-col items-center gap-0.5">
+          <PinValue value={c.top ?? 0} isPinned={isPinned('top')} onChange={(v) => updateConstraints(component.id, { top: v })} />
+          <Strut isSet={isPinned('top')} onToggle={() => togglePin(component.id, 'top')} direction="vertical" disabled={autoSized && isPinned('bottom') && !isPinned('top')} />
         </div>
-      )}
+
+        {/* Middle: Left — Box — Right */}
+        <div className="flex items-center gap-0.5">
+          <PinValue value={c.left ?? 0} isPinned={isPinned('left')} onChange={(v) => updateConstraints(component.id, { left: v })} />
+          <Strut isSet={isPinned('left')} onToggle={() => togglePin(component.id, 'left')} direction="horizontal" disabled={autoSized && isPinned('right') && !isPinned('left')} />
+          <div className="w-8 h-8 border-2 border-gray-300 rounded-sm bg-gray-50 shrink-0 mx-0.5" />
+          <Strut isSet={isPinned('right')} onToggle={() => togglePin(component.id, 'right')} direction="horizontal" disabled={autoSized && isPinned('left') && !isPinned('right')} />
+          <PinValue value={c.right ?? 0} isPinned={isPinned('right')} onChange={(v) => updateConstraints(component.id, { right: v })} />
+        </div>
+
+        {/* Bottom */}
+        <div className="flex flex-col items-center gap-0.5">
+          <Strut isSet={isPinned('bottom')} onToggle={() => togglePin(component.id, 'bottom')} direction="vertical" disabled={autoSized && isPinned('top') && !isPinned('bottom')} />
+          <PinValue value={c.bottom ?? 0} isPinned={isPinned('bottom')} onChange={(v) => updateConstraints(component.id, { bottom: v })} />
+        </div>
+      </div>
     </div>
   );
 }

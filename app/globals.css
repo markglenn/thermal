@@ -10,3 +10,8 @@ body {
   overflow: hidden;
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Prevent text selection on canvas components during drag */
+.bg-white.shadow-lg {
+  user-select: none;
+}

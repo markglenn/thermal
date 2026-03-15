@@ -25,12 +25,11 @@ export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: P
   const selectComponent = useEditorStore((s) => s.selectComponent);
   const isSelected = selectedId === component.id;
 
-  const autoSize = AUTO_SIZED_TYPES.has(component.typeData.type);
+  const hasFieldBlock = component.typeData.type === 'text' && !!component.typeData.props.fieldBlock;
+  const autoSize = AUTO_SIZED_TYPES.has(component.typeData.type) && !hasFieldBlock;
 
   useEffect(() => {
-    if (autoSize && ref.current && onMeasure) {
-      // Use getBoundingClientRect to account for child transforms (rotation, scaleX)
-      // then divide by zoom to get dot-space dimensions
+    if ((autoSize || hasFieldBlock) && ref.current && onMeasure) {
       const rect = ref.current.getBoundingClientRect();
       const zoom = useEditorStore.getState().viewport.zoom;
       onMeasure(component.id, rect.width / zoom, rect.height / zoom);
@@ -41,14 +40,21 @@ export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: P
     position: 'absolute',
     left: bounds.x,
     top: bounds.y,
-    ...(autoSize ? {} : { width: bounds.width, height: bounds.height }),
+    // Field block text: constraint width, auto height
+    // Auto-sized: no width/height
+    // Everything else: both from constraints
+    ...(autoSize
+      ? {}
+      : hasFieldBlock
+        ? { width: bounds.width }
+        : { width: bounds.width, height: bounds.height }),
     cursor: 'default',
   };
 
   function renderContent() {
     switch (component.typeData.type) {
       case 'text':
-        return <TextElement props={component.typeData.props} isSelected={isSelected} />;
+        return <TextElement props={component.typeData.props} isSelected={isSelected && autoSize} />;
       case 'barcode':
         return <BarcodeElement props={component.typeData.props} isSelected={isSelected} />;
       case 'qrcode':

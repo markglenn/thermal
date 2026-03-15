@@ -13,13 +13,17 @@ interface Props {
 
 export function NumberInput({ value, onChange, min, max, fallback = 0, className }: Props) {
   const [text, setText] = useState(String(value));
+  const [focused, setFocused] = useState(false);
 
   useEffect(() => {
-    setText(String(value));
-  }, [value]);
+    if (!focused) {
+      setText(String(value));
+    }
+  }, [value, focused]);
 
   const handleChange = (raw: string) => {
     setText(raw);
+    if (raw === '-' || raw === '') return;
     const parsed = parseInt(raw);
     if (!isNaN(parsed)) {
       const clamped = Math.max(min ?? -Infinity, Math.min(max ?? Infinity, parsed));
@@ -28,6 +32,7 @@ export function NumberInput({ value, onChange, min, max, fallback = 0, className
   };
 
   const handleBlur = () => {
+    setFocused(false);
     const parsed = parseInt(text);
     if (isNaN(parsed)) {
       onChange(fallback);
@@ -40,6 +45,7 @@ export function NumberInput({ value, onChange, min, max, fallback = 0, className
       type="text"
       inputMode="numeric"
       value={text}
+      onFocus={() => setFocused(true)}
       onChange={(e) => handleChange(e.target.value)}
       onBlur={handleBlur}
       className={className ?? 'w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm'}

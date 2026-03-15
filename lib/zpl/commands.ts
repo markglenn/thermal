@@ -18,7 +18,7 @@ export function textCommand(props: TextProperties, bounds: ResolvedBounds): stri
   lines.push(getZplFontWithRotation(props.font, props.fontSize, props.fontWidth, props.rotation));
   if (props.fieldBlock) {
     const fb = props.fieldBlock;
-    lines.push(`^FB${fb.width},${fb.maxLines},${fb.lineSpacing},${fb.justification},0`);
+    lines.push(`^FB${Math.round(bounds.width)},${fb.maxLines},${fb.lineSpacing},${fb.justification},0`);
   }
   const content = props.fieldBlock
     ? props.content.replace(/\n/g, '\\&')
