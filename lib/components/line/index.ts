@@ -1,3 +1,4 @@
+import { Minus } from 'lucide-react';
 import type { LineProperties } from '@/lib/types';
 import type { ComponentDefinition } from '../definition';
 import { LineElement } from './element';
@@ -7,7 +8,7 @@ import { lineZpl } from './zpl';
 export const lineComponent: ComponentDefinition<LineProperties> = {
   type: 'line',
   label: 'Line',
-  icon: '\u2015',
+  icon: Minus,
   traits: {
     autoSized: false,
     rotatable: false,

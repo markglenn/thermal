@@ -11,7 +11,7 @@ export interface ComponentTraits {
 export interface ComponentDefinition<TProps = unknown> {
   type: string;
   label: string;
-  icon: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
   traits: ComponentTraits;
   defaultConstraints: Constraints;
   defaultProps: TProps;

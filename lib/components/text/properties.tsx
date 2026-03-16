@@ -64,25 +64,25 @@ export function TextProperties({ componentId, props }: Props) {
             />
           )}
         </label>
-        <div className="flex gap-2">
-          <label className="flex-1">
-            <span className="text-xs text-gray-500">Font</span>
-            <select
-              value={props.font}
-              onChange={(e) => update({ font: e.target.value as ZplFont })}
-              className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm"
-            >
-              {['0', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map((f) => (
-                <option key={f} value={f}>Font {f}</option>
-              ))}
-            </select>
-          </label>
-          <label className="flex-1">
-            <span className="text-xs text-gray-500">Height</span>
+        <label>
+          <span className="text-xs text-gray-500">Font</span>
+          <select
+            value={props.font}
+            onChange={(e) => update({ font: e.target.value as ZplFont })}
+            className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm"
+          >
+            {['0', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map((f) => (
+              <option key={f} value={f}>Font {f}</option>
+            ))}
+          </select>
+        </label>
+        <div className="grid grid-cols-4 gap-2 mt-1">
+          <label className="flex items-center gap-1 col-span-2">
+            <span className="text-xs text-gray-500 shrink-0">H</span>
             <NumberInput value={props.fontSize} onChange={(v) => update({ fontSize: v })} min={10} max={300} fallback={30} />
           </label>
-          <label className="flex-1">
-            <span className="text-xs text-gray-500">Width</span>
+          <label className="flex items-center gap-1 col-span-2">
+            <span className="text-xs text-gray-500 shrink-0">W</span>
             <NumberInput value={props.fontWidth} onChange={(v) => update({ fontWidth: v })} min={10} max={300} fallback={30} />
           </label>
         </div>

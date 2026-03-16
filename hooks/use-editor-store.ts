@@ -1,5 +1,4 @@
 import { useEditorStore } from '@/lib/store/editor-store';
-import type { EditorStore } from '@/lib/store/editor-store';
 import { useShallow } from 'zustand/shallow';
 
 // Convenience selectors

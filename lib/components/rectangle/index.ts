@@ -1,3 +1,4 @@
+import { Square } from 'lucide-react';
 import type { RectangleProperties } from '@/lib/types';
 import type { ComponentDefinition } from '../definition';
 import { RectangleElement } from './element';
@@ -7,7 +8,7 @@ import { rectangleZpl } from './zpl';
 export const rectangleComponent: ComponentDefinition<RectangleProperties> = {
   type: 'rectangle',
   label: 'Rectangle',
-  icon: '\u25A1',
+  icon: Square,
   traits: {
     autoSized: false,
     rotatable: false,

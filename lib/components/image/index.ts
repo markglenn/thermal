@@ -1,3 +1,4 @@
+import { Image } from 'lucide-react';
 import type { ImageProperties } from '@/lib/types';
 import type { ComponentDefinition } from '../definition';
 import { ImageElement } from './element';
@@ -7,17 +8,17 @@ import { imageZpl } from './zpl';
 export const imageComponent: ComponentDefinition<ImageProperties> = {
   type: 'image',
   label: 'Image',
-  icon: '\u25A8',
+  icon: Image,
   traits: {
     autoSized: false,
     rotatable: false,
     isContainer: false,
   },
-  defaultConstraints: { left: 0, top: 0, width: 200, height: 200 },
+  defaultConstraints: { left: 0, top: 0, width: 100, height: 100 },
   defaultProps: {
     data: '',
-    originalWidth: 200,
-    originalHeight: 200,
+    originalWidth: 100,
+    originalHeight: 100,
     threshold: 128,
     invert: false,
     monochromeMethod: 'threshold',

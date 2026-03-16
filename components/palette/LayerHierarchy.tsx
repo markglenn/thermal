@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import type { LabelComponent } from '@/lib/types';
 import { useEditorStore } from '@/lib/store/editor-store';
 import { useDocument } from '@/hooks/use-editor-store';
+import { getDefinition } from '@/lib/components';
 import {
   DndContext,
   closestCenter,
@@ -19,16 +20,6 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-
-const TYPE_ICONS: Record<string, string> = {
-  text: 'T',
-  barcode: '║',
-  qrcode: '▣',
-  rectangle: '□',
-  line: '―',
-  container: '⊞',
-  image: '▨',
-};
 
 function defaultLabel(component: LabelComponent): string {
   return component.typeData.type.charAt(0).toUpperCase() + component.typeData.type.slice(1);
@@ -95,8 +86,8 @@ function SortableLayerItem({ component, depth }: { component: LabelComponent; de
         {...attributes}
         {...listeners}
       >
-        <span className="w-4 text-center text-gray-400 shrink-0">
-          {TYPE_ICONS[component.typeData.type] || '?'}
+        <span className="w-4 text-center text-gray-400 shrink-0 flex items-center justify-center">
+          {(() => { const Icon = getDefinition(component.typeData.type).icon; return <Icon size={12} />; })()}
         </span>
         {editing ? (
           <input

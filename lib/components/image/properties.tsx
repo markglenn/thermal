@@ -4,8 +4,8 @@ import { useState } from 'react';
 import type { ImageProperties as ImagePropsType, MonochromeMethod } from '@/lib/types';
 import { useEditorStore } from '@/lib/store/editor-store';
 import { findComponent } from '@/lib/utils';
-import { NumberInput } from '@/components/properties/NumberInput';
 import { ImageUploadModal } from '@/components/image-upload/ImageUploadModal';
+import { Upload, Replace, Trash2 } from 'lucide-react';
 import { convertImageToMonochrome, generateMonochromePreview } from './convert';
 
 interface Props {
@@ -71,7 +71,12 @@ export function ImagePropertiesPanel({ componentId, props }: Props) {
 
   return (
     <div className="p-3 border-b border-gray-200">
-      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Image</h3>
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Image</h3>
+        {hasImage && (
+          <span className="text-xs text-gray-400">{props.originalWidth} &times; {props.originalHeight}</span>
+        )}
+      </div>
       <div className="space-y-2">
         {hasImage && (
           <div className="border border-gray-200 rounded p-1 bg-[repeating-conic-gradient(#e5e7eb_0%_25%,transparent_0%_50%)_0_0/12px_12px]">
@@ -83,12 +88,46 @@ export function ImagePropertiesPanel({ componentId, props }: Props) {
           </div>
         )}
 
-        <button
-          onClick={() => setShowModal(true)}
-          className="w-full px-2 py-1.5 text-xs text-blue-600 border border-blue-300 rounded hover:bg-blue-50"
-        >
-          {hasImage ? 'Change Image' : 'Upload Image'}
-        </button>
+        {hasImage ? (
+          <div className="flex gap-1.5">
+            <button
+              onClick={() => setShowModal(true)}
+              className="flex-1 px-2 py-1.5 text-xs text-blue-600 border border-blue-300 rounded hover:bg-blue-50 flex items-center justify-center gap-1"
+            >
+              <Replace size={12} />
+              Change
+            </button>
+            <button
+              onClick={() => {
+                if (!window.confirm('Remove this image?')) return;
+                updateProperties(componentId, {
+                  data: '',
+                  originalWidth: 100,
+                  originalHeight: 100,
+                  monochromePreview: '',
+                  monochromePreviewFull: '',
+                  zplHex: '',
+                  zplBytesPerRow: 0,
+                  zplWidth: 0,
+                  zplHeight: 0,
+                });
+                updateConstraints(componentId, { width: 100, height: 100 });
+              }}
+              className="flex-1 px-2 py-1.5 text-xs text-red-600 border border-red-300 rounded hover:bg-red-50 flex items-center justify-center gap-1"
+            >
+              <Trash2 size={12} />
+              Remove
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowModal(true)}
+            className="w-full px-2 py-1.5 text-xs text-blue-600 border border-blue-300 rounded hover:bg-blue-50 flex items-center justify-center gap-1"
+          >
+            <Upload size={12} />
+            Upload Image
+          </button>
+        )}
 
         {hasImage && (
           <>
@@ -106,18 +145,19 @@ export function ImagePropertiesPanel({ componentId, props }: Props) {
 
             {props.monochromeMethod === 'threshold' && (
               <label>
-                <span className="text-xs text-gray-500">Threshold</span>
-                <NumberInput
-                  value={props.threshold}
-                  onChange={(v) => updateMonochrome({ threshold: v })}
+                <span className="text-xs text-gray-500">Threshold ({props.threshold})</span>
+                <input
+                  type="range"
                   min={0}
                   max={255}
-                  fallback={128}
+                  value={props.threshold}
+                  onChange={(e) => updateMonochrome({ threshold: parseInt(e.target.value) })}
+                  className="w-full mt-0.5"
                 />
               </label>
             )}
 
-            <label className="flex items-center gap-2">
+            <label className="flex items-center gap-2 pt-1">
               <input
                 type="checkbox"
                 checked={props.invert}
@@ -126,9 +166,6 @@ export function ImagePropertiesPanel({ componentId, props }: Props) {
               <span className="text-xs text-gray-500">Invert</span>
             </label>
 
-            <div className="text-xs text-gray-400">
-              {props.originalWidth} &times; {props.originalHeight} px
-            </div>
           </>
         )}
       </div>
@@ -142,7 +179,7 @@ export function ImagePropertiesPanel({ componentId, props }: Props) {
             const currentWidth = comp?.constraints.width;
             const currentHeight = comp?.constraints.height;
             // If component is still at default 200x200 (no prior image), resize to image dimensions
-            if (currentWidth === 200 && currentHeight === 200 && !props.data) {
+            if (currentWidth === 100 && currentHeight === 100 && !props.data) {
               updateConstraints(componentId, {
                 width: result.originalWidth,
                 height: result.originalHeight,

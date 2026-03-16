@@ -1,3 +1,12 @@
+let rendererPromise: Promise<{ api: { zplToBase64Async: (zpl: string, widthMm?: number, heightMm?: number, dpmm?: number) => Promise<string> } }> | null = null;
+
+function getRenderer() {
+  if (!rendererPromise) {
+    rendererPromise = import('zpl-renderer-js').then((mod) => mod.ready);
+  }
+  return rendererPromise;
+}
+
 export interface LabelaryRequest {
   zpl: string;
   dpi: number;
@@ -6,17 +15,13 @@ export interface LabelaryRequest {
 }
 
 export async function fetchLabelaryPreview(req: LabelaryRequest): Promise<string> {
-  const response = await fetch('/api/labelary', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(req),
-  });
+  const { api } = await getRenderer();
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(error.error || `HTTP ${response.status}`);
-  }
+  const dpmmMap: Record<number, number> = { 203: 8, 300: 12, 600: 24 };
+  const dpmm = dpmmMap[req.dpi] || 8;
+  const widthMm = req.widthInches * 25.4;
+  const heightMm = req.heightInches * 25.4;
 
-  const blob = await response.blob();
-  return URL.createObjectURL(blob);
+  const base64 = await api.zplToBase64Async(req.zpl, widthMm, heightMm, dpmm);
+  return `data:image/png;base64,${base64}`;
 }

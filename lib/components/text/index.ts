@@ -1,3 +1,4 @@
+import { Type } from 'lucide-react';
 import type { ComponentDefinition } from '../definition';
 import type { TextProperties } from '@/lib/types';
 import { TextElement } from './element';
@@ -7,7 +8,7 @@ import { generateTextZpl } from './zpl';
 export const textComponent: ComponentDefinition<TextProperties> = {
   type: 'text',
   label: 'Text',
-  icon: 'T',
+  icon: Type,
   traits: { autoSized: true, rotatable: true, isContainer: false },
   defaultConstraints: { left: 0, top: 0 },
   defaultProps: {

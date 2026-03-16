@@ -1,3 +1,4 @@
+import { QrCode } from 'lucide-react';
 import type { QrCodeProperties } from '@/lib/types';
 import type { ComponentDefinition } from '../definition';
 import { QrCodeElement } from './element';
@@ -7,7 +8,7 @@ import { qrcodeCommand } from './zpl';
 export const qrcodeComponent: ComponentDefinition<QrCodeProperties> = {
   type: 'qrcode',
   label: 'QR Code',
-  icon: '▣',
+  icon: QrCode,
   traits: { autoSized: true, rotatable: false, isContainer: false },
   defaultConstraints: { left: 0, top: 0 },
   defaultProps: {

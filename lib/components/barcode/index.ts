@@ -1,3 +1,4 @@
+import { Barcode } from 'lucide-react';
 import type { BarcodeProperties } from '@/lib/types';
 import type { ComponentDefinition } from '../definition';
 import { BarcodeElement } from './element';
@@ -7,7 +8,7 @@ import { barcodeCommand } from './zpl';
 export const barcodeComponent: ComponentDefinition<BarcodeProperties> = {
   type: 'barcode',
   label: 'Barcode',
-  icon: '║',
+  icon: Barcode,
   traits: { autoSized: true, rotatable: true, isContainer: false },
   defaultConstraints: { left: 0, top: 0 },
   defaultProps: {
