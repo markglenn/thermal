@@ -1,7 +1,7 @@
 'use client';
 
 import type { TextProperties as TextPropsType, ZplFont, Rotation, TextJustification, FieldBlockProperties } from '@/lib/types';
-import { useEditorStore } from '@/lib/store/editor-store';
+import { useEditorStore, pauseTracking, resumeTracking } from '@/lib/store/editor-store';
 import { findComponent } from '@/lib/utils';
 import { NumberInput } from '@/components/properties/NumberInput';
 
@@ -53,6 +53,8 @@ export function TextProperties({ componentId, props }: Props) {
             <textarea
               value={props.content}
               onChange={(e) => update({ content: e.target.value })}
+              onFocus={pauseTracking}
+              onBlur={resumeTracking}
               rows={3}
               className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm resize-y"
             />
@@ -60,6 +62,8 @@ export function TextProperties({ componentId, props }: Props) {
             <input
               value={props.content}
               onChange={(e) => update({ content: e.target.value })}
+              onFocus={pauseTracking}
+              onBlur={resumeTracking}
               className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm"
             />
           )}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { pauseTracking, resumeTracking } from '@/lib/store/editor-store';
 
 interface Props {
   value: number;
@@ -31,6 +32,11 @@ export function NumberInput({ value, onChange, min, max, fallback = 0, className
     }
   };
 
+  const handleFocus = () => {
+    setFocused(true);
+    pauseTracking();
+  };
+
   const handleBlur = () => {
     setFocused(false);
     const parsed = parseInt(text);
@@ -38,6 +44,7 @@ export function NumberInput({ value, onChange, min, max, fallback = 0, className
       onChange(fallback);
       setText(String(fallback));
     }
+    resumeTracking();
   };
 
   return (
@@ -45,7 +52,7 @@ export function NumberInput({ value, onChange, min, max, fallback = 0, className
       type="text"
       inputMode="numeric"
       value={text}
-      onFocus={() => setFocused(true)}
+      onFocus={handleFocus}
       onChange={(e) => handleChange(e.target.value)}
       onBlur={handleBlur}
       className={className ?? 'w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm'}

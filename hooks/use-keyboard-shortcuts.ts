@@ -9,6 +9,19 @@ export function useKeyboardShortcuts() {
       const state = useEditorStore.getState();
       const { selectedComponentId, removeComponent, duplicateComponent, updateConstraints } = state;
 
+      // Undo/Redo work even when focused on inputs
+      if (e.key === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
+        e.preventDefault();
+        useEditorStore.temporal.getState().undo();
+        return;
+      }
+      if ((e.key === 'z' && (e.ctrlKey || e.metaKey) && e.shiftKey) ||
+          (e.key === 'y' && (e.ctrlKey || e.metaKey))) {
+        e.preventDefault();
+        useEditorStore.temporal.getState().redo();
+        return;
+      }
+
       // Ignore if user is typing in an input
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') return;

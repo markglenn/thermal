@@ -1,7 +1,7 @@
 'use client';
 
 import type { QrCodeProperties as QrCodePropsType, QrErrorCorrection } from '@/lib/types';
-import { useEditorStore } from '@/lib/store/editor-store';
+import { useEditorStore, pauseTracking, resumeTracking } from '@/lib/store/editor-store';
 import { NumberInput } from '@/components/properties/NumberInput';
 
 interface Props {
@@ -22,6 +22,8 @@ export function QrCodeProperties({ componentId, props }: Props) {
           <input
             value={props.content}
             onChange={(e) => update({ content: e.target.value })}
+            onFocus={pauseTracking}
+            onBlur={resumeTracking}
             className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm"
           />
         </label>

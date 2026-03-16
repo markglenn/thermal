@@ -201,11 +201,45 @@ describe('containerZpl', () => {
 });
 
 describe('imageZpl', () => {
-  it('generates placeholder image ZPL', () => {
+  it('returns empty array when no image data', () => {
     const result = imageZpl(
-      { data: '', originalWidth: 100, originalHeight: 100 },
+      {
+        data: '',
+        originalWidth: 100,
+        originalHeight: 100,
+        threshold: 128,
+        invert: false,
+        monochromeMethod: 'threshold',
+        monochromePreview: '',
+        monochromePreviewFull: '',
+        zplHex: '',
+        zplBytesPerRow: 0,
+        zplWidth: 0,
+        zplHeight: 0,
+      },
       bounds
     );
-    expect(result).toEqual(['^FO50,100', '^FD[IMAGE]^FS']);
+    expect(result).toEqual([]);
+  });
+
+  it('generates ^GFA command when image data is present', () => {
+    const result = imageZpl(
+      {
+        data: 'data:image/png;base64,abc',
+        originalWidth: 8,
+        originalHeight: 2,
+        threshold: 128,
+        invert: false,
+        monochromeMethod: 'threshold',
+        monochromePreview: '',
+        monochromePreviewFull: '',
+        zplHex: 'FF00',
+        zplBytesPerRow: 1,
+        zplWidth: 8,
+        zplHeight: 2,
+      },
+      bounds
+    );
+    expect(result).toEqual(['^FO50,100', '^GFA,2,2,1,FF00', '^FS']);
   });
 });
