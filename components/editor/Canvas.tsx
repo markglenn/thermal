@@ -14,6 +14,7 @@ import { ContainerComponent } from './ContainerComponent';
 import { SelectionOverlay } from './SelectionOverlay';
 import { ConstraintGuides } from './ConstraintGuides';
 import { GridOverlay } from './GridOverlay';
+import { reconvertImageAtBounds } from '@/lib/components/image/reconvert';
 
 export function Canvas() {
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -47,7 +48,10 @@ export function Canvas() {
   const handlePointerUp = useCallback(
     (e: React.PointerEvent) => {
       if (dragState) setDragState(null);
-      if (resizeState) setResizeState(null);
+      if (resizeState) {
+        reconvertImageAtBounds(resizeState.componentId);
+        setResizeState(null);
+      }
       handleDrop(e);
     },
     [dragState, resizeState, setDragState, setResizeState, handleDrop]

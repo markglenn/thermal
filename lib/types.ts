@@ -61,10 +61,21 @@ export interface QrCodeProperties {
   errorCorrection: QrErrorCorrection;
 }
 
+export type MonochromeMethod = 'threshold' | 'dither';
+
 export interface ImageProperties {
-  data: string; // base64
+  data: string; // base64 data URI
   originalWidth: number;
   originalHeight: number;
+  threshold: number; // 0-255
+  invert: boolean;
+  monochromeMethod: MonochromeMethod;
+  monochromePreview: string; // monochrome PNG at constraint dimensions for idle display
+  monochromePreviewFull: string; // monochrome PNG at original dimensions for resize display
+  zplHex: string; // pre-computed monochrome hex for ^GFA
+  zplBytesPerRow: number;
+  zplWidth: number;
+  zplHeight: number;
 }
 
 export interface LineProperties {

@@ -1,0 +1,158 @@
+'use client';
+
+import { useState } from 'react';
+import type { ImageProperties as ImagePropsType, MonochromeMethod } from '@/lib/types';
+import { useEditorStore } from '@/lib/store/editor-store';
+import { findComponent } from '@/lib/utils';
+import { NumberInput } from '@/components/properties/NumberInput';
+import { ImageUploadModal } from '@/components/image-upload/ImageUploadModal';
+import { convertImageToMonochrome, generateMonochromePreview } from './convert';
+
+interface Props {
+  componentId: string;
+  props: ImagePropsType;
+}
+
+export function ImagePropertiesPanel({ componentId, props }: Props) {
+  const updateProperties = useEditorStore((s) => s.updateProperties);
+  const updateConstraints = useEditorStore((s) => s.updateConstraints);
+  const [showModal, setShowModal] = useState(false);
+
+  const hasImage = !!props.data;
+
+  const updateMonochrome = async (changes: Partial<Pick<ImagePropsType, 'threshold' | 'invert' | 'monochromeMethod'>>) => {
+    const newThreshold = changes.threshold ?? props.threshold;
+    const newInvert = changes.invert ?? props.invert;
+    const newMethod = changes.monochromeMethod ?? props.monochromeMethod;
+
+    updateProperties(componentId, { ...changes });
+
+    if (props.data) {
+      const comp = findComponent(useEditorStore.getState().document.components, componentId);
+      const zplWidth = comp?.constraints.width ?? props.originalWidth;
+      const zplHeight = comp?.constraints.height ?? props.originalHeight;
+
+      const [result, preview, previewFull] = await Promise.all([
+        convertImageToMonochrome(
+          props.data,
+          zplWidth,
+          zplHeight,
+          newThreshold,
+          newInvert,
+          newMethod
+        ),
+        generateMonochromePreview(
+          props.data,
+          zplWidth,
+          zplHeight,
+          newThreshold,
+          newInvert,
+          newMethod
+        ),
+        generateMonochromePreview(
+          props.data,
+          props.originalWidth,
+          props.originalHeight,
+          newThreshold,
+          newInvert,
+          newMethod
+        ),
+      ]);
+      updateProperties(componentId, {
+        monochromePreview: preview,
+        monochromePreviewFull: previewFull,
+        zplHex: result.hex,
+        zplBytesPerRow: result.bytesPerRow,
+        zplWidth: result.width,
+        zplHeight: result.height,
+      });
+    }
+  };
+
+  return (
+    <div className="p-3 border-b border-gray-200">
+      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Image</h3>
+      <div className="space-y-2">
+        {hasImage && (
+          <div className="border border-gray-200 rounded p-1 bg-[repeating-conic-gradient(#e5e7eb_0%_25%,transparent_0%_50%)_0_0/12px_12px]">
+            <img
+              src={props.monochromePreview || props.data}
+              alt="Component image"
+              className="max-w-full max-h-24 object-contain mx-auto block"
+            />
+          </div>
+        )}
+
+        <button
+          onClick={() => setShowModal(true)}
+          className="w-full px-2 py-1.5 text-xs text-blue-600 border border-blue-300 rounded hover:bg-blue-50"
+        >
+          {hasImage ? 'Change Image' : 'Upload Image'}
+        </button>
+
+        {hasImage && (
+          <>
+            <label>
+              <span className="text-xs text-gray-500">Monochrome Method</span>
+              <select
+                value={props.monochromeMethod}
+                onChange={(e) => updateMonochrome({ monochromeMethod: e.target.value as MonochromeMethod })}
+                className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm"
+              >
+                <option value="threshold">Closest Color</option>
+                <option value="dither">Dither (Floyd-Steinberg)</option>
+              </select>
+            </label>
+
+            {props.monochromeMethod === 'threshold' && (
+              <label>
+                <span className="text-xs text-gray-500">Threshold</span>
+                <NumberInput
+                  value={props.threshold}
+                  onChange={(v) => updateMonochrome({ threshold: v })}
+                  min={0}
+                  max={255}
+                  fallback={128}
+                />
+              </label>
+            )}
+
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={props.invert}
+                onChange={(e) => updateMonochrome({ invert: e.target.checked })}
+              />
+              <span className="text-xs text-gray-500">Invert</span>
+            </label>
+
+            <div className="text-xs text-gray-400">
+              {props.originalWidth} &times; {props.originalHeight} px
+            </div>
+          </>
+        )}
+      </div>
+
+      {showModal && (
+        <ImageUploadModal
+          initialProps={hasImage ? props : undefined}
+          onConfirm={(result) => {
+            updateProperties(componentId, result);
+            const comp = findComponent(useEditorStore.getState().document.components, componentId);
+            const currentWidth = comp?.constraints.width;
+            const currentHeight = comp?.constraints.height;
+            // If component is still at default 200x200 (no prior image), resize to image dimensions
+            if (currentWidth === 200 && currentHeight === 200 && !props.data) {
+              updateConstraints(componentId, {
+                width: result.originalWidth,
+                height: result.originalHeight,
+              });
+            }
+            setShowModal(false);
+          }}
+          onCancel={() => setShowModal(false)}
+        />
+      )}
+    </div>
+  );
+}

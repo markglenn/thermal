@@ -69,6 +69,11 @@ export function SelectionOverlay({ bounds, componentId }: Props) {
         const affectsHeight = ['top', 'bottom', 'top-left', 'top-right', 'bottom-left', 'bottom-right'].includes(h.position);
         if (isText && affectsHeight) return null;
 
+        // Image components: only corner handles (proportional resize)
+        const isImage = selectedComponent.typeData.type === 'image';
+        const isEdgeOnly = ['top', 'right', 'bottom', 'left'].includes(h.position);
+        if (isImage && isEdgeOnly) return null;
+
         return (
           <div
             key={h.position}

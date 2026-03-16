@@ -1,6 +1,7 @@
 import type { ImageProperties } from '@/lib/types';
 import type { ComponentDefinition } from '../definition';
 import { ImageElement } from './element';
+import { ImagePropertiesPanel } from './properties';
 import { imageZpl } from './zpl';
 
 export const imageComponent: ComponentDefinition<ImageProperties> = {
@@ -17,8 +18,17 @@ export const imageComponent: ComponentDefinition<ImageProperties> = {
     data: '',
     originalWidth: 200,
     originalHeight: 200,
+    threshold: 128,
+    invert: false,
+    monochromeMethod: 'threshold',
+    monochromePreview: '',
+    monochromePreviewFull: '',
+    zplHex: '',
+    zplBytesPerRow: 0,
+    zplWidth: 0,
+    zplHeight: 0,
   },
   Element: ImageElement,
-  PropertiesPanel: null,
+  PropertiesPanel: ImagePropertiesPanel,
   generateZpl: imageZpl,
 };
