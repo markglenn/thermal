@@ -32,7 +32,7 @@ export function Canvas() {
   const widthDots = labelWidthDots(document.label);
   const heightDots = labelHeightDots(document.label);
 
-  const { handlePointerDown } = useCanvasZoomPan(canvasRef, document.label);
+  const { handlePointerDown, isPanning } = useCanvasZoomPan(canvasRef, document.label);
   const { handleComponentPointerDown, handleDragMove, dragState } = useCanvasDrag();
   const { handleResizeMove, resizeState } = useCanvasResize();
   const { handleDrop } = usePaletteDrop(labelRef);
@@ -86,7 +86,7 @@ export function Canvas() {
       ref={canvasRef}
       tabIndex={0}
       className="flex-1 overflow-hidden bg-gray-100 relative outline-none"
-      style={dragCursor ? { cursor: dragCursor } : undefined}
+      style={{ cursor: dragCursor ?? (isPanning ? 'grabbing' : 'grab') }}
       onPointerDown={handleCanvasPointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}

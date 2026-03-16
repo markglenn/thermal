@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useState } from 'react';
 import { useEditorStore } from '@/lib/store/editor-store';
 import { MIN_ZOOM, MAX_ZOOM, labelWidthDots, labelHeightDots } from '@/lib/constants';
 import type { LabelConfig } from '@/lib/types';
@@ -7,6 +7,7 @@ export function useCanvasZoomPan(
   canvasRef: React.RefObject<HTMLDivElement | null>,
   label: LabelConfig
 ) {
+  const [isPanning, setIsPanning] = useState(false);
   const hasInitialized = useRef(false);
   const widthDots = labelWidthDots(label);
   const heightDots = labelHeightDots(label);
@@ -76,6 +77,7 @@ export function useCanvasZoomPan(
     (e: React.PointerEvent) => {
       if (e.button === 1) {
         e.preventDefault();
+        setIsPanning(true);
         const startX = e.clientX;
         const startY = e.clientY;
         const { panX: startPanX, panY: startPanY, zoom } = useEditorStore.getState().viewport;
@@ -91,6 +93,7 @@ export function useCanvasZoomPan(
         const onUp = () => {
           window.removeEventListener('pointermove', onMove);
           window.removeEventListener('pointerup', onUp);
+          setIsPanning(false);
         };
         window.addEventListener('pointermove', onMove);
         window.addEventListener('pointerup', onUp);
@@ -99,10 +102,32 @@ export function useCanvasZoomPan(
 
       if (e.button === 0) {
         selectComponent(null);
+
+        // Left-click drag to pan
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const { panX: startPanX, panY: startPanY, zoom } = useEditorStore.getState().viewport;
+
+        const onMove = (me: PointerEvent) => {
+          setIsPanning(true);
+          const clamped = clampPanRef.current(
+            startPanX + (me.clientX - startX),
+            startPanY + (me.clientY - startY),
+            zoom
+          );
+          useEditorStore.getState().setViewport(zoom, clamped.panX, clamped.panY);
+        };
+        const onUp = () => {
+          window.removeEventListener('pointermove', onMove);
+          window.removeEventListener('pointerup', onUp);
+          setIsPanning(false);
+        };
+        window.addEventListener('pointermove', onMove);
+        window.addEventListener('pointerup', onUp);
       }
     },
     [selectComponent]
   );
 
-  return { handlePointerDown };
+  return { handlePointerDown, isPanning };
 }
