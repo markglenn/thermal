@@ -49,10 +49,8 @@ export async function GET(
   }
 }
 
-function parseThumbnail(thumbnail: string | undefined): Buffer | string | null {
+function parseThumbnail(thumbnail: string | undefined): Buffer | null {
   if (!thumbnail) return null;
-  const isPostgres = (process.env.DATABASE_URL || '').startsWith('postgres');
-  if (isPostgres) return thumbnail;
   const base64 = thumbnail.replace(/^data:image\/\w+;base64,/, '');
   return Buffer.from(base64, 'base64');
 }
@@ -104,8 +102,7 @@ export async function PUT(
 
     if (latest && latest.status === 'draft') {
       // Overwrite existing draft — transaction for atomicity
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      db.transaction((tx: any) => {
+      db.transaction((tx) => {
         tx.update(tables.labels)
           .set({ name: labelName, updatedAt: now })
           .where(eq(tables.labels.id, id))
@@ -131,8 +128,7 @@ export async function PUT(
       const newVersion = (latest?.version ?? 0) + 1;
       const versionId = crypto.randomUUID();
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      db.transaction((tx: any) => {
+      db.transaction((tx) => {
         tx.update(tables.labels)
           .set({ name: labelName, updatedAt: now })
           .where(eq(tables.labels.id, id))

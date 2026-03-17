@@ -406,11 +406,14 @@ export const useEditorStore = create<EditorStore>()(
           state.document = doc;
           state.selectedComponentIds = [];
         });
+        // Clear undo history so Cmd+Z doesn't revert past the newly loaded document.
+        // Any new action that replaces the document wholesale should do the same.
         useEditorStore.temporal.getState().clear();
       },
 
       resetDocument: () => {
         set(() => ({ ...initialState }));
+        // Clear undo history — same rationale as loadDocument
         useEditorStore.temporal.getState().clear();
       },
 

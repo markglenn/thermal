@@ -32,7 +32,7 @@ export async function GET() {
       versionByLabelId.set(v.labelId, v);
     }
 
-    const result = allLabels.map((label: { id: string; name: string; updatedAt: Date }) => {
+    const result = allLabels.map((label) => {
       const latest = versionByLabelId.get(label.id);
       let thumbnailUrl: string | null = null;
       if (latest?.thumbnail) {
@@ -60,10 +60,8 @@ export async function GET() {
   }
 }
 
-function parseThumbnail(thumbnail: string | undefined): Buffer | string | null {
+function parseThumbnail(thumbnail: string | undefined): Buffer | null {
   if (!thumbnail) return null;
-  const isPostgres = (process.env.DATABASE_URL || '').startsWith('postgres');
-  if (isPostgres) return thumbnail;
   const base64 = thumbnail.replace(/^data:image\/\w+;base64,/, '');
   return Buffer.from(base64, 'base64');
 }
@@ -91,8 +89,7 @@ export async function POST(request: NextRequest) {
     const thumbnailData = parseThumbnail(thumbnail);
 
     // Transaction so label + version are created atomically
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    db.transaction((tx: any) => {
+    db.transaction((tx) => {
       tx.insert(tables.labels).values({
         id: labelId,
         name,
