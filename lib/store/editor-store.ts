@@ -332,12 +332,28 @@ export const useEditorStore = create<EditorStore>()(
       },
 
       setDragState: (dragState) => {
+        const prev = get().dragState;
+        if (dragState && !prev) {
+          // Entering drag — snapshot document and pause tracking
+          _undoBatchSnapshot = { document: JSON.parse(JSON.stringify(get().document)) };
+          useEditorStore.temporal.getState().pause();
+        } else if (!dragState && prev) {
+          // Exiting drag — resume and record a single undo entry
+          _flushUndoBatch();
+        }
         set((state) => {
           state.dragState = dragState;
         });
       },
 
       setResizeState: (resizeState) => {
+        const prev = get().resizeState;
+        if (resizeState && !prev) {
+          _undoBatchSnapshot = { document: JSON.parse(JSON.stringify(get().document)) };
+          useEditorStore.temporal.getState().pause();
+        } else if (!resizeState && prev) {
+          _flushUndoBatch();
+        }
         set((state) => {
           state.resizeState = resizeState;
         });
@@ -405,22 +421,17 @@ export function resumeTracking() {
   useEditorStore.temporal.getState().resume();
 }
 
-// Snapshot of the document state captured before a drag/resize begins
-let _preDragSnapshot: { document: LabelDocument } | null = null;
+// Internal: snapshot captured at drag/resize start, flushed as a single undo entry on end
+let _undoBatchSnapshot: { document: LabelDocument } | null = null;
 
-/** Capture document state and pause tracking — call at the start of drag/resize */
-export function beginUndoBatch() {
-  _preDragSnapshot = { document: JSON.parse(JSON.stringify(useEditorStore.getState().document)) };
-  useEditorStore.temporal.getState().pause();
-}
-
-/** Resume tracking and push the pre-drag snapshot as a single undo entry — call at the end of drag/resize */
-export function commitUndoBatch() {
+function _flushUndoBatch() {
+  const snapshot = _undoBatchSnapshot;
+  _undoBatchSnapshot = null;
   useEditorStore.temporal.getState().resume();
-  if (_preDragSnapshot) {
-    const temporal = useEditorStore.temporal.getState();
-    // Push the pre-drag snapshot so undo goes back to the position before the drag
-    temporal.pastStates.push(_preDragSnapshot);
-    _preDragSnapshot = null;
+  if (snapshot) {
+    // Push the pre-drag snapshot as a single undo entry via the temporal store's setState,
+    // matching how zundo's own clear() updates pastStates internally.
+    const { pastStates } = useEditorStore.temporal.getState();
+    useEditorStore.temporal.setState({ pastStates: [...pastStates, snapshot] });
   }
 }

@@ -42,15 +42,16 @@ export function Toolbar() {
 
   const saveLabel = useCallback(async (name: string) => {
     setIsSaving(true);
-    const store = useEditorStore.getState();
-    const doc = store.document;
-    const thumbnail = await captureThumbnail(doc);
-    const labelId = store.currentLabelId;
+    try {
+      const store = useEditorStore.getState();
+      const doc = store.document;
+      const thumbnail = await captureThumbnail(doc);
+      const labelId = store.currentLabelId;
 
-    if (labelId) {
-      // Update existing
-      const res = await fetch(`/api/labels/${labelId}`, {
-        method: 'PUT',
+      const url = labelId ? `/api/labels/${labelId}` : '/api/labels';
+      const method = labelId ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, document: doc, thumbnail }),
       });
@@ -58,20 +59,12 @@ export function Toolbar() {
         const data = await res.json();
         store.setLabelMeta(data.id, name);
       }
-    } else {
-      // Create new
-      const res = await fetch('/api/labels', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, document: doc, thumbnail }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        store.setLabelMeta(data.id, name);
-      }
+      setShowSaveModal(false);
+    } catch (e) {
+      console.error('Save failed:', e);
+    } finally {
+      setIsSaving(false);
     }
-    setIsSaving(false);
-    setShowSaveModal(false);
   }, []);
 
   const handleSaveClick = useCallback((e: React.MouseEvent) => {

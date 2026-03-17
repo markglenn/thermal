@@ -1,25 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, sql } from 'drizzle-orm';
 import { getDatabase } from '@/lib/db';
 
 export async function GET() {
-  const { db, tables } = getDatabase();
+  try {
+    const { db, tables } = getDatabase();
 
-  const allLabels = await db
-    .select()
-    .from(tables.labels)
-    .orderBy(desc(tables.labels.updatedAt));
+    // Two queries instead of N+1: all labels + latest version per label
+    const allLabels = await db
+      .select()
+      .from(tables.labels)
+      .orderBy(desc(tables.labels.updatedAt));
 
-  const result = await Promise.all(
-    allLabels.map(async (label: { id: string; name: string; updatedAt: Date }) => {
-      const versions = await db
-        .select()
-        .from(tables.labelVersions)
-        .where(eq(tables.labelVersions.labelId, label.id))
-        .orderBy(desc(tables.labelVersions.version))
-        .limit(1);
+    // Get all latest versions in a single query using a subquery for max version per label
+    const latestVersions = allLabels.length > 0
+      ? await db
+          .select()
+          .from(tables.labelVersions)
+          .where(
+            sql`(${tables.labelVersions.labelId}, ${tables.labelVersions.version}) IN (
+              SELECT ${tables.labelVersions.labelId}, MAX(${tables.labelVersions.version})
+              FROM ${tables.labelVersions}
+              GROUP BY ${tables.labelVersions.labelId}
+            )`
+          )
+      : [];
 
-      const latest = versions[0];
+    // Index by labelId for O(1) lookup
+    const versionByLabelId = new Map<string, typeof latestVersions[0]>();
+    for (const v of latestVersions) {
+      versionByLabelId.set(v.labelId, v);
+    }
+
+    const result = allLabels.map((label: { id: string; name: string; updatedAt: Date }) => {
+      const latest = versionByLabelId.get(label.id);
       let thumbnailUrl: string | null = null;
       if (latest?.thumbnail) {
         if (typeof latest.thumbnail === 'string') {
@@ -37,58 +51,73 @@ export async function GET() {
         latestStatus: latest?.status ?? 'draft',
         updatedAt: label.updatedAt.toISOString(),
       };
-    })
-  );
+    });
 
-  return NextResponse.json(result);
+    return NextResponse.json(result);
+  } catch (e) {
+    console.error('GET /api/labels failed:', e);
+    return NextResponse.json({ error: 'Failed to list labels' }, { status: 500 });
+  }
+}
+
+function parseThumbnail(thumbnail: string | undefined): Buffer | string | null {
+  if (!thumbnail) return null;
+  const isPostgres = (process.env.DATABASE_URL || '').startsWith('postgres');
+  if (isPostgres) return thumbnail;
+  const base64 = thumbnail.replace(/^data:image\/\w+;base64,/, '');
+  return Buffer.from(base64, 'base64');
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json();
-  const { name, document, thumbnail } = body;
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
+
+  const { name, document, thumbnail } = body as { name?: string; document?: unknown; thumbnail?: string };
 
   if (!name || !document) {
     return NextResponse.json({ error: 'name and document are required' }, { status: 400 });
   }
 
-  const { db, tables } = getDatabase();
+  try {
+    const { db, tables } = getDatabase();
 
-  const labelId = crypto.randomUUID();
-  const versionId = crypto.randomUUID();
-  const now = new Date();
+    const labelId = crypto.randomUUID();
+    const versionId = crypto.randomUUID();
+    const now = new Date();
+    const thumbnailData = parseThumbnail(thumbnail);
 
-  let thumbnailData: Buffer | string | null = null;
-  if (thumbnail) {
-    const isPostgres = (process.env.DATABASE_URL || '').startsWith('postgres');
-    if (isPostgres) {
-      thumbnailData = thumbnail;
-    } else {
-      const base64 = thumbnail.replace(/^data:image\/\w+;base64,/, '');
-      thumbnailData = Buffer.from(base64, 'base64');
-    }
+    // Transaction so label + version are created atomically
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    db.transaction((tx: any) => {
+      tx.insert(tables.labels).values({
+        id: labelId,
+        name,
+        createdAt: now,
+        updatedAt: now,
+      }).run();
+      tx.insert(tables.labelVersions).values({
+        id: versionId,
+        labelId,
+        version: 1,
+        status: 'draft',
+        document,
+        thumbnail: thumbnailData,
+        createdAt: now,
+      }).run();
+    });
+
+    return NextResponse.json({
+      id: labelId,
+      name,
+      version: 1,
+      status: 'draft',
+    }, { status: 201 });
+  } catch (e) {
+    console.error('POST /api/labels failed:', e);
+    return NextResponse.json({ error: 'Failed to create label' }, { status: 500 });
   }
-
-  await db.insert(tables.labels).values({
-    id: labelId,
-    name,
-    createdAt: now,
-    updatedAt: now,
-  });
-
-  await db.insert(tables.labelVersions).values({
-    id: versionId,
-    labelId,
-    version: 1,
-    status: 'draft',
-    document,
-    thumbnail: thumbnailData,
-    createdAt: now,
-  });
-
-  return NextResponse.json({
-    id: labelId,
-    name,
-    version: 1,
-    status: 'draft',
-  }, { status: 201 });
 }

@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useEditorStore, beginUndoBatch } from '@/lib/store/editor-store';
+import { useEditorStore } from '@/lib/store/editor-store';
 import { findComponent } from '@/lib/utils';
 import type { Constraints } from '@/lib/types';
 
@@ -18,7 +18,6 @@ export function useCanvasDrag() {
       const comp = findComponent(useEditorStore.getState().document.components, componentId);
       if (!comp) return;
 
-      beginUndoBatch();
       setDragState({
         componentId,
         startX: e.clientX,

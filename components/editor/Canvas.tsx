@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useCallback, useMemo } from 'react';
-import { useEditorStore, commitUndoBatch } from '@/lib/store/editor-store';
+import { useEditorStore } from '@/lib/store/editor-store';
 import { useDocument, useViewport } from '@/hooks/use-editor-store';
 import { findComponent } from '@/lib/utils';
 import { labelWidthDots, labelHeightDots } from '@/lib/constants';
@@ -49,11 +49,9 @@ export function Canvas() {
   const handlePointerUp = useCallback(
     (e: React.PointerEvent) => {
       if (dragState) {
-        commitUndoBatch();
         setDragState(null);
       }
       if (resizeState) {
-        commitUndoBatch();
         reconvertImageAtBounds(resizeState.componentId);
         setResizeState(null);
       }

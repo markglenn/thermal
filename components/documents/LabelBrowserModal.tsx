@@ -50,10 +50,18 @@ export function LabelBrowserModal({ onSelect, onCancel }: Props) {
 
   const handleDelete = async (id: string) => {
     if (deletingId === id) {
-      // Confirmed — delete
-      await fetch(`/api/labels/${id}`, { method: 'DELETE' });
+      // Confirmed — optimistically remove, then delete
+      setLabels((prev) => prev.filter((l) => l.id !== id));
       setDeletingId(null);
-      fetchLabels();
+      try {
+        const res = await fetch(`/api/labels/${id}`, { method: 'DELETE' });
+        if (!res.ok) {
+          // Restore on failure
+          fetchLabels();
+        }
+      } catch {
+        fetchLabels();
+      }
     } else {
       setDeletingId(id);
     }
