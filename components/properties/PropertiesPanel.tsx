@@ -1,13 +1,24 @@
 'use client';
 
 import { PanelRightClose } from 'lucide-react';
-import { useSelectedComponent } from '@/hooks/use-editor-store';
+import { useSelectedComponent, useEditorStore } from '@/hooks/use-editor-store';
 import { getDefinition } from '@/lib/components';
 import { LabelSettings } from '../toolbar/LabelSettings';
 import { ConstraintEditor } from './ConstraintEditor';
 
 interface Props {
   onCollapse?: () => void;
+}
+
+function MultiSelectOrEmptyMessage() {
+  const count = useEditorStore((s) => s.selectedComponentIds.length);
+  return (
+    <div className="p-3 text-sm text-gray-400 text-center mt-8">
+      {count > 1
+        ? `${count} components selected`
+        : 'Select a component to edit its properties'}
+    </div>
+  );
 }
 
 export function PropertiesPanel({ onCollapse }: Props) {
@@ -42,9 +53,7 @@ export function PropertiesPanel({ onCollapse }: Props) {
           )}
         </>
       ) : (
-        <div className="p-3 text-sm text-gray-400 text-center mt-8">
-          Select a component to edit its properties
-        </div>
+        <MultiSelectOrEmptyMessage />
       )}
     </div>
   );

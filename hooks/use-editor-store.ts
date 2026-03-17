@@ -4,10 +4,11 @@ import { useShallow } from 'zustand/shallow';
 // Convenience selectors
 export function useSelectedComponent() {
   return useEditorStore((s) => {
-    if (!s.selectedComponentId) return null;
+    if (s.selectedComponentIds.length !== 1) return null;
+    const id = s.selectedComponentIds[0];
     function find(components: typeof s.document.components): typeof s.document.components[0] | null {
       for (const c of components) {
-        if (c.id === s.selectedComponentId) return c;
+        if (c.id === id) return c;
         if (c.children) {
           const found = find(c.children);
           if (found) return found;

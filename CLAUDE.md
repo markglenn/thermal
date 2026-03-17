@@ -162,11 +162,8 @@ Text rendering accounts for:
 
 ## What's Not Yet Implemented
 
-- Undo/redo (zundo middleware is installed but not wired up)
-- Save/load document as JSON
+- Export/import document as JSON file
 - VStack/HStack auto-layout containers
-- Image component (`^GF` hex data encoding)
 - Print options / direct printer communication
 - Snap-to-grid during drag
 - Copy/paste between documents
-- Multi-select

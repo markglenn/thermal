@@ -8,6 +8,7 @@ import { getSizingMode } from '@/lib/components';
 interface Props {
   bounds: ResolvedBounds;
   componentId: string;
+  showHandles?: boolean;
 }
 
 const HANDLE_SIZE = 8;
@@ -23,7 +24,7 @@ const handles: { position: ResizeHandle; style: React.CSSProperties }[] = [
   { position: 'left', style: { top: '50%', marginTop: -HANDLE_SIZE / 2, left: -HANDLE_SIZE / 2, cursor: 'ew-resize' } },
 ];
 
-export function SelectionOverlay({ bounds, componentId }: Props) {
+export function SelectionOverlay({ bounds, componentId, showHandles = true }: Props) {
   const setResizeState = useEditorStore((s) => s.setResizeState);
   const selectedComponent = useEditorStore((s) =>
     findComponent(s.document.components, componentId)
@@ -48,7 +49,7 @@ export function SelectionOverlay({ bounds, componentId }: Props) {
       }}
     >
       <div className="absolute inset-0 pointer-events-none" style={{ outline: '2px solid #3b82f6' }} />
-      {handles.map((h) => {
+      {!showHandles ? null : handles.map((h) => {
         // Hide handles that touch a pinned edge
         const pins = selectedComponent.pins ?? [];
         const isText = selectedComponent.typeData.type === 'text';

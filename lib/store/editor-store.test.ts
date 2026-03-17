@@ -25,7 +25,7 @@ describe('editor store', () => {
 
     it('selects the new component', () => {
       const id = useEditorStore.getState().addComponent('rectangle');
-      expect(useEditorStore.getState().selectedComponentId).toBe(id);
+      expect(useEditorStore.getState().selectedComponentIds).toEqual([id]);
     });
 
     it('applies constraint overrides', () => {
@@ -48,7 +48,7 @@ describe('editor store', () => {
     it('selects the child component', () => {
       const containerId = useEditorStore.getState().addComponent('container');
       const childId = useEditorStore.getState().addComponentToContainer(containerId, 'text');
-      expect(useEditorStore.getState().selectedComponentId).toBe(childId);
+      expect(useEditorStore.getState().selectedComponentIds).toEqual([childId]);
     });
   });
 
@@ -61,9 +61,9 @@ describe('editor store', () => {
 
     it('clears selection if removed component was selected', () => {
       const id = useEditorStore.getState().addComponent('text');
-      expect(useEditorStore.getState().selectedComponentId).toBe(id);
+      expect(useEditorStore.getState().selectedComponentIds).toEqual([id]);
       useEditorStore.getState().removeComponent(id);
-      expect(useEditorStore.getState().selectedComponentId).toBeNull();
+      expect(useEditorStore.getState().selectedComponentIds).toEqual([]);
     });
 
     it('does not clear selection if a different component was removed', () => {
@@ -71,7 +71,7 @@ describe('editor store', () => {
       const id2 = useEditorStore.getState().addComponent('rectangle');
       // id2 is selected (most recently added)
       useEditorStore.getState().removeComponent(id1);
-      expect(useEditorStore.getState().selectedComponentId).toBe(id2);
+      expect(useEditorStore.getState().selectedComponentIds).toEqual([id2]);
     });
   });
 
@@ -108,7 +108,7 @@ describe('editor store', () => {
       const originalId = useEditorStore.getState().document.components[0].id;
       useEditorStore.getState().duplicateComponent(originalId);
       const copy = useEditorStore.getState().document.components[1];
-      expect(useEditorStore.getState().selectedComponentId).toBe(copy.id);
+      expect(useEditorStore.getState().selectedComponentIds).toEqual([copy.id]);
     });
   });
 
@@ -233,9 +233,40 @@ describe('editor store', () => {
     it('sets selected component', () => {
       const id = useEditorStore.getState().addComponent('text');
       useEditorStore.getState().selectComponent(null);
-      expect(useEditorStore.getState().selectedComponentId).toBeNull();
+      expect(useEditorStore.getState().selectedComponentIds).toEqual([]);
       useEditorStore.getState().selectComponent(id);
-      expect(useEditorStore.getState().selectedComponentId).toBe(id);
+      expect(useEditorStore.getState().selectedComponentIds).toEqual([id]);
+    });
+
+    it('toggle adds to selection', () => {
+      const id1 = useEditorStore.getState().addComponent('text');
+      const id2 = useEditorStore.getState().addComponent('rectangle');
+      useEditorStore.getState().selectComponent(id1);
+      useEditorStore.getState().selectComponent(id2, { toggle: true });
+      expect(useEditorStore.getState().selectedComponentIds).toEqual([id1, id2]);
+    });
+
+    it('toggle removes from selection', () => {
+      const id1 = useEditorStore.getState().addComponent('text');
+      const id2 = useEditorStore.getState().addComponent('rectangle');
+      useEditorStore.getState().selectComponent(id1);
+      useEditorStore.getState().selectComponent(id2, { toggle: true });
+      useEditorStore.getState().selectComponent(id1, { toggle: true });
+      expect(useEditorStore.getState().selectedComponentIds).toEqual([id2]);
+    });
+  });
+
+  describe('selectAll', () => {
+    it('selects all components including children', () => {
+      const textId = useEditorStore.getState().addComponent('text');
+      const containerId = useEditorStore.getState().addComponent('container');
+      const childId = useEditorStore.getState().addComponentToContainer(containerId, 'rectangle');
+      useEditorStore.getState().selectAll();
+      const ids = useEditorStore.getState().selectedComponentIds;
+      expect(ids).toContain(textId);
+      expect(ids).toContain(containerId);
+      expect(ids).toContain(childId);
+      expect(ids).toHaveLength(3);
     });
   });
 
@@ -311,7 +342,7 @@ describe('editor store', () => {
       };
       useEditorStore.getState().loadDocument(newDoc);
       expect(useEditorStore.getState().document).toEqual(newDoc);
-      expect(useEditorStore.getState().selectedComponentId).toBeNull();
+      expect(useEditorStore.getState().selectedComponentIds).toEqual([]);
     });
   });
 
@@ -322,7 +353,7 @@ describe('editor store', () => {
       useEditorStore.getState().resetDocument();
       expect(useEditorStore.getState().document.components).toHaveLength(0);
       expect(useEditorStore.getState().viewport.zoom).toBe(1);
-      expect(useEditorStore.getState().selectedComponentId).toBeNull();
+      expect(useEditorStore.getState().selectedComponentIds).toEqual([]);
     });
 
     it('clears label meta', () => {
@@ -351,7 +382,7 @@ describe('editor store', () => {
       const id = useEditorStore.getState().addComponent('text');
       useEditorStore.getState().setLabelMeta('label-1', 'Label');
       expect(useEditorStore.getState().document.components).toHaveLength(1);
-      expect(useEditorStore.getState().selectedComponentId).toBe(id);
+      expect(useEditorStore.getState().selectedComponentIds).toContain(id);
     });
 
     it('is excluded from undo history (partialize only tracks document)', () => {

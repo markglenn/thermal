@@ -10,6 +10,7 @@ import { useCanvasDrag } from '@/hooks/use-canvas-drag';
 import { useCanvasResize } from '@/hooks/use-canvas-resize';
 import { usePaletteDrop } from '@/hooks/use-palette-drop';
 import { useAbsoluteBounds } from '@/hooks/use-absolute-bounds';
+import { useMarqueeSelect } from '@/hooks/use-marquee-select';
 import { CanvasComponent } from './CanvasComponent';
 import { ContainerComponent } from './ContainerComponent';
 import { SelectionOverlay } from './SelectionOverlay';
@@ -22,8 +23,7 @@ export function Canvas() {
   const labelRef = useRef<HTMLDivElement>(null);
   const document = useDocument();
   const viewport = useViewport();
-  const selectedId = useEditorStore((s) => s.selectedComponentId);
-  const selectComponent = useEditorStore((s) => s.selectComponent);
+  const selectedIds = useEditorStore((s) => s.selectedComponentIds);
   const showGrid = useEditorStore((s) => s.showGrid);
   const gridSize = useEditorStore((s) => s.gridSize);
   const setDragState = useEditorStore((s) => s.setDragState);
@@ -32,11 +32,12 @@ export function Canvas() {
   const widthDots = labelWidthDots(document.label);
   const heightDots = labelHeightDots(document.label);
 
-  const { handlePointerDown, isPanning } = useCanvasZoomPan(canvasRef, document.label);
+  const { handlePointerDown, isPanning } = useCanvasZoomPan(canvasRef, document.label, labelRef);
   const { handleComponentPointerDown, handleDragMove, dragState } = useCanvasDrag();
   const { handleResizeMove, resizeState } = useCanvasResize();
   const { handleDrop } = usePaletteDrop(labelRef);
   const { boundsMap, absoluteBoundsMap, handleMeasure } = useAbsoluteBounds();
+  const { marquee, handleLabelPointerDown } = useMarqueeSelect(labelRef, absoluteBoundsMap);
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
@@ -68,7 +69,8 @@ export function Canvas() {
     [handlePointerDown]
   );
 
-  const selectedBounds = selectedId ? absoluteBoundsMap.get(selectedId) : null;
+  // For single selection, show resize handles. For multi-select, show outlines only.
+  const primarySelectedId = selectedIds.length === 1 ? selectedIds[0] : null;
 
   // Cursor based on pinned axes during drag
   const dragCursor = useMemo(() => {
@@ -106,10 +108,8 @@ export function Canvas() {
         <div
           ref={labelRef}
           className="bg-white shadow-lg relative"
-          style={{ width: widthDots, height: heightDots }}
-          onPointerDown={(e) => {
-            if (e.target === e.currentTarget) selectComponent(null);
-          }}
+          style={{ width: widthDots, height: heightDots, cursor: 'default' }}
+          onPointerDown={handleLabelPointerDown}
         >
           {showGrid && <GridOverlay width={widthDots} height={heightDots} gridSize={gridSize} />}
 
@@ -139,9 +139,24 @@ export function Canvas() {
             );
           })}
 
-          {/* Selection overlay */}
-          {selectedId && selectedBounds && (
-            <SelectionOverlay bounds={selectedBounds} componentId={selectedId} />
+          {/* Selection overlays */}
+          {selectedIds.map((sid) => {
+            const sBounds = absoluteBoundsMap.get(sid);
+            if (!sBounds) return null;
+            return <SelectionOverlay key={sid} bounds={sBounds} componentId={sid} showHandles={sid === primarySelectedId} />;
+          })}
+
+          {/* Marquee selection rectangle */}
+          {marquee && marquee.width > 2 && marquee.height > 2 && (
+            <div
+              className="absolute pointer-events-none border border-blue-500 bg-blue-500/10"
+              style={{
+                left: marquee.x,
+                top: marquee.y,
+                width: marquee.width,
+                height: marquee.height,
+              }}
+            />
           )}
 
           {/* Constraint guides */}

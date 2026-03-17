@@ -12,9 +12,7 @@ interface Props {
 }
 
 export function ContainerComponent({ component, bounds, boundsMap, onDragStart }: Props) {
-  const selectedId = useEditorStore((s) => s.selectedComponentId);
-  const selectComponent = useEditorStore((s) => s.selectComponent);
-  const isSelected = selectedId === component.id;
+  const isSelected = useEditorStore((s) => s.selectedComponentIds.includes(component.id));
 
   return (
     <div
@@ -27,8 +25,6 @@ export function ContainerComponent({ component, bounds, boundsMap, onDragStart }
         cursor: 'move',
       }}
       onPointerDown={(e) => {
-        e.stopPropagation();
-        selectComponent(component.id);
         if (onDragStart) onDragStart(e, component.id);
       }}
     >

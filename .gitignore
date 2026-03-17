@@ -40,6 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# claude code
+.claude/
+
 # sqlite
 thermal.db
 thermal.db-*

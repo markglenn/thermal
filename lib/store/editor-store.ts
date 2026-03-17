@@ -21,7 +21,7 @@ const initialDocument: LabelDocument = {
 
 const initialState: EditorState = {
   document: initialDocument,
-  selectedComponentId: null,
+  selectedComponentIds: [],
   viewport: { zoom: DEFAULT_ZOOM, panX: 0, panY: 0 },
   interactionMode: 'select',
   dragState: null,
@@ -61,7 +61,8 @@ export interface EditorActions {
   reparentComponent: (id: string, newParentId: string | null) => void;
 
   // Selection
-  selectComponent: (id: string | null) => void;
+  selectComponent: (id: string | null, opts?: { toggle?: boolean }) => void;
+  selectAll: () => void;
 
   // Viewport
   setZoom: (zoom: number) => void;
@@ -122,7 +123,7 @@ export const useEditorStore = create<EditorStore>()(
         const comp = createComponent(type, constraintOverrides);
         set((state) => {
           state.document.components.push(comp);
-          state.selectedComponentId = comp.id;
+          state.selectedComponentIds = [comp.id];
         });
         return comp.id;
       },
@@ -133,7 +134,7 @@ export const useEditorStore = create<EditorStore>()(
           const container = findComponent(state.document.components, containerId);
           if (container && container.children) {
             container.children.push(comp);
-            state.selectedComponentId = comp.id;
+            state.selectedComponentIds = [comp.id];
           }
         });
         return comp.id;
@@ -146,9 +147,7 @@ export const useEditorStore = create<EditorStore>()(
             const idx = parent.findIndex((c) => c.id === id);
             if (idx !== -1) parent.splice(idx, 1);
           }
-          if (state.selectedComponentId === id) {
-            state.selectedComponentId = null;
-          }
+          state.selectedComponentIds = state.selectedComponentIds.filter((sid) => sid !== id);
         });
       },
 
@@ -171,7 +170,7 @@ export const useEditorStore = create<EditorStore>()(
           if (cloned.constraints.left !== undefined) cloned.constraints.left += 20;
           if (cloned.constraints.top !== undefined) cloned.constraints.top += 20;
           parent.splice(idx + 1, 0, cloned);
-          state.selectedComponentId = cloned.id;
+          state.selectedComponentIds = [cloned.id];
         });
       },
 
@@ -298,9 +297,34 @@ export const useEditorStore = create<EditorStore>()(
         });
       },
 
-      selectComponent: (id) => {
+      selectComponent: (id, opts) => {
         set((state) => {
-          state.selectedComponentId = id;
+          if (id === null) {
+            state.selectedComponentIds = [];
+          } else if (opts?.toggle) {
+            const idx = state.selectedComponentIds.indexOf(id);
+            if (idx >= 0) {
+              state.selectedComponentIds.splice(idx, 1);
+            } else {
+              state.selectedComponentIds.push(id);
+            }
+          } else {
+            state.selectedComponentIds = [id];
+          }
+        });
+      },
+
+      selectAll: () => {
+        set((state) => {
+          function collectIds(comps: LabelComponent[]): string[] {
+            const ids: string[] = [];
+            for (const c of comps) {
+              ids.push(c.id);
+              if (c.children) ids.push(...collectIds(c.children));
+            }
+            return ids;
+          }
+          state.selectedComponentIds = collectIds(state.document.components);
         });
       },
 
@@ -380,7 +404,7 @@ export const useEditorStore = create<EditorStore>()(
       loadDocument: (doc) => {
         set((state) => {
           state.document = doc;
-          state.selectedComponentId = null;
+          state.selectedComponentIds = [];
         });
         useEditorStore.temporal.getState().clear();
       },

@@ -26,11 +26,10 @@ function defaultLabel(component: LabelComponent): string {
 }
 
 function SortableLayerItem({ component, depth }: { component: LabelComponent; depth: number }) {
-  const selectedId = useEditorStore((s) => s.selectedComponentId);
+  const isSelected = useEditorStore((s) => s.selectedComponentIds.includes(component.id));
   const selectComponent = useEditorStore((s) => s.selectComponent);
   const removeComponent = useEditorStore((s) => s.removeComponent);
   const renameComponent = useEditorStore((s) => s.renameComponent);
-  const isSelected = selectedId === component.id;
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(component.name);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -78,7 +77,7 @@ function SortableLayerItem({ component, depth }: { component: LabelComponent; de
         className={`flex items-center gap-1.5 px-2 py-1 text-xs rounded cursor-pointer select-none group ${
           isSelected ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-50 text-gray-700'
         }`}
-        onClick={() => selectComponent(component.id)}
+        onClick={(e) => selectComponent(component.id, { toggle: e.shiftKey || e.metaKey || e.ctrlKey })}
         onDoubleClick={() => {
           setEditText(displayName);
           setEditing(true);

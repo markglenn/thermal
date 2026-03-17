@@ -12,7 +12,7 @@ interface Props {
 
 export function ConstraintGuides({ absoluteBoundsMap }: Props) {
   const dragState = useEditorStore((s) => s.dragState);
-  const selectedId = useEditorStore((s) => s.selectedComponentId);
+  const selectedId = useEditorStore((s) => s.selectedComponentIds.length === 1 ? s.selectedComponentIds[0] : null);
   const doc = useDocument();
 
   const labelW = labelWidthDots(doc.label);

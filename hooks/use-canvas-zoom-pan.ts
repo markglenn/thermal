@@ -5,7 +5,8 @@ import type { LabelConfig } from '@/lib/types';
 
 export function useCanvasZoomPan(
   canvasRef: React.RefObject<HTMLDivElement | null>,
-  label: LabelConfig
+  label: LabelConfig,
+  labelRef?: React.RefObject<HTMLDivElement | null>
 ) {
   const [isPanning, setIsPanning] = useState(false);
   const hasInitialized = useRef(false);
@@ -101,9 +102,12 @@ export function useCanvasZoomPan(
       }
 
       if (e.button === 0) {
+        // If click is inside the label surface, let the marquee handler deal with it
+        if (labelRef?.current?.contains(e.target as Node)) return;
+
         selectComponent(null);
 
-        // Left-click drag to pan
+        // Left-click drag to pan (only from gray background)
         const startX = e.clientX;
         const startY = e.clientY;
         const { panX: startPanX, panY: startPanY, zoom } = useEditorStore.getState().viewport;

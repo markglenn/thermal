@@ -148,6 +148,8 @@ export interface DragState {
   startX: number;
   startY: number;
   startConstraints: Constraints;
+  /** When dragging multiple selected components, track all their start constraints */
+  others?: { componentId: string; startConstraints: Constraints }[];
 }
 
 export interface ResizeState {
@@ -166,7 +168,7 @@ export interface PaletteDropState {
 
 export interface EditorState {
   document: LabelDocument;
-  selectedComponentId: string | null;
+  selectedComponentIds: string[];
   viewport: EditorViewport;
   interactionMode: InteractionMode;
   dragState: DragState | null;

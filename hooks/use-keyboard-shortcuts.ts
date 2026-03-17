@@ -2,12 +2,13 @@
 
 import { useEffect } from 'react';
 import { useEditorStore } from '@/lib/store/editor-store';
+import { findComponent } from '@/lib/utils';
 
 export function useKeyboardShortcuts() {
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       const state = useEditorStore.getState();
-      const { selectedComponentId, removeComponent, duplicateComponent, updateConstraints } = state;
+      const { selectedComponentIds, removeComponent, duplicateComponent, updateConstraints, selectAll } = state;
 
       // Undo/Redo work even when focused on inputs
       if (e.key === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
@@ -26,22 +27,30 @@ export function useKeyboardShortcuts() {
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') return;
 
-      // Delete selected component
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedComponentId) {
+      // Select all
+      if ((e.key === 'a' || e.key === 'A') && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
-        removeComponent(selectedComponentId);
+        selectAll();
+        return;
+      }
+
+      // Delete selected components
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedComponentIds.length > 0) {
+        e.preventDefault();
+        // Delete in reverse to avoid index shifting issues for siblings
+        [...selectedComponentIds].reverse().forEach((id) => removeComponent(id));
         return;
       }
 
       // Duplicate
-      if ((e.key === 'd' || e.key === 'D') && (e.ctrlKey || e.metaKey) && selectedComponentId) {
+      if ((e.key === 'd' || e.key === 'D') && (e.ctrlKey || e.metaKey) && selectedComponentIds.length > 0) {
         e.preventDefault();
-        duplicateComponent(selectedComponentId);
+        selectedComponentIds.forEach((id) => duplicateComponent(id));
         return;
       }
 
-      // Arrow keys to nudge selected component
-      if (selectedComponentId && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      // Arrow keys to nudge selected components
+      if (selectedComponentIds.length > 0 && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
         e.preventDefault();
         const step = e.shiftKey ? 10 : 1;
         const delta = {
@@ -51,25 +60,19 @@ export function useKeyboardShortcuts() {
           ArrowRight: { left: step },
         }[e.key] as Record<string, number>;
 
-        // Find current component to get its constraints
-        function find(comps: typeof state.document.components): typeof state.document.components[0] | null {
-          for (const c of comps) {
-            if (c.id === selectedComponentId) return c;
-            if (c.children) { const f = find(c.children); if (f) return f; }
-          }
-          return null;
-        }
-        const comp = find(state.document.components);
-        if (comp) {
-          const updates: Record<string, number> = {};
-          for (const [key, val] of Object.entries(delta)) {
-            const current = comp.constraints[key as keyof typeof comp.constraints];
-            if (current !== undefined) {
-              updates[key] = current + val;
+        for (const id of selectedComponentIds) {
+          const comp = findComponent(state.document.components, id);
+          if (comp) {
+            const updates: Record<string, number> = {};
+            for (const [key, val] of Object.entries(delta)) {
+              const current = comp.constraints[key as keyof typeof comp.constraints];
+              if (current !== undefined) {
+                updates[key] = current + val;
+              }
             }
-          }
-          if (Object.keys(updates).length > 0) {
-            updateConstraints(selectedComponentId, updates);
+            if (Object.keys(updates).length > 0) {
+              updateConstraints(id, updates);
+            }
           }
         }
         return;

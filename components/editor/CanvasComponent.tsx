@@ -14,9 +14,7 @@ interface Props {
 
 export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: Props) {
   const ref = useRef<HTMLDivElement>(null);
-  const selectedId = useEditorStore((s) => s.selectedComponentId);
-  const selectComponent = useEditorStore((s) => s.selectComponent);
-  const isSelected = selectedId === component.id;
+  const isSelected = useEditorStore((s) => s.selectedComponentIds.includes(component.id));
 
   const def = getDefinition(component.typeData.type);
   const sizingMode = getSizingMode(component);
@@ -52,8 +50,6 @@ export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: P
       ref={ref}
       style={style}
       onPointerDown={(e) => {
-        e.stopPropagation();
-        selectComponent(component.id);
         if (onDragStart) onDragStart(e, component.id);
       }}
     >

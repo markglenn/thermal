@@ -16,7 +16,7 @@ export function Toolbar() {
   const showGrid = useEditorStore((s) => s.showGrid);
   const toggleGrid = useEditorStore((s) => s.toggleGrid);
   const resetDocument = useEditorStore((s) => s.resetDocument);
-  const selectedId = useEditorStore((s) => s.selectedComponentId);
+  const selectedIds = useEditorStore((s) => s.selectedComponentIds);
   const removeComponent = useEditorStore((s) => s.removeComponent);
   const duplicateComponent = useEditorStore((s) => s.duplicateComponent);
   const currentLabelId = useEditorStore((s) => s.currentLabelId);
@@ -139,19 +139,19 @@ export function Toolbar() {
 
         <div className="flex-1" />
 
-        {selectedId && (
+        {selectedIds.length > 0 && (
           <div className="flex items-center gap-1 border-r border-gray-200 pr-2 mr-2">
             <button
-              onClick={() => duplicateComponent(selectedId)}
+              onClick={() => selectedIds.forEach((id) => duplicateComponent(id))}
               className="px-2 py-0.5 rounded hover:bg-gray-100 text-xs"
             >
-              Duplicate
+              Duplicate{selectedIds.length > 1 ? ` (${selectedIds.length})` : ''}
             </button>
             <button
-              onClick={() => removeComponent(selectedId)}
+              onClick={() => selectedIds.forEach((id) => removeComponent(id))}
               className="px-2 py-0.5 rounded hover:bg-red-50 text-red-600 text-xs"
             >
-              Delete
+              Delete{selectedIds.length > 1 ? ` (${selectedIds.length})` : ''}
             </button>
           </div>
         )}
