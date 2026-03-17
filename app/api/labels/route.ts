@@ -5,7 +5,7 @@ import { validateDocument } from '@/lib/documents/validate';
 
 export async function GET() {
   try {
-    const { db, tables } = getDatabase();
+    const { db, tables } = await getDatabase();
 
     // Two queries instead of N+1: all labels + latest version per label
     const allLabels = await db
@@ -39,8 +39,8 @@ export async function GET() {
       if (latest?.thumbnail) {
         if (typeof latest.thumbnail === 'string') {
           thumbnailUrl = latest.thumbnail;
-        } else if (Buffer.isBuffer(latest.thumbnail)) {
-          thumbnailUrl = `data:image/png;base64,${latest.thumbnail.toString('base64')}`;
+        } else {
+          thumbnailUrl = `data:image/png;base64,${Buffer.from(latest.thumbnail).toString('base64')}`;
         }
       }
 
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { db, tables } = getDatabase();
+    const { db, tables } = await getDatabase();
 
     const labelId = crypto.randomUUID();
     const versionId = crypto.randomUUID();
@@ -88,14 +88,14 @@ export async function POST(request: NextRequest) {
     const thumbnailData = parseThumbnail(thumbnail);
 
     // Transaction so label + version are created atomically
-    db.transaction((tx) => {
-      tx.insert(tables.labels).values({
+    await db.transaction(async (tx) => {
+      await tx.insert(tables.labels).values({
         id: labelId,
         name,
         createdAt: now,
         updatedAt: now,
-      }).run();
-      tx.insert(tables.labelVersions).values({
+      });
+      await tx.insert(tables.labelVersions).values({
         id: versionId,
         labelId,
         version: 1,
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
         document,
         thumbnail: thumbnailData,
         createdAt: now,
-      }).run();
+      });
     });
 
     return NextResponse.json({

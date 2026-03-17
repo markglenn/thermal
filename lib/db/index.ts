@@ -1,13 +1,18 @@
 import path from 'path';
 import type { LabelDocument } from '../types';
-import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
+import type { LibSQLDatabase } from 'drizzle-orm/libsql';
 import type * as sqliteSchema from './schema-sqlite';
 
 // Use the SQLite schema types as the canonical table type — both dialects have
 // identical column names so queries written against these types work for either.
 type Schema = typeof sqliteSchema;
 type Tables = { labels: Schema['labels']; labelVersions: Schema['labelVersions'] };
-type Db = BetterSQLite3Database<Schema>;
+
+// LibSQLDatabase is the canonical DB type. Both libsql (dev) and node-postgres
+// (prod) expose an async API, so the runtime contract is the same. The Postgres
+// drizzle instance is cast to this type — a safe cast since both return promises
+// from select/insert/update/delete/transaction.
+type Db = LibSQLDatabase<Schema>;
 
 const DATABASE_URL = process.env.DATABASE_URL || 'file:./thermal.db';
 const isPostgres = DATABASE_URL.startsWith('postgres');
@@ -16,7 +21,7 @@ const isPostgres = DATABASE_URL.startsWith('postgres');
 let _db: Db | undefined;
 let _tables: Tables | undefined;
 
-function getDb(): { db: Db; tables: Tables } {
+async function initDb(): Promise<{ db: Db; tables: Tables }> {
   if (_db && _tables) return { db: _db, tables: _tables };
 
   if (isPostgres) {
@@ -32,19 +37,16 @@ function getDb(): { db: Db; tables: Tables } {
     _tables = { labels: schema.labels, labelVersions: schema.labelVersions };
   } else {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { drizzle } = require('drizzle-orm/better-sqlite3');
+    const { createClient } = require('@libsql/client');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const Database = require('better-sqlite3');
+    const { drizzle } = require('drizzle-orm/libsql');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { migrate } = require('drizzle-orm/better-sqlite3/migrator');
+    const { migrate } = require('drizzle-orm/libsql/migrator');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const schema = require('./schema-sqlite') as Schema;
-    const dbPath = DATABASE_URL.replace(/^file:/, '');
-    const sqlite = new Database(dbPath);
-    sqlite.pragma('journal_mode = WAL');
-    sqlite.pragma('foreign_keys = ON');
-    const db = drizzle(sqlite, { schema }) as Db;
-    migrate(db, { migrationsFolder: path.join(process.cwd(), 'drizzle/sqlite') });
+    const client = createClient({ url: DATABASE_URL });
+    const db = drizzle(client, { schema }) as Db;
+    await migrate(db, { migrationsFolder: path.join(process.cwd(), 'drizzle/sqlite') });
     _db = db;
     _tables = { labels: schema.labels, labelVersions: schema.labelVersions };
   }
@@ -52,8 +54,8 @@ function getDb(): { db: Db; tables: Tables } {
   return { db: _db!, tables: _tables! };
 }
 
-export function getDatabase(): { db: Db; tables: Tables } {
-  return getDb();
+export async function getDatabase(): Promise<{ db: Db; tables: Tables }> {
+  return initDb();
 }
 
 /** Reset singleton — for tests only */
@@ -75,7 +77,7 @@ export type LabelVersionRow = {
   version: number;
   status: 'draft' | 'production';
   document: LabelDocument;
-  thumbnail: Buffer | string | null;
+  thumbnail: ArrayBuffer | string | null;
   createdAt: Date;
 };
 

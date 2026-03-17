@@ -9,7 +9,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const { db, tables } = getDatabase();
+    const { db, tables } = await getDatabase();
 
     const labelRows = await db
       .select()
@@ -73,7 +73,7 @@ export async function PUT(
 
   try {
     const { id } = await params;
-    const { db, tables } = getDatabase();
+    const { db, tables } = await getDatabase();
 
     const labelRows = await db
       .select()
@@ -101,19 +101,17 @@ export async function PUT(
 
     if (latest && latest.status === 'draft') {
       // Overwrite existing draft — transaction for atomicity
-      db.transaction((tx) => {
-        tx.update(tables.labels)
+      await db.transaction(async (tx) => {
+        await tx.update(tables.labels)
           .set({ name: labelName, updatedAt: now })
-          .where(eq(tables.labels.id, id))
-          .run();
-        tx.update(tables.labelVersions)
+          .where(eq(tables.labels.id, id));
+        await tx.update(tables.labelVersions)
           .set({
             document,
             thumbnail: thumbnailData ?? latest.thumbnail,
             createdAt: now,
           })
-          .where(eq(tables.labelVersions.id, latest.id))
-          .run();
+          .where(eq(tables.labelVersions.id, latest.id));
       });
 
       return NextResponse.json({
@@ -127,12 +125,11 @@ export async function PUT(
       const newVersion = (latest?.version ?? 0) + 1;
       const versionId = crypto.randomUUID();
 
-      db.transaction((tx) => {
-        tx.update(tables.labels)
+      await db.transaction(async (tx) => {
+        await tx.update(tables.labels)
           .set({ name: labelName, updatedAt: now })
-          .where(eq(tables.labels.id, id))
-          .run();
-        tx.insert(tables.labelVersions).values({
+          .where(eq(tables.labels.id, id));
+        await tx.insert(tables.labelVersions).values({
           id: versionId,
           labelId: id,
           version: newVersion,
@@ -140,7 +137,7 @@ export async function PUT(
           document,
           thumbnail: thumbnailData,
           createdAt: now,
-        }).run();
+        });
       });
 
       return NextResponse.json({
@@ -162,17 +159,13 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const { db, tables } = getDatabase();
+    const { db, tables } = await getDatabase();
 
-    // Cascade handles versions, but be explicit for safety
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    db.transaction((tx: any) => {
-      tx.delete(tables.labelVersions)
-        .where(eq(tables.labelVersions.labelId, id))
-        .run();
-      tx.delete(tables.labels)
-        .where(eq(tables.labels.id, id))
-        .run();
+    await db.transaction(async (tx) => {
+      await tx.delete(tables.labelVersions)
+        .where(eq(tables.labelVersions.labelId, id));
+      await tx.delete(tables.labels)
+        .where(eq(tables.labels.id, id));
     });
 
     return NextResponse.json({ ok: true });
