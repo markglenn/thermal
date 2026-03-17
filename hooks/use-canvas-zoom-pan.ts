@@ -1,6 +1,6 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
 import { useEditorStore } from '@/lib/store/editor-store';
-import { MIN_ZOOM, MAX_ZOOM, labelWidthDots, labelHeightDots } from '@/lib/constants';
+import { MIN_ZOOM, MAX_ZOOM, PAN_CLAMP_MARGIN, FIT_PADDING, ZOOM_SENSITIVITY, labelWidthDots, labelHeightDots } from '@/lib/constants';
 import type { LabelConfig } from '@/lib/types';
 
 export function useCanvasZoomPan(
@@ -26,7 +26,7 @@ export function useCanvasZoomPan(
     clampPanRef.current = (panX: number, panY: number, zoom: number) => {
       if (!canvasRef.current) return { panX, panY };
       const canvas = canvasRef.current.getBoundingClientRect();
-      const margin = 15;
+      const margin = PAN_CLAMP_MARGIN;
       const labelW = widthDots * zoom;
       const labelH = heightDots * zoom;
       const maxPanX = canvas.width / 2 + labelW / 2 - margin;
@@ -46,7 +46,7 @@ export function useCanvasZoomPan(
       const rect = canvasRef.current.getBoundingClientRect();
       if (rect.width === 0 || rect.height === 0) return;
       hasInitialized.current = true;
-      const padding = 40;
+      const padding = FIT_PADDING;
       const scaleX = (rect.width - padding * 2) / widthDots;
       const scaleY = (rect.height - padding * 2) / heightDots;
       const fitZoom = Math.max(MIN_ZOOM, Math.min(scaleX, scaleY, 1));
@@ -65,7 +65,7 @@ export function useCanvasZoomPan(
       const store = useEditorStore.getState();
       const { zoom, panX, panY } = store.viewport;
       if (e.ctrlKey || e.metaKey) {
-        const factor = 1 - e.deltaY * 0.005;
+        const factor = 1 - e.deltaY * ZOOM_SENSITIVITY;
         const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom * factor));
         const clamped = clampPanRef.current(panX, panY, newZoom);
         store.setViewport(newZoom, clamped.panX, clamped.panY);

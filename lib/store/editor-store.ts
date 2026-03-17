@@ -10,7 +10,7 @@ import type {
   ComponentType,
   LabelConfig,
 } from '../types';
-import { DEFAULT_LABEL, DEFAULT_ZOOM, GRID_SIZE, labelWidthDots, labelHeightDots } from '../constants';
+import { DEFAULT_LABEL, DEFAULT_ZOOM, GRID_SIZE, DUPLICATE_OFFSET, UNDO_THROTTLE_MS, labelWidthDots, labelHeightDots } from '../constants';
 import { createComponent, generateId } from './editor-actions';
 import { findComponent } from '@/lib/utils';
 import { resolveConstraints } from '@/lib/constraints/resolver';
@@ -56,6 +56,7 @@ export interface EditorActions {
   removeComponent: (id: string) => void;
   duplicateComponent: (id: string) => void;
   updateConstraints: (id: string, constraints: Partial<Constraints>) => void;
+  updateMultipleConstraints: (updates: { id: string; constraints: Partial<Constraints> }[]) => void;
   updateProperties: (id: string, props: Record<string, unknown>) => void;
   renameComponent: (id: string, name: string) => void;
   togglePin: (id: string, edge: import('../types').PinnableEdge) => void;
@@ -107,7 +108,7 @@ function throttledHandleSet<T>(
   let timer: ReturnType<typeof setTimeout> | null = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let lastArgs: any[] | null = null;
-  const THROTTLE_MS = 500;
+  const THROTTLE_MS = UNDO_THROTTLE_MS;
 
   _cancelThrottledHandleSet = () => {
     if (timer) {
@@ -188,8 +189,8 @@ export const useEditorStore = create<EditorStore>()(
           }
           reassignIds(cloned);
           // Offset slightly
-          if (cloned.constraints.left !== undefined) cloned.constraints.left += 20;
-          if (cloned.constraints.top !== undefined) cloned.constraints.top += 20;
+          if (cloned.constraints.left !== undefined) cloned.constraints.left += DUPLICATE_OFFSET;
+          if (cloned.constraints.top !== undefined) cloned.constraints.top += DUPLICATE_OFFSET;
           parent.splice(idx + 1, 0, cloned);
           state.selectedComponentIds = [cloned.id];
         });
@@ -200,6 +201,17 @@ export const useEditorStore = create<EditorStore>()(
           const comp = findComponent(state.document.components, id);
           if (comp) {
             Object.assign(comp.constraints, constraints);
+          }
+        });
+      },
+
+      updateMultipleConstraints: (updates) => {
+        set((state) => {
+          for (const { id, constraints } of updates) {
+            const comp = findComponent(state.document.components, id);
+            if (comp) {
+              Object.assign(comp.constraints, constraints);
+            }
           }
         });
       },

@@ -66,12 +66,21 @@ export function useCanvasDrag() {
       const dx = (e.clientX - ds.startX) / zoom;
       const dy = (e.clientY - ds.startY) / zoom;
 
-      moveComponent(ds.componentId, ds.startConstraints, ds.pins, dx, dy);
+      // Collect all constraint updates and apply in a single store mutation
+      const updates: { id: string; constraints: Partial<Constraints> }[] = [];
+
+      const primary = computeMove(ds.startConstraints, ds.pins, dx, dy);
+      if (primary) updates.push({ id: ds.componentId, constraints: primary });
 
       if (ds.others) {
         for (const other of ds.others) {
-          moveComponent(other.componentId, other.startConstraints, other.pins, dx, dy);
+          const moved = computeMove(other.startConstraints, other.pins, dx, dy);
+          if (moved) updates.push({ id: other.componentId, constraints: moved });
         }
+      }
+
+      if (updates.length > 0) {
+        useEditorStore.getState().updateMultipleConstraints(updates);
       }
     },
     []
@@ -80,13 +89,12 @@ export function useCanvasDrag() {
   return { handleComponentPointerDown, handleDragMove, dragState };
 }
 
-function moveComponent(
-  componentId: string,
+function computeMove(
   sc: Constraints,
   pins: PinnableEdge[],
   dx: number,
   dy: number,
-) {
+): Partial<Constraints> | null {
   const newConstraints: Partial<Constraints> = {};
 
   const hPinned = pins.includes('left') || pins.includes('right');
@@ -99,7 +107,5 @@ function moveComponent(
     newConstraints.top = Math.round((sc.top ?? 0) + dy);
   }
 
-  if (Object.keys(newConstraints).length > 0) {
-    useEditorStore.getState().updateConstraints(componentId, newConstraints);
-  }
+  return Object.keys(newConstraints).length > 0 ? newConstraints : null;
 }

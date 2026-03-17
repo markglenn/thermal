@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useEditorStore } from '@/lib/store/editor-store';
 import { findComponent } from '@/lib/utils';
+import { MIN_RESIZE_SIZE } from '@/lib/constants';
 import type { ImageProperties } from '@/lib/types';
 
 export function useCanvasResize() {
@@ -41,8 +42,8 @@ export function useCanvasResize() {
         }
 
         // Use width as the driving dimension, derive height from aspect ratio
-        newWidth = Math.round(Math.max(10, Math.min(newWidth, maxW)));
-        newHeight = Math.round(Math.max(10, Math.min(newWidth / aspectRatio, maxH)));
+        newWidth = Math.round(Math.max(MIN_RESIZE_SIZE, Math.min(newWidth, maxW)));
+        newHeight = Math.round(Math.max(MIN_RESIZE_SIZE, Math.min(newWidth / aspectRatio, maxH)));
         // Re-derive width in case height hit the max
         newWidth = Math.round(newHeight * aspectRatio);
 
@@ -59,20 +60,20 @@ export function useCanvasResize() {
       } else {
         if (handle.includes('left')) {
           if (sc.left !== undefined) newConstraints.left = Math.round(sc.left + dx);
-          if (sc.width !== undefined && sc.right === undefined) newConstraints.width = Math.round(Math.max(10, sc.width - dx));
+          if (sc.width !== undefined && sc.right === undefined) newConstraints.width = Math.round(Math.max(MIN_RESIZE_SIZE, sc.width - dx));
         }
         if (handle.includes('right') || handle === 'right') {
           if (sc.right !== undefined) newConstraints.right = Math.round(sc.right - dx);
-          if (sc.width !== undefined && sc.left !== undefined && sc.right === undefined) newConstraints.width = Math.round(Math.max(10, sc.width + dx));
+          if (sc.width !== undefined && sc.left !== undefined && sc.right === undefined) newConstraints.width = Math.round(Math.max(MIN_RESIZE_SIZE, sc.width + dx));
         }
 
         if (handle.startsWith('top')) {
           if (sc.top !== undefined) newConstraints.top = Math.round(sc.top + dy);
-          if (sc.height !== undefined && sc.bottom === undefined) newConstraints.height = Math.round(Math.max(10, sc.height - dy));
+          if (sc.height !== undefined && sc.bottom === undefined) newConstraints.height = Math.round(Math.max(MIN_RESIZE_SIZE, sc.height - dy));
         }
         if (handle.includes('bottom')) {
           if (sc.bottom !== undefined) newConstraints.bottom = Math.round(sc.bottom - dy);
-          if (sc.height !== undefined && sc.top !== undefined && sc.bottom === undefined) newConstraints.height = Math.round(Math.max(10, sc.height + dy));
+          if (sc.height !== undefined && sc.top !== undefined && sc.bottom === undefined) newConstraints.height = Math.round(Math.max(MIN_RESIZE_SIZE, sc.height + dy));
         }
       }
 

@@ -15,6 +15,24 @@ export const ZOOM_STEP = 0.1;
 
 export const GRID_SIZE = 8; // dots
 
+// Constraint resolver fallbacks (dots) when width/height aren't specified
+export const FALLBACK_WIDTH = 100;
+export const FALLBACK_HEIGHT = 40;
+
+// Minimum size during resize (dots)
+export const MIN_RESIZE_SIZE = 10;
+
+// Duplicate component offset (dots)
+export const DUPLICATE_OFFSET = 20;
+
+// Canvas viewport
+export const FIT_PADDING = 40; // px padding around label when fitting to screen
+export const PAN_CLAMP_MARGIN = 15; // px margin to keep label edge visible
+export const ZOOM_SENSITIVITY = 0.005; // wheel delta multiplier for zoom
+
+// Undo throttle — collapses rapid state changes into one history entry
+export const UNDO_THROTTLE_MS = 500;
+
 export const LABEL_PRESETS: Record<string, LabelConfig> = {
   '4x6': { widthInches: 4, heightInches: 6, dpi: 203 },
   '4x4': { widthInches: 4, heightInches: 4, dpi: 203 },

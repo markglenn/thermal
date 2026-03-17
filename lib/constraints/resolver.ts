@@ -1,5 +1,5 @@
 import type { Constraints, ResolvedBounds, LabelComponent, LabelConfig } from '../types';
-import { labelWidthDots, labelHeightDots } from '../constants';
+import { labelWidthDots, labelHeightDots, FALLBACK_WIDTH, FALLBACK_HEIGHT } from '../constants';
 
 /**
  * Resolve horizontal constraints to x and width.
@@ -16,7 +16,7 @@ import { labelWidthDots, labelHeightDots } from '../constants';
 function resolveHorizontal(
   constraints: Constraints,
   parentWidth: number,
-  fallbackWidth: number = 100
+  fallbackWidth: number = FALLBACK_WIDTH
 ): { x: number; width: number } {
   const { left, right, width } = constraints;
   const hasLeft = left !== undefined;
@@ -48,7 +48,7 @@ function resolveHorizontal(
 function resolveVertical(
   constraints: Constraints,
   parentHeight: number,
-  fallbackHeight: number = 40
+  fallbackHeight: number = FALLBACK_HEIGHT
 ): { y: number; height: number } {
   const { top, bottom, height } = constraints;
   const hasTop = top !== undefined;
