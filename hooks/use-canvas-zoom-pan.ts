@@ -10,6 +10,12 @@ export function useCanvasZoomPan(
 ) {
   const [isPanning, setIsPanning] = useState(false);
   const hasInitialized = useRef(false);
+  const cleanupRef = useRef<(() => void) | null>(null);
+
+  // Clean up window listeners if component unmounts mid-pan
+  useEffect(() => {
+    return () => { cleanupRef.current?.(); };
+  }, []);
   const widthDots = labelWidthDots(label);
   const heightDots = labelHeightDots(label);
   const selectComponent = useEditorStore((s) => s.selectComponent);
@@ -94,10 +100,12 @@ export function useCanvasZoomPan(
         const onUp = () => {
           window.removeEventListener('pointermove', onMove);
           window.removeEventListener('pointerup', onUp);
+          cleanupRef.current = null;
           setIsPanning(false);
         };
         window.addEventListener('pointermove', onMove);
         window.addEventListener('pointerup', onUp);
+        cleanupRef.current = onUp;
         return;
       }
 
@@ -124,10 +132,12 @@ export function useCanvasZoomPan(
         const onUp = () => {
           window.removeEventListener('pointermove', onMove);
           window.removeEventListener('pointerup', onUp);
+          cleanupRef.current = null;
           setIsPanning(false);
         };
         window.addEventListener('pointermove', onMove);
         window.addEventListener('pointerup', onUp);
+        cleanupRef.current = onUp;
       }
     },
     [selectComponent]

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
+import { current } from 'immer';
 import { temporal } from 'zundo';
 import type {
   EditorState,
@@ -179,7 +180,7 @@ export const useEditorStore = create<EditorStore>()(
           if (idx === -1) return;
           const original = parent[idx];
           // Deep clone and assign new IDs
-          const cloned = JSON.parse(JSON.stringify(original)) as LabelComponent;
+          const cloned = structuredClone(current(original)) as LabelComponent;
           function reassignIds(comp: LabelComponent) {
             comp.id = generateId();
             comp.name = comp.name + ' Copy';
@@ -454,7 +455,7 @@ type StoreGet = () => EditorStore;
 
 function enterUndoBatch(set: ImmerSet, get: StoreGet) {
   set((state) => {
-    state._undoBatchSnapshot = { document: JSON.parse(JSON.stringify(get().document)) };
+    state._undoBatchSnapshot = { document: structuredClone(get().document) };
   });
   useEditorStore.temporal.getState().pause();
 }
