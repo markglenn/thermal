@@ -9,9 +9,10 @@ import type {
   ComponentType,
   LabelConfig,
 } from '../types';
-import { DEFAULT_LABEL, DEFAULT_ZOOM, GRID_SIZE } from '../constants';
+import { DEFAULT_LABEL, DEFAULT_ZOOM, GRID_SIZE, labelWidthDots, labelHeightDots } from '../constants';
 import { createComponent, generateId } from './editor-actions';
 import { findComponent } from '@/lib/utils';
+import { resolveConstraints } from '@/lib/constraints/resolver';
 
 const initialDocument: LabelDocument = {
   version: 1,
@@ -216,7 +217,6 @@ export const useEditorStore = create<EditorStore>()(
       },
 
       togglePin: (id, edge) => {
-        // Compute pin value before mutating so we don't need imports inside immer
         const currentState = get();
         const currentComp = findComponent(currentState.document.components, id);
         if (!currentComp) return;
@@ -227,36 +227,15 @@ export const useEditorStore = create<EditorStore>()(
         if (!alreadyPinned && currentComp.constraints[edge] === undefined) {
           // Compute from resolved bounds so component doesn't jump
           const { label } = currentState.document;
-          const lw = Math.round(label.widthInches * label.dpi);
-          const lh = Math.round(label.heightInches * label.dpi);
-
-          // Simple resolve for this component to get current position
-          const c = currentComp.constraints;
-          const resolveH = () => {
-            if (c.left !== undefined && c.right !== undefined) return { x: c.left, w: lw - c.left - c.right };
-            if (c.left !== undefined && c.width !== undefined) return { x: c.left, w: c.width };
-            if (c.right !== undefined && c.width !== undefined) return { x: lw - c.right - c.width, w: c.width };
-            if (c.width !== undefined) return { x: Math.round((lw - c.width) / 2), w: c.width };
-            if (c.left !== undefined) return { x: c.left, w: 100 };
-            return { x: 0, w: 100 };
-          };
-          const resolveV = () => {
-            if (c.top !== undefined && c.bottom !== undefined) return { y: c.top, h: lh - c.top - c.bottom };
-            if (c.top !== undefined && c.height !== undefined) return { y: c.top, h: c.height };
-            if (c.bottom !== undefined && c.height !== undefined) return { y: lh - c.bottom - c.height, h: c.height };
-            if (c.height !== undefined) return { y: Math.round((lh - c.height) / 2), h: c.height };
-            if (c.top !== undefined) return { y: c.top, h: 40 };
-            return { y: 0, h: 40 };
-          };
-
-          const h = resolveH();
-          const v = resolveV();
+          const lw = labelWidthDots(label);
+          const lh = labelHeightDots(label);
+          const bounds = resolveConstraints(currentComp.constraints, lw, lh);
 
           switch (edge) {
-            case 'left': pinValue = h.x; break;
-            case 'top': pinValue = v.y; break;
-            case 'right': pinValue = Math.max(0, lw - h.x - h.w); break;
-            case 'bottom': pinValue = Math.max(0, lh - v.y - v.h); break;
+            case 'left': pinValue = bounds.x; break;
+            case 'top': pinValue = bounds.y; break;
+            case 'right': pinValue = Math.max(0, lw - bounds.x - bounds.width); break;
+            case 'bottom': pinValue = Math.max(0, lh - bounds.y - bounds.height); break;
           }
         }
 

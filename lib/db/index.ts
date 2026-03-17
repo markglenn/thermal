@@ -78,3 +78,10 @@ export type LabelVersionRow = {
   thumbnail: Buffer | string | null;
   createdAt: Date;
 };
+
+/** Parse a base64 data URI thumbnail into a Buffer for DB storage. */
+export function parseThumbnail(thumbnail: string | undefined): Buffer | null {
+  if (!thumbnail) return null;
+  const base64 = thumbnail.replace(/^data:image\/\w+;base64,/, '');
+  return Buffer.from(base64, 'base64');
+}

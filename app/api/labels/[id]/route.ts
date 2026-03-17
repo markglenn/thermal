@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { eq, desc } from 'drizzle-orm';
-import { getDatabase } from '@/lib/db';
+import { getDatabase, parseThumbnail } from '@/lib/db';
 
 export async function GET(
   _request: NextRequest,
@@ -47,12 +47,6 @@ export async function GET(
     console.error('GET /api/labels/[id] failed:', e);
     return NextResponse.json({ error: 'Failed to get label' }, { status: 500 });
   }
-}
-
-function parseThumbnail(thumbnail: string | undefined): Buffer | null {
-  if (!thumbnail) return null;
-  const base64 = thumbnail.replace(/^data:image\/\w+;base64,/, '');
-  return Buffer.from(base64, 'base64');
 }
 
 export async function PUT(
