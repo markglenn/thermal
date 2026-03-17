@@ -1,19 +1,29 @@
 'use client';
 
+import { PanelLeftClose } from 'lucide-react';
 import { getAllDefinitions } from '@/lib/components';
 import { PaletteItem } from './PaletteItem';
 import { LayerHierarchy } from './LayerHierarchy';
 import type { ComponentType } from '@/lib/types';
 
-export function ComponentPalette() {
+interface Props {
+  onCollapse?: () => void;
+}
+
+export function ComponentPalette({ onCollapse }: Props) {
   const definitions = getAllDefinitions();
 
   return (
-    <div className="w-52 border-r border-gray-200 bg-white flex flex-col overflow-hidden">
+    <div className="flex-1 flex flex-col overflow-hidden">
       {/* Components palette */}
       <div className="shrink-0">
-        <div className="px-3 py-2 border-b border-gray-200">
+        <div className="px-3 py-2 border-b border-gray-200 flex items-center justify-between">
           <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Components</h2>
+          {onCollapse && (
+            <button onClick={onCollapse} className="text-gray-400 hover:text-gray-600" title="Collapse panel">
+              <PanelLeftClose size={14} />
+            </button>
+          )}
         </div>
         <div className="p-1 flex flex-col gap-0.5">
           {definitions.map((def) => (

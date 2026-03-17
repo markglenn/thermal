@@ -81,7 +81,7 @@ export function ImagePropertiesPanel({ componentId, props }: Props) {
         {hasImage && (
           <div className="border border-gray-200 rounded p-1 bg-[repeating-conic-gradient(#e5e7eb_0%_25%,transparent_0%_50%)_0_0/12px_12px]">
             <img
-              src={props.monochromePreview || props.data}
+              src={props.monochromePreviewFull || props.data}
               alt="Component image"
               className="max-w-full max-h-24 object-contain mx-auto block"
             />

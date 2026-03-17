@@ -24,6 +24,7 @@ export function ContainerComponent({ component, bounds, boundsMap, onDragStart }
         top: bounds.y,
         width: bounds.width,
         height: bounds.height,
+        cursor: 'move',
       }}
       onPointerDown={(e) => {
         e.stopPropagation();

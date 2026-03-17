@@ -11,6 +11,11 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Buttons and selects should show pointer cursor */
+button, select {
+  cursor: pointer;
+}
+
 /* Prevent text selection on canvas components during drag */
 .bg-white.shadow-lg {
   user-select: none;

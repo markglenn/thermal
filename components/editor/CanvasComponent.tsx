@@ -34,7 +34,7 @@ export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: P
     position: 'absolute',
     left: bounds.x,
     top: bounds.y,
-    cursor: 'default',
+    cursor: 'move',
   };
 
   if (sizingMode === 'fixed') {
