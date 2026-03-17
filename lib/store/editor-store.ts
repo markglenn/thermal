@@ -51,7 +51,7 @@ function findParentArray(
 export interface EditorActions {
   // Component CRUD
   addComponent: (type: ComponentType, constraintOverrides?: Partial<Constraints>) => string;
-  addComponentToContainer: (containerId: string, type: ComponentType, constraintOverrides?: Partial<Constraints>) => string;
+  addComponentToContainer: (containerId: string, type: ComponentType, constraintOverrides?: Partial<Constraints>) => string | null;
   removeComponent: (id: string) => void;
   duplicateComponent: (id: string) => void;
   updateConstraints: (id: string, constraints: Partial<Constraints>) => void;
@@ -146,6 +146,9 @@ export const useEditorStore = create<EditorStore>()(
       },
 
       addComponentToContainer: (containerId, type, constraintOverrides) => {
+        const currentContainer = findComponent(get().document.components, containerId);
+        if (!currentContainer || !currentContainer.children) return null;
+
         const comp = createComponent(type, constraintOverrides);
         set((state) => {
           const container = findComponent(state.document.components, containerId);

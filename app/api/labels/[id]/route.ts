@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { eq, desc } from 'drizzle-orm';
 import { getDatabase, parseThumbnail } from '@/lib/db';
+import { validateDocument } from '@/lib/documents/validate';
 
 export async function GET(
   _request: NextRequest,
@@ -64,6 +65,10 @@ export async function PUT(
 
   if (!document) {
     return NextResponse.json({ error: 'document is required' }, { status: 400 });
+  }
+
+  if (!validateDocument(document)) {
+    return NextResponse.json({ error: 'Invalid document structure' }, { status: 400 });
   }
 
   try {

@@ -50,6 +50,20 @@ describe('editor store', () => {
       const childId = useEditorStore.getState().addComponentToContainer(containerId, 'text');
       expect(useEditorStore.getState().selectedComponentIds).toEqual([childId]);
     });
+
+    it('returns null if container does not exist', () => {
+      const result = useEditorStore.getState().addComponentToContainer('nonexistent', 'text');
+      expect(result).toBeNull();
+      expect(useEditorStore.getState().document.components).toHaveLength(0);
+    });
+
+    it('returns null if target is not a container', () => {
+      const rectId = useEditorStore.getState().addComponent('rectangle');
+      const result = useEditorStore.getState().addComponentToContainer(rectId, 'text');
+      expect(result).toBeNull();
+      // Only the rectangle should exist, no orphaned text
+      expect(useEditorStore.getState().document.components).toHaveLength(1);
+    });
   });
 
   describe('removeComponent', () => {
