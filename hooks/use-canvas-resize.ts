@@ -1,18 +1,19 @@
 import { useCallback } from 'react';
-import { useEditorStore } from '@/lib/store/editor-store';
+import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
 import { findComponent } from '@/lib/utils';
 import { MIN_RESIZE_SIZE } from '@/lib/constants';
 import type { ImageProperties } from '@/lib/types';
 
 export function useCanvasResize() {
-  const resizeState = useEditorStore((s) => s.resizeState);
-  const updateConstraints = useEditorStore((s) => s.updateConstraints);
+  const resizeState = useEditorStoreContext((s) => s.resizeState);
+  const updateConstraints = useEditorStoreContext((s) => s.updateConstraints);
+  const storeApi = useEditorStoreApi();
 
   const handleResizeMove = useCallback(
     (e: React.PointerEvent) => {
       if (!resizeState) return;
 
-      const state = useEditorStore.getState();
+      const state = storeApi.getState();
       const zoom = state.viewport.zoom;
       const dx = (e.clientX - resizeState.startX) / zoom;
       const dy = (e.clientY - resizeState.startY) / zoom;

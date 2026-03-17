@@ -2,7 +2,7 @@
 
 import { useRef, useEffect } from 'react';
 import type { LabelComponent, ResolvedBounds } from '@/lib/types';
-import { useEditorStore } from '@/lib/store/editor-store';
+import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
 import { getDefinition, getSizingMode } from '@/lib/components';
 
 interface Props {
@@ -14,7 +14,8 @@ interface Props {
 
 export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: Props) {
   const ref = useRef<HTMLDivElement>(null);
-  const isSelected = useEditorStore((s) => s.selectedComponentIds.includes(component.id));
+  const isSelected = useEditorStoreContext((s) => s.selectedComponentIds.includes(component.id));
+  const storeApi = useEditorStoreApi();
 
   const def = getDefinition(component.typeData.type);
   const sizingMode = getSizingMode(component);
@@ -23,7 +24,7 @@ export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: P
   useEffect(() => {
     if (needsMeasure && ref.current && onMeasure) {
       const rect = ref.current.getBoundingClientRect();
-      const zoom = useEditorStore.getState().viewport.zoom;
+      const zoom = storeApi.getState().viewport.zoom;
       onMeasure(component.id, rect.width / zoom, rect.height / zoom);
     }
   });

@@ -1,14 +1,14 @@
 import type { ImageProperties } from '@/lib/types';
+import type { EditorStoreApi } from '@/lib/store/editor-store';
 import { convertImageToMonochrome, generateMonochromePreview } from './convert';
-import { useEditorStore } from '@/lib/store/editor-store';
 import { findComponent } from '@/lib/utils';
 
 /**
  * Re-run monochrome conversion for an image component at its current constraint dimensions.
  * Called after resize ends so both ZPL hex and canvas preview match the target size.
  */
-export async function reconvertImageAtBounds(componentId: string) {
-  const state = useEditorStore.getState();
+export async function reconvertImageAtBounds(componentId: string, storeApi: EditorStoreApi) {
+  const state = storeApi.getState();
   const comp = findComponent(state.document.components, componentId);
   if (!comp || comp.typeData.type !== 'image') return;
 
@@ -41,7 +41,7 @@ export async function reconvertImageAtBounds(componentId: string) {
     ),
   ]);
 
-  useEditorStore.getState().updateProperties(componentId, {
+  storeApi.getState().updateProperties(componentId, {
     monochromePreview: preview,
     zplHex: result.hex,
     zplBytesPerRow: result.bytesPerRow,

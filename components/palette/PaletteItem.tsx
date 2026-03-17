@@ -2,7 +2,7 @@
 
 import { useCallback } from 'react';
 import type { ComponentType } from '@/lib/types';
-import { useEditorStore } from '@/lib/store/editor-store';
+import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
 
 interface Props {
   type: ComponentType;
@@ -13,8 +13,9 @@ interface Props {
 const DRAG_THRESHOLD = 5;
 
 export function PaletteItem({ type, label, icon: Icon }: Props) {
-  const setPaletteDropState = useEditorStore((s) => s.setPaletteDropState);
-  const addComponent = useEditorStore((s) => s.addComponent);
+  const setPaletteDropState = useEditorStoreContext((s) => s.setPaletteDropState);
+  const addComponent = useEditorStoreContext((s) => s.addComponent);
+  const storeApi = useEditorStoreApi();
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
@@ -32,7 +33,7 @@ export function PaletteItem({ type, label, icon: Icon }: Props) {
           dragging = true;
         }
         if (dragging) {
-          useEditorStore.getState().setPaletteDropState({
+          storeApi.getState().setPaletteDropState({
             type,
             ghostX: me.clientX,
             ghostY: me.clientY,
@@ -49,7 +50,7 @@ export function PaletteItem({ type, label, icon: Icon }: Props) {
         } else {
           // Drag — drop is handled by Canvas; clear if dropped outside
           setTimeout(() => {
-            const state = useEditorStore.getState();
+            const state = storeApi.getState();
             if (state.paletteDropState) {
               state.setPaletteDropState(null);
             }
@@ -60,7 +61,7 @@ export function PaletteItem({ type, label, icon: Icon }: Props) {
       window.addEventListener('pointermove', onMove);
       window.addEventListener('pointerup', onUp);
     },
-    [type, setPaletteDropState, addComponent]
+    [type, setPaletteDropState, addComponent, storeApi]
   );
 
   return (

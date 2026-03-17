@@ -2,9 +2,9 @@
 
 import { useMemo } from 'react';
 import type { LabelComponent, PinnableEdge } from '@/lib/types';
-import { useEditorStore } from '@/lib/store/editor-store';
+import { useEditorStoreContext } from '@/lib/store/editor-context';
 import { getSizingMode } from '@/lib/components';
-import { useDocument } from '@/hooks/use-editor-store';
+import { useDocument } from '@/lib/store/editor-context';
 import { resolveDocument } from '@/lib/constraints/resolver';
 import { NumberInput } from './NumberInput';
 
@@ -85,8 +85,8 @@ function Strut({
 }
 
 export function ConstraintEditor({ component }: Props) {
-  const updateConstraints = useEditorStore((s) => s.updateConstraints);
-  const togglePin = useEditorStore((s) => s.togglePin);
+  const updateConstraints = useEditorStoreContext((s) => s.updateConstraints);
+  const togglePin = useEditorStoreContext((s) => s.togglePin);
   const doc = useDocument();
 
   const pins = component.pins;

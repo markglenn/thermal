@@ -1,9 +1,9 @@
 'use client';
 
-import { useEditorStore } from '@/lib/store/editor-store';
+import { useEditorStoreContext } from '@/lib/store/editor-context';
 
 export function DragGhost() {
-  const dropState = useEditorStore((s) => s.paletteDropState);
+  const dropState = useEditorStoreContext((s) => s.paletteDropState);
   if (!dropState) return null;
 
   return (

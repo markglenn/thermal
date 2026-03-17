@@ -1,7 +1,7 @@
 'use client';
 
 import type { TextProperties as TextPropsType, ZplFont, Rotation, TextJustification, FieldBlockProperties } from '@/lib/types';
-import { useEditorStore, pauseTracking, resumeTracking } from '@/lib/store/editor-store';
+import { useEditorStoreContext, useEditorStoreApi, usePauseTracking, useResumeTracking } from '@/lib/store/editor-context';
 import { findComponent } from '@/lib/utils';
 import { NumberInput } from '@/components/properties/NumberInput';
 
@@ -11,9 +11,12 @@ interface Props {
 }
 
 export function TextProperties({ componentId, props }: Props) {
-  const updateProperties = useEditorStore((s) => s.updateProperties);
-  const updateConstraints = useEditorStore((s) => s.updateConstraints);
-  const togglePin = useEditorStore((s) => s.togglePin);
+  const updateProperties = useEditorStoreContext((s) => s.updateProperties);
+  const updateConstraints = useEditorStoreContext((s) => s.updateConstraints);
+  const togglePin = useEditorStoreContext((s) => s.togglePin);
+  const storeApi = useEditorStoreApi();
+  const pauseTracking = usePauseTracking();
+  const resumeTracking = useResumeTracking();
   const update = (changes: Partial<TextPropsType>) => updateProperties(componentId, changes);
 
   const fb = props.fieldBlock;
@@ -25,7 +28,7 @@ export function TextProperties({ componentId, props }: Props) {
       // Clean up constraints invalid for auto-sized text
       updateConstraints(componentId, { width: undefined, right: undefined, bottom: undefined });
       // Remove right/bottom pins if active
-      const current = findComponent(useEditorStore.getState().document.components, componentId);
+      const current = findComponent(storeApi.getState().document.components, componentId);
       if (current) {
         if (current.pins.includes('right')) togglePin(componentId, 'right');
         if (current.pins.includes('bottom')) togglePin(componentId, 'bottom');

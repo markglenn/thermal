@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import type { ImageProperties as ImagePropsType, MonochromeMethod } from '@/lib/types';
-import { useEditorStore } from '@/lib/store/editor-store';
+import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
 import { findComponent } from '@/lib/utils';
 import { ImageUploadModal } from '@/components/image-upload/ImageUploadModal';
 import { Upload, Replace, Trash2 } from 'lucide-react';
@@ -14,8 +14,9 @@ interface Props {
 }
 
 export function ImagePropertiesPanel({ componentId, props }: Props) {
-  const updateProperties = useEditorStore((s) => s.updateProperties);
-  const updateConstraints = useEditorStore((s) => s.updateConstraints);
+  const updateProperties = useEditorStoreContext((s) => s.updateProperties);
+  const updateConstraints = useEditorStoreContext((s) => s.updateConstraints);
+  const storeApi = useEditorStoreApi();
   const [showModal, setShowModal] = useState(false);
 
   const hasImage = !!props.data;
@@ -28,7 +29,7 @@ export function ImagePropertiesPanel({ componentId, props }: Props) {
     updateProperties(componentId, { ...changes });
 
     if (props.data) {
-      const comp = findComponent(useEditorStore.getState().document.components, componentId);
+      const comp = findComponent(storeApi.getState().document.components, componentId);
       const zplWidth = comp?.constraints.width ?? props.originalWidth;
       const zplHeight = comp?.constraints.height ?? props.originalHeight;
 
@@ -175,7 +176,7 @@ export function ImagePropertiesPanel({ componentId, props }: Props) {
           initialProps={hasImage ? props : undefined}
           onConfirm={(result) => {
             updateProperties(componentId, result);
-            const comp = findComponent(useEditorStore.getState().document.components, componentId);
+            const comp = findComponent(storeApi.getState().document.components, componentId);
             const currentWidth = comp?.constraints.width;
             const currentHeight = comp?.constraints.height;
             // If component is still at default 200x200 (no prior image), resize to image dimensions

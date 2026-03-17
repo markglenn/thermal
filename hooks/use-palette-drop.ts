@@ -1,15 +1,16 @@
 import { useCallback } from 'react';
-import { useEditorStore } from '@/lib/store/editor-store';
+import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
 
 export function usePaletteDrop(labelRef: React.RefObject<HTMLDivElement | null>) {
-  const addComponent = useEditorStore((s) => s.addComponent);
-  const setPaletteDropState = useEditorStore((s) => s.setPaletteDropState);
+  const addComponent = useEditorStoreContext((s) => s.addComponent);
+  const setPaletteDropState = useEditorStoreContext((s) => s.setPaletteDropState);
+  const storeApi = useEditorStoreApi();
 
   const screenToDots = useCallback(
     (clientX: number, clientY: number): { left: number; top: number } | null => {
       if (!labelRef.current) return null;
       const labelRect = labelRef.current.getBoundingClientRect();
-      const { zoom } = useEditorStore.getState().viewport;
+      const { zoom } = storeApi.getState().viewport;
       const left = Math.round((clientX - labelRect.left) / zoom);
       const top = Math.round((clientY - labelRect.top) / zoom);
       return { left, top };
@@ -19,7 +20,7 @@ export function usePaletteDrop(labelRef: React.RefObject<HTMLDivElement | null>)
 
   const handleDrop = useCallback(
     (e: React.PointerEvent) => {
-      const dropState = useEditorStore.getState().paletteDropState;
+      const dropState = storeApi.getState().paletteDropState;
       if (!dropState) return;
 
       const dots = screenToDots(e.clientX, e.clientY);

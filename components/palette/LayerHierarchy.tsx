@@ -2,8 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { LabelComponent } from '@/lib/types';
-import { useEditorStore } from '@/lib/store/editor-store';
-import { useDocument } from '@/hooks/use-editor-store';
+import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
+import { useDocument } from '@/lib/store/editor-context';
 import { getDefinition } from '@/lib/components';
 import {
   DndContext,
@@ -26,10 +26,10 @@ function defaultLabel(component: LabelComponent): string {
 }
 
 function SortableLayerItem({ component, depth }: { component: LabelComponent; depth: number }) {
-  const isSelected = useEditorStore((s) => s.selectedComponentIds.includes(component.id));
-  const selectComponent = useEditorStore((s) => s.selectComponent);
-  const removeComponent = useEditorStore((s) => s.removeComponent);
-  const renameComponent = useEditorStore((s) => s.renameComponent);
+  const isSelected = useEditorStoreContext((s) => s.selectedComponentIds.includes(component.id));
+  const selectComponent = useEditorStoreContext((s) => s.selectComponent);
+  const removeComponent = useEditorStoreContext((s) => s.removeComponent);
+  const renameComponent = useEditorStoreContext((s) => s.renameComponent);
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(component.name);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -125,7 +125,8 @@ function SortableLayerItem({ component, depth }: { component: LabelComponent; de
 
 export function LayerHierarchy() {
   const document = useDocument();
-  const reorderComponents = useEditorStore((s) => s.reorderComponents);
+  const reorderComponents = useEditorStoreContext((s) => s.reorderComponents);
+  const storeApi = useEditorStoreApi();
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -138,7 +139,7 @@ export function LayerHierarchy() {
       const { active, over } = event;
       if (!over || active.id === over.id) return;
 
-      const components = useEditorStore.getState().document.components;
+      const components = storeApi.getState().document.components;
       const fromIndex = components.findIndex((c) => c.id === active.id);
       const toIndex = components.findIndex((c) => c.id === over.id);
 
@@ -146,7 +147,7 @@ export function LayerHierarchy() {
         reorderComponents(fromIndex, toIndex);
       }
     },
-    [reorderComponents]
+    [reorderComponents, storeApi]
   );
 
   const ids = document.components.map((c) => c.id);

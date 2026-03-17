@@ -1,7 +1,7 @@
 'use client';
 
 import type { QrCodeProperties as QrCodePropsType, QrErrorCorrection } from '@/lib/types';
-import { useEditorStore, pauseTracking, resumeTracking } from '@/lib/store/editor-store';
+import { useEditorStoreContext, usePauseTracking, useResumeTracking } from '@/lib/store/editor-context';
 import { NumberInput } from '@/components/properties/NumberInput';
 
 interface Props {
@@ -10,7 +10,9 @@ interface Props {
 }
 
 export function QrCodeProperties({ componentId, props }: Props) {
-  const updateProperties = useEditorStore((s) => s.updateProperties);
+  const updateProperties = useEditorStoreContext((s) => s.updateProperties);
+  const pauseTracking = usePauseTracking();
+  const resumeTracking = useResumeTracking();
   const update = (changes: Partial<QrCodePropsType>) => updateProperties(componentId, changes);
 
   return (

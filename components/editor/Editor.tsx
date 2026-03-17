@@ -2,6 +2,9 @@
 
 import { useState } from 'react';
 import '@/lib/components'; // Register all component plugins
+import { useTabStore } from '@/lib/store/tab-store';
+import { EditorStoreProvider } from '@/lib/store/editor-context';
+import { TabBar } from './TabBar';
 import { ComponentPalette } from '../palette/ComponentPalette';
 import { Canvas } from './Canvas';
 import { PropertiesPanel } from '../properties/PropertiesPanel';
@@ -14,9 +17,25 @@ import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { DragGhost } from './DragGhost';
 import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, PanelBottomClose, PanelBottomOpen } from 'lucide-react';
 
+export function Editor() {
+  const activeTabId = useTabStore((s) => s.activeTabId);
+  const activeStore = useTabStore((s) => {
+    const tab = s.tabs.find((t) => t.id === s.activeTabId);
+    return tab?.store ?? null;
+  });
+
+  if (!activeStore) return null;
+
+  return (
+    <EditorStoreProvider key={activeTabId} store={activeStore}>
+      <EditorInner />
+    </EditorStoreProvider>
+  );
+}
+
 type PreviewTab = 'zpl' | 'preview' | 'labelary';
 
-export function Editor() {
+function EditorInner() {
   useKeyboardShortcuts();
   const [previewTab, setPreviewTab] = useState<PreviewTab>('preview');
 
@@ -31,6 +50,7 @@ export function Editor() {
     <div className="h-screen flex flex-col bg-white text-gray-900">
       <DragGhost />
       <Toolbar />
+      <TabBar />
       <div className="flex-1 flex overflow-hidden">
         {/* Left panel */}
         {leftCollapsed ? (

@@ -1,5 +1,5 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
-import { useEditorStore } from '@/lib/store/editor-store';
+import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
 import { MIN_ZOOM, MAX_ZOOM, PAN_CLAMP_MARGIN, FIT_PADDING, ZOOM_SENSITIVITY, labelWidthDots, labelHeightDots } from '@/lib/constants';
 import type { LabelConfig } from '@/lib/types';
 
@@ -11,6 +11,7 @@ export function useCanvasZoomPan(
   const [isPanning, setIsPanning] = useState(false);
   const hasInitialized = useRef(false);
   const cleanupRef = useRef<(() => void) | null>(null);
+  const storeApi = useEditorStoreApi();
 
   // Clean up window listeners if component unmounts mid-pan
   useEffect(() => {
@@ -18,7 +19,7 @@ export function useCanvasZoomPan(
   }, []);
   const widthDots = labelWidthDots(label);
   const heightDots = labelHeightDots(label);
-  const selectComponent = useEditorStore((s) => s.selectComponent);
+  const selectComponent = useEditorStoreContext((s) => s.selectComponent);
 
   // Clamp pan via ref so wheel handler always uses latest values
   const clampPanRef = useRef((panX: number, panY: number, zoom: number) => ({ panX, panY }));
@@ -50,7 +51,7 @@ export function useCanvasZoomPan(
       const scaleX = (rect.width - padding * 2) / widthDots;
       const scaleY = (rect.height - padding * 2) / heightDots;
       const fitZoom = Math.max(MIN_ZOOM, Math.min(scaleX, scaleY, 1));
-      useEditorStore.getState().setViewport(fitZoom, 0, 0);
+      storeApi.getState().setViewport(fitZoom, 0, 0);
     });
     return () => cancelAnimationFrame(frame);
   }, [canvasRef, widthDots, heightDots]);
@@ -62,7 +63,7 @@ export function useCanvasZoomPan(
 
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      const store = useEditorStore.getState();
+      const store = storeApi.getState();
       const { zoom, panX, panY } = store.viewport;
       if (e.ctrlKey || e.metaKey) {
         const factor = 1 - e.deltaY * ZOOM_SENSITIVITY;
@@ -87,7 +88,7 @@ export function useCanvasZoomPan(
         setIsPanning(true);
         const startX = e.clientX;
         const startY = e.clientY;
-        const { panX: startPanX, panY: startPanY, zoom } = useEditorStore.getState().viewport;
+        const { panX: startPanX, panY: startPanY, zoom } = storeApi.getState().viewport;
 
         const onMove = (me: PointerEvent) => {
           const clamped = clampPanRef.current(
@@ -95,7 +96,7 @@ export function useCanvasZoomPan(
             startPanY + (me.clientY - startY),
             zoom
           );
-          useEditorStore.getState().setViewport(zoom, clamped.panX, clamped.panY);
+          storeApi.getState().setViewport(zoom, clamped.panX, clamped.panY);
         };
         const onUp = () => {
           window.removeEventListener('pointermove', onMove);
@@ -118,7 +119,7 @@ export function useCanvasZoomPan(
         // Left-click drag to pan (only from gray background)
         const startX = e.clientX;
         const startY = e.clientY;
-        const { panX: startPanX, panY: startPanY, zoom } = useEditorStore.getState().viewport;
+        const { panX: startPanX, panY: startPanY, zoom } = storeApi.getState().viewport;
 
         const onMove = (me: PointerEvent) => {
           setIsPanning(true);
@@ -127,7 +128,7 @@ export function useCanvasZoomPan(
             startPanY + (me.clientY - startY),
             zoom
           );
-          useEditorStore.getState().setViewport(zoom, clamped.panX, clamped.panY);
+          storeApi.getState().setViewport(zoom, clamped.panX, clamped.panY);
         };
         const onUp = () => {
           window.removeEventListener('pointermove', onMove);

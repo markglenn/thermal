@@ -1,7 +1,7 @@
 'use client';
 
 import type { LabelComponent, ResolvedBounds } from '@/lib/types';
-import { useEditorStore } from '@/lib/store/editor-store';
+import { useEditorStoreContext } from '@/lib/store/editor-context';
 import { CanvasComponent } from './CanvasComponent';
 
 interface Props {
@@ -12,7 +12,7 @@ interface Props {
 }
 
 export function ContainerComponent({ component, bounds, boundsMap, onDragStart }: Props) {
-  const isSelected = useEditorStore((s) => s.selectedComponentIds.includes(component.id));
+  const isSelected = useEditorStoreContext((s) => s.selectedComponentIds.includes(component.id));
 
   return (
     <div

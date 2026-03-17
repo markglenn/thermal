@@ -1,17 +1,18 @@
 import { useCallback } from 'react';
-import { useEditorStore } from '@/lib/store/editor-store';
+import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
 import { findComponent } from '@/lib/utils';
 import type { Constraints, PinnableEdge } from '@/lib/types';
 
 export function useCanvasDrag() {
-  const dragState = useEditorStore((s) => s.dragState);
+  const dragState = useEditorStoreContext((s) => s.dragState);
+  const storeApi = useEditorStoreApi();
 
   const handleComponentPointerDown = useCallback(
     (e: React.PointerEvent, componentId: string) => {
       if (e.button !== 0) return;
       e.stopPropagation();
 
-      const store = useEditorStore.getState();
+      const store = storeApi.getState();
       const isToggle = e.shiftKey || e.metaKey || e.ctrlKey;
       const alreadySelected = store.selectedComponentIds.includes(componentId);
 
@@ -35,7 +36,7 @@ export function useCanvasDrag() {
   );
 
   function startDrag(e: React.PointerEvent, componentId: string, selectedIds: string[]) {
-    const state = useEditorStore.getState();
+    const state = storeApi.getState();
     const comp = findComponent(state.document.components, componentId);
     if (!comp) return;
 
@@ -59,10 +60,10 @@ export function useCanvasDrag() {
 
   const handleDragMove = useCallback(
     (e: React.PointerEvent) => {
-      const ds = useEditorStore.getState().dragState;
+      const ds = storeApi.getState().dragState;
       if (!ds) return;
 
-      const zoom = useEditorStore.getState().viewport.zoom;
+      const zoom = storeApi.getState().viewport.zoom;
       const dx = (e.clientX - ds.startX) / zoom;
       const dy = (e.clientY - ds.startY) / zoom;
 
@@ -80,7 +81,7 @@ export function useCanvasDrag() {
       }
 
       if (updates.length > 0) {
-        useEditorStore.getState().updateMultipleConstraints(updates);
+        storeApi.getState().updateMultipleConstraints(updates);
       }
     },
     []

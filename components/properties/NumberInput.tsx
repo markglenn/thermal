@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { pauseTracking, resumeTracking } from '@/lib/store/editor-store';
+import { usePauseTracking, useResumeTracking } from '@/lib/store/editor-context';
 
 interface Props {
   value: number;
@@ -15,6 +15,8 @@ interface Props {
 export function NumberInput({ value, onChange, min, max, fallback = 0, className }: Props) {
   const [text, setText] = useState(String(value));
   const [focused, setFocused] = useState(false);
+  const pauseTracking = usePauseTracking();
+  const resumeTracking = useResumeTracking();
 
   useEffect(() => {
     if (!focused) {

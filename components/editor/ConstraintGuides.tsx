@@ -1,7 +1,7 @@
 'use client';
 
-import { useEditorStore } from '@/lib/store/editor-store';
-import { useDocument } from '@/hooks/use-editor-store';
+import { useEditorStoreContext } from '@/lib/store/editor-context';
+import { useDocument } from '@/lib/store/editor-context';
 import { labelWidthDots, labelHeightDots } from '@/lib/constants';
 import { findComponent } from '@/lib/utils';
 import type { ResolvedBounds } from '@/lib/types';
@@ -11,8 +11,8 @@ interface Props {
 }
 
 export function ConstraintGuides({ absoluteBoundsMap }: Props) {
-  const dragState = useEditorStore((s) => s.dragState);
-  const selectedId = useEditorStore((s) => s.selectedComponentIds.length === 1 ? s.selectedComponentIds[0] : null);
+  const dragState = useEditorStoreContext((s) => s.dragState);
+  const selectedId = useEditorStoreContext((s) => s.selectedComponentIds.length === 1 ? s.selectedComponentIds[0] : null);
   const doc = useDocument();
 
   const labelW = labelWidthDots(doc.label);

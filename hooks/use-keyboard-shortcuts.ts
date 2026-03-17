@@ -1,25 +1,27 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useEditorStore } from '@/lib/store/editor-store';
+import { useEditorStoreApi } from '@/lib/store/editor-context';
 import { findComponent } from '@/lib/utils';
 
 export function useKeyboardShortcuts() {
+  const storeApi = useEditorStoreApi();
+
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      const state = useEditorStore.getState();
+      const state = storeApi.getState();
       const { selectedComponentIds, removeComponent, duplicateComponent, updateConstraints, selectAll } = state;
 
       // Undo/Redo work even when focused on inputs
       if (e.key === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
         e.preventDefault();
-        useEditorStore.temporal.getState().undo();
+        storeApi.temporal.getState().undo();
         return;
       }
       if ((e.key === 'z' && (e.ctrlKey || e.metaKey) && e.shiftKey) ||
           (e.key === 'y' && (e.ctrlKey || e.metaKey))) {
         e.preventDefault();
-        useEditorStore.temporal.getState().redo();
+        storeApi.temporal.getState().redo();
         return;
       }
 

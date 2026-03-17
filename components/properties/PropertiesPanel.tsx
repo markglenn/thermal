@@ -1,7 +1,7 @@
 'use client';
 
 import { PanelRightClose } from 'lucide-react';
-import { useSelectedComponent, useEditorStore } from '@/hooks/use-editor-store';
+import { useSelectedComponent, useEditorStoreContext } from '@/lib/store/editor-context';
 import { getDefinition } from '@/lib/components';
 import { LabelSettings } from '../toolbar/LabelSettings';
 import { ConstraintEditor } from './ConstraintEditor';
@@ -11,7 +11,7 @@ interface Props {
 }
 
 function MultiSelectOrEmptyMessage() {
-  const count = useEditorStore((s) => s.selectedComponentIds.length);
+  const count = useEditorStoreContext((s) => s.selectedComponentIds.length);
   return (
     <div className="p-3 text-sm text-gray-400 text-center mt-8">
       {count > 1

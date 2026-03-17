@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { useEditorStore } from '@/lib/store/editor-store';
+import { useEditorStoreApi } from '@/lib/store/editor-context';
 import type { ResolvedBounds } from '@/lib/types';
 
 export interface MarqueeRect {
@@ -15,6 +15,7 @@ export function useMarqueeSelect(
 ) {
   const [marquee, setMarquee] = useState<MarqueeRect | null>(null);
   const startRef = useRef<{ x: number; y: number } | null>(null);
+  const storeApi = useEditorStoreApi();
 
   const handleLabelPointerDown = useCallback(
     (e: React.PointerEvent) => {
@@ -24,7 +25,7 @@ export function useMarqueeSelect(
 
       e.preventDefault();
 
-      const zoom = useEditorStore.getState().viewport.zoom;
+      const zoom = storeApi.getState().viewport.zoom;
       const rect = labelRef.current?.getBoundingClientRect();
       if (!rect) return;
 
@@ -34,7 +35,7 @@ export function useMarqueeSelect(
 
       // Clear selection unless shift is held
       if (!e.shiftKey && !e.metaKey && !e.ctrlKey) {
-        useEditorStore.getState().selectComponent(null);
+        storeApi.getState().selectComponent(null);
       }
 
       const onMove = (me: PointerEvent) => {
@@ -59,9 +60,9 @@ export function useMarqueeSelect(
             ids.push(id);
           }
         }
-        useEditorStore.getState().selectComponent(null);
+        storeApi.getState().selectComponent(null);
         for (const id of ids) {
-          useEditorStore.getState().selectComponent(id, { toggle: true });
+          storeApi.getState().selectComponent(id, { toggle: true });
         }
       };
 

@@ -1,8 +1,7 @@
 'use client';
 
 import { useRef, useCallback, useMemo } from 'react';
-import { useEditorStore } from '@/lib/store/editor-store';
-import { useDocument, useViewport } from '@/hooks/use-editor-store';
+import { useEditorStoreContext, useEditorStoreApi, useDocument, useViewport } from '@/lib/store/editor-context';
 import { labelWidthDots, labelHeightDots } from '@/lib/constants';
 import { useCanvasZoomPan } from '@/hooks/use-canvas-zoom-pan';
 import { useCanvasDrag } from '@/hooks/use-canvas-drag';
@@ -22,11 +21,12 @@ export function Canvas() {
   const labelRef = useRef<HTMLDivElement>(null);
   const document = useDocument();
   const viewport = useViewport();
-  const selectedIds = useEditorStore((s) => s.selectedComponentIds);
-  const showGrid = useEditorStore((s) => s.showGrid);
-  const gridSize = useEditorStore((s) => s.gridSize);
-  const setDragState = useEditorStore((s) => s.setDragState);
-  const setResizeState = useEditorStore((s) => s.setResizeState);
+  const selectedIds = useEditorStoreContext((s) => s.selectedComponentIds);
+  const showGrid = useEditorStoreContext((s) => s.showGrid);
+  const gridSize = useEditorStoreContext((s) => s.gridSize);
+  const setDragState = useEditorStoreContext((s) => s.setDragState);
+  const setResizeState = useEditorStoreContext((s) => s.setResizeState);
+  const storeApi = useEditorStoreApi();
 
   const widthDots = labelWidthDots(document.label);
   const heightDots = labelHeightDots(document.label);
@@ -52,12 +52,12 @@ export function Canvas() {
         setDragState(null);
       }
       if (resizeState) {
-        reconvertImageAtBounds(resizeState.componentId);
+        reconvertImageAtBounds(resizeState.componentId, storeApi);
         setResizeState(null);
       }
       handleDrop(e);
     },
-    [dragState, resizeState, setDragState, setResizeState, handleDrop]
+    [dragState, resizeState, setDragState, setResizeState, handleDrop, storeApi]
   );
 
   const handleCanvasPointerDown = useCallback(

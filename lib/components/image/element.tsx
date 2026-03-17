@@ -1,7 +1,7 @@
 'use client';
 
 import type { ImageProperties } from '@/lib/types';
-import { useEditorStore } from '@/lib/store/editor-store';
+import { useEditorStoreContext } from '@/lib/store/editor-context';
 
 interface Props {
   props: ImageProperties;
@@ -9,7 +9,7 @@ interface Props {
 }
 
 export function ImageElement({ props }: Props) {
-  const isResizing = useEditorStore((s) => s.resizeState !== null);
+  const isResizing = useEditorStoreContext((s) => s.resizeState !== null);
 
   if (!props.data) {
     return (

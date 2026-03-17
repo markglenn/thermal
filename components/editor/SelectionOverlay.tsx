@@ -1,7 +1,7 @@
 'use client';
 
 import type { ResolvedBounds, ResizeHandle, PinnableEdge } from '@/lib/types';
-import { useEditorStore } from '@/lib/store/editor-store';
+import { useEditorStoreContext } from '@/lib/store/editor-context';
 import { findComponent } from '@/lib/utils';
 import { getSizingMode } from '@/lib/components';
 
@@ -25,8 +25,8 @@ const handles: { position: ResizeHandle; style: React.CSSProperties }[] = [
 ];
 
 export function SelectionOverlay({ bounds, componentId, showHandles = true }: Props) {
-  const setResizeState = useEditorStore((s) => s.setResizeState);
-  const selectedComponent = useEditorStore((s) =>
+  const setResizeState = useEditorStoreContext((s) => s.setResizeState);
+  const selectedComponent = useEditorStoreContext((s) =>
     findComponent(s.document.components, componentId)
   );
 

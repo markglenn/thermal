@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useEffect, useState, useRef } from 'react';
-import { useDocument } from '@/hooks/use-editor-store';
+import { useDocument } from '@/lib/store/editor-context';
 import { generateZpl } from '@/lib/zpl/generator';
 import { fetchLabelaryApiPreview } from '@/lib/labelary/api-client';
 

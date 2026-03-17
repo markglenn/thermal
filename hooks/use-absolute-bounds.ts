@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { useDocument } from '@/hooks/use-editor-store';
+import { useDocument } from '@/lib/store/editor-context';
 import { resolveDocument } from '@/lib/constraints/resolver';
 import type { LabelComponent, ResolvedBounds } from '@/lib/types';
 import { getSizingMode } from '@/lib/components';

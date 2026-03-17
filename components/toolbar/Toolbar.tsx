@@ -2,21 +2,22 @@
 
 import { useState, useCallback } from 'react';
 import { Save, FolderOpen } from 'lucide-react';
-import { useEditorStore } from '@/lib/store/editor-store';
+import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
+import { useTabStore } from '@/lib/store/tab-store';
 import { captureThumbnail } from '@/lib/documents/thumbnail';
 import { SaveNameModal } from '@/components/documents/SaveNameModal';
 import { LabelBrowserModal } from '@/components/documents/LabelBrowserModal';
 import type { LabelDocument } from '@/lib/types';
 
 export function Toolbar() {
-  const showGrid = useEditorStore((s) => s.showGrid);
-  const toggleGrid = useEditorStore((s) => s.toggleGrid);
-  const resetDocument = useEditorStore((s) => s.resetDocument);
-  const selectedIds = useEditorStore((s) => s.selectedComponentIds);
-  const removeComponent = useEditorStore((s) => s.removeComponent);
-  const duplicateComponent = useEditorStore((s) => s.duplicateComponent);
-  const currentLabelId = useEditorStore((s) => s.currentLabelId);
-  const currentLabelName = useEditorStore((s) => s.currentLabelName);
+  const showGrid = useEditorStoreContext((s) => s.showGrid);
+  const toggleGrid = useEditorStoreContext((s) => s.toggleGrid);
+  const resetDocument = useEditorStoreContext((s) => s.resetDocument);
+  const selectedIds = useEditorStoreContext((s) => s.selectedComponentIds);
+  const removeComponent = useEditorStoreContext((s) => s.removeComponent);
+  const duplicateComponent = useEditorStoreContext((s) => s.duplicateComponent);
+  const currentLabelName = useEditorStoreContext((s) => s.currentLabelName);
+  const storeApi = useEditorStoreApi();
 
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showBrowserModal, setShowBrowserModal] = useState(false);
@@ -25,7 +26,7 @@ export function Toolbar() {
   const saveLabel = useCallback(async (name: string) => {
     setIsSaving(true);
     try {
-      const store = useEditorStore.getState();
+      const store = storeApi.getState();
       const doc = store.document;
       const thumbnail = await captureThumbnail(doc);
       const labelId = store.currentLabelId;
@@ -40,6 +41,12 @@ export function Toolbar() {
       if (res.ok) {
         const data = await res.json();
         store.setLabelMeta(data.id, name);
+        // Sync tab metadata
+        const tabState = useTabStore.getState();
+        const activeTabId = tabState.activeTabId;
+        tabState.updateTabName(activeTabId, name);
+        tabState.updateTabLabelId(activeTabId, data.id);
+        tabState.markDirty(activeTabId, false);
       }
       setShowSaveModal(false);
     } catch (e) {
@@ -47,24 +54,22 @@ export function Toolbar() {
     } finally {
       setIsSaving(false);
     }
-  }, []);
+  }, [storeApi]);
 
   const handleSaveClick = useCallback((e: React.MouseEvent) => {
-    const store = useEditorStore.getState();
+    const store = storeApi.getState();
     if (e.shiftKey || !store.currentLabelId) {
       setShowSaveModal(true);
     } else {
       saveLabel(store.currentLabelName || 'Untitled Label');
     }
-  }, [saveLabel]);
+  }, [saveLabel, storeApi]);
 
   const handleOpenLabel = useCallback(async (id: string) => {
     const res = await fetch(`/api/labels/${id}`);
     if (res.ok) {
       const data = await res.json();
-      const store = useEditorStore.getState();
-      store.loadDocument(data.document as LabelDocument);
-      store.setLabelMeta(data.id, data.name);
+      useTabStore.getState().openLabel(data.id, data.name, data.document as LabelDocument);
     }
     setShowBrowserModal(false);
   }, []);
@@ -73,11 +78,6 @@ export function Toolbar() {
     <>
       <div className="h-10 border-b border-gray-200 bg-white flex items-center px-3 gap-2 text-sm">
         <span className="font-semibold text-gray-700">Thermal</span>
-        {currentLabelName && (
-          <span className="text-gray-400 text-xs truncate max-w-[200px]">
-            — {currentLabelName}
-          </span>
-        )}
         <span className="mr-2" />
 
         <button

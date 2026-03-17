@@ -1,12 +1,12 @@
 'use client';
 
-import { useEditorStore } from '@/lib/store/editor-store';
-import { useLabelConfig } from '@/hooks/use-editor-store';
+import { useEditorStoreContext } from '@/lib/store/editor-context';
+import { useLabelConfig } from '@/lib/store/editor-context';
 import { DPI_VALUES, LABEL_PRESETS } from '@/lib/constants';
 
 export function LabelSettings() {
   const label = useLabelConfig();
-  const updateLabelConfig = useEditorStore((s) => s.updateLabelConfig);
+  const updateLabelConfig = useEditorStoreContext((s) => s.updateLabelConfig);
 
   return (
     <div className="p-3 border-b border-gray-200">

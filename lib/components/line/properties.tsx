@@ -1,7 +1,7 @@
 'use client';
 
 import type { LineProperties } from '@/lib/types';
-import { useEditorStore } from '@/lib/store/editor-store';
+import { useEditorStoreContext } from '@/lib/store/editor-context';
 import { NumberInput } from '@/components/properties/NumberInput';
 
 interface Props {
@@ -10,7 +10,7 @@ interface Props {
 }
 
 export function LinePropertiesPanel({ componentId, props }: Props) {
-  const updateProperties = useEditorStore((s) => s.updateProperties);
+  const updateProperties = useEditorStoreContext((s) => s.updateProperties);
 
   return (
     <div className="p-3 border-b border-gray-200">

@@ -1,7 +1,7 @@
 'use client';
 
 import type { BarcodeProperties as BarcodePropsType, BarcodeEncoding, Rotation } from '@/lib/types';
-import { useEditorStore, pauseTracking, resumeTracking } from '@/lib/store/editor-store';
+import { useEditorStoreContext, usePauseTracking, useResumeTracking } from '@/lib/store/editor-context';
 import { NumberInput } from '@/components/properties/NumberInput';
 
 interface Props {
@@ -18,7 +18,9 @@ const DEFAULT_CONTENT: Record<BarcodeEncoding, string> = {
 };
 
 export function BarcodeProperties({ componentId, props }: Props) {
-  const updateProperties = useEditorStore((s) => s.updateProperties);
+  const updateProperties = useEditorStoreContext((s) => s.updateProperties);
+  const pauseTracking = usePauseTracking();
+  const resumeTracking = useResumeTracking();
   const update = (changes: Partial<BarcodePropsType>) => updateProperties(componentId, changes);
 
   return (
