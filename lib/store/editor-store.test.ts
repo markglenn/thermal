@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { useEditorStore } from './editor-store';
 import type { LabelDocument } from '../types';
 
@@ -344,6 +344,45 @@ describe('editor store', () => {
       expect(useEditorStore.getState().document).toEqual(newDoc);
       expect(useEditorStore.getState().selectedComponentIds).toEqual([]);
     });
+
+    it('undo after load does not change state', () => {
+      vi.useFakeTimers();
+      useEditorStore.getState().addComponent('text');
+      useEditorStore.getState().addComponent('rectangle');
+      const newDoc: LabelDocument = {
+        version: 1,
+        label: { widthInches: 4, heightInches: 6, dpi: 300 },
+        components: [],
+      };
+      useEditorStore.getState().loadDocument(newDoc);
+      // Advance past the throttle window so any trailing call would fire
+      vi.advanceTimersByTime(1000);
+      const docAfterLoad = useEditorStore.getState().document;
+      useEditorStore.temporal.getState().undo();
+      expect(useEditorStore.getState().document).toEqual(docAfterLoad);
+      vi.useRealTimers();
+    });
+
+    it('undo after load does not restore a stale drag snapshot', () => {
+      vi.useFakeTimers();
+      const id = useEditorStore.getState().addComponent('text', { left: 10, top: 20 });
+      // Simulate entering a drag (captures snapshot)
+      useEditorStore.getState().setDragState({
+        componentId: id, startX: 0, startY: 0, startConstraints: { left: 10, top: 20 },
+      });
+      // Load a new document while drag snapshot exists
+      const newDoc: LabelDocument = {
+        version: 1,
+        label: { widthInches: 4, heightInches: 6, dpi: 300 },
+        components: [],
+      };
+      useEditorStore.getState().loadDocument(newDoc);
+      vi.advanceTimersByTime(1000);
+      const docAfterLoad = useEditorStore.getState().document;
+      useEditorStore.temporal.getState().undo();
+      expect(useEditorStore.getState().document).toEqual(docAfterLoad);
+      vi.useRealTimers();
+    });
   });
 
   describe('resetDocument', () => {
@@ -361,6 +400,18 @@ describe('editor store', () => {
       useEditorStore.getState().resetDocument();
       expect(useEditorStore.getState().currentLabelId).toBeNull();
       expect(useEditorStore.getState().currentLabelName).toBeNull();
+    });
+
+    it('undo after reset does not change state', () => {
+      vi.useFakeTimers();
+      useEditorStore.getState().addComponent('text');
+      useEditorStore.getState().addComponent('rectangle');
+      useEditorStore.getState().resetDocument();
+      vi.advanceTimersByTime(1000);
+      const docAfterReset = useEditorStore.getState().document;
+      useEditorStore.temporal.getState().undo();
+      expect(useEditorStore.getState().document).toEqual(docAfterReset);
+      vi.useRealTimers();
     });
   });
 

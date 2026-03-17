@@ -89,9 +89,16 @@ export interface EditorActions {
   setLabelMeta: (id: string | null, name: string | null) => void;
 }
 
-export type EditorStore = EditorState & EditorActions;
+export type EditorStore = EditorState & EditorActions & {
+  /** Internal: snapshot captured at drag/resize start, flushed as a single undo entry on end */
+  _undoBatchSnapshot: { document: LabelDocument } | null;
+};
 
-// Throttle wrapper for zundo's handleSet — collapses rapid state changes into one history entry
+// Throttle wrapper for zundo's handleSet — collapses rapid state changes into one history entry.
+// Exposes a cancel function so loadDocument/resetDocument can kill pending trailing calls
+// that would otherwise re-populate pastStates after clear().
+let _cancelThrottledHandleSet: (() => void) | null = null;
+
 function throttledHandleSet<T>(
   handleSet: (state: T) => void
 ) {
@@ -99,6 +106,14 @@ function throttledHandleSet<T>(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let lastArgs: any[] | null = null;
   const THROTTLE_MS = 500;
+
+  _cancelThrottledHandleSet = () => {
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
+    lastArgs = null;
+  };
 
   return (...args: unknown[]) => {
     lastArgs = args;
@@ -118,6 +133,7 @@ export const useEditorStore = create<EditorStore>()(
   temporal(
     immer((set, get) => ({
       ...initialState,
+      _undoBatchSnapshot: null,
 
       addComponent: (type, constraintOverrides) => {
         const comp = createComponent(type, constraintOverrides);
@@ -358,12 +374,9 @@ export const useEditorStore = create<EditorStore>()(
       setDragState: (dragState) => {
         const prev = get().dragState;
         if (dragState && !prev) {
-          // Entering drag — snapshot document and pause tracking
-          _undoBatchSnapshot = { document: JSON.parse(JSON.stringify(get().document)) };
-          useEditorStore.temporal.getState().pause();
+          enterUndoBatch(set, get);
         } else if (!dragState && prev) {
-          // Exiting drag — resume and record a single undo entry
-          _flushUndoBatch();
+          exitUndoBatch(set, get);
         }
         set((state) => {
           state.dragState = dragState;
@@ -373,10 +386,9 @@ export const useEditorStore = create<EditorStore>()(
       setResizeState: (resizeState) => {
         const prev = get().resizeState;
         if (resizeState && !prev) {
-          _undoBatchSnapshot = { document: JSON.parse(JSON.stringify(get().document)) };
-          useEditorStore.temporal.getState().pause();
+          enterUndoBatch(set, get);
         } else if (!resizeState && prev) {
-          _flushUndoBatch();
+          exitUndoBatch(set, get);
         }
         set((state) => {
           state.resizeState = resizeState;
@@ -402,19 +414,26 @@ export const useEditorStore = create<EditorStore>()(
       },
 
       loadDocument: (doc) => {
+        // 1. Cancel pending trailing throttle call
+        _cancelThrottledHandleSet?.();
+        // 2. Pause so the set() below doesn't record the old doc into pastStates
+        useEditorStore.temporal.getState().pause();
         set((state) => {
           state.document = doc;
           state.selectedComponentIds = [];
+          state._undoBatchSnapshot = null;
         });
-        // Clear undo history so Cmd+Z doesn't revert past the newly loaded document.
-        // Any new action that replaces the document wholesale should do the same.
+        // 3. Clear whatever was already in history, then resume
         useEditorStore.temporal.getState().clear();
+        useEditorStore.temporal.getState().resume();
       },
 
       resetDocument: () => {
-        set(() => ({ ...initialState }));
-        // Clear undo history — same rationale as loadDocument
+        _cancelThrottledHandleSet?.();
+        useEditorStore.temporal.getState().pause();
+        set(() => ({ ...initialState, _undoBatchSnapshot: null }));
         useEditorStore.temporal.getState().clear();
+        useEditorStore.temporal.getState().resume();
       },
 
       setLabelMeta: (id, name) => {
@@ -448,15 +467,24 @@ export function resumeTracking() {
   useEditorStore.temporal.getState().resume();
 }
 
-// Internal: snapshot captured at drag/resize start, flushed as a single undo entry on end
-let _undoBatchSnapshot: { document: LabelDocument } | null = null;
+type ImmerSet = (fn: (state: EditorStore) => void) => void;
+type StoreGet = () => EditorStore;
 
-function _flushUndoBatch() {
-  const snapshot = _undoBatchSnapshot;
-  _undoBatchSnapshot = null;
+function enterUndoBatch(set: ImmerSet, get: StoreGet) {
+  set((state) => {
+    state._undoBatchSnapshot = { document: JSON.parse(JSON.stringify(get().document)) };
+  });
+  useEditorStore.temporal.getState().pause();
+}
+
+function exitUndoBatch(set: ImmerSet, get: StoreGet) {
+  const snapshot = get()._undoBatchSnapshot;
+  set((state) => {
+    state._undoBatchSnapshot = null;
+  });
   useEditorStore.temporal.getState().resume();
   if (snapshot) {
-    // Push the pre-drag snapshot as a single undo entry via the temporal store's setState,
+    // Push the pre-drag/resize snapshot as a single undo entry via the temporal store's setState,
     // matching how zundo's own clear() updates pastStates internally.
     const { pastStates } = useEditorStore.temporal.getState();
     useEditorStore.temporal.setState({ pastStates: [...pastStates, snapshot] });
