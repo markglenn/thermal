@@ -29,6 +29,8 @@ const initialState: EditorState = {
   paletteDropState: null,
   showGrid: true,
   gridSize: GRID_SIZE,
+  currentLabelId: null,
+  currentLabelName: null,
 };
 
 function findParentArray(
@@ -81,6 +83,9 @@ export interface EditorActions {
   // Document
   loadDocument: (doc: LabelDocument) => void;
   resetDocument: () => void;
+
+  // Label persistence
+  setLabelMeta: (id: string | null, name: string | null) => void;
 }
 
 export type EditorStore = EditorState & EditorActions;
@@ -365,6 +370,13 @@ export const useEditorStore = create<EditorStore>()(
 
       resetDocument: () => {
         set(() => ({ ...initialState }));
+      },
+
+      setLabelMeta: (id, name) => {
+        set((state) => {
+          state.currentLabelId = id;
+          state.currentLabelName = name;
+        });
       },
     })),
     {

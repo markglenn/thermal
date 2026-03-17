@@ -133,6 +133,13 @@ Text rendering accounts for:
 - Letter spacing tuning (`-0.027em` for Font 0)
 - Rotation (90/180/270) with position-preserving CSS transforms
 
+## Testing
+
+- **Always create unit tests** whenever possible for new or changed logic
+- **Verify tests pass** (`npm test`) before committing
+- Tests use **Vitest** — test files live alongside source as `*.test.ts` or in a `__tests__/` directory
+- Run `npm test` for a single pass, `npm run test:watch` during development
+
 ## Code Conventions
 
 - **No switch statements** for component dispatch — use the registry

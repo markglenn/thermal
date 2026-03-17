@@ -174,4 +174,6 @@ export interface EditorState {
   paletteDropState: PaletteDropState | null;
   showGrid: boolean;
   gridSize: number;
+  currentLabelId: string | null;
+  currentLabelName: string | null;
 }

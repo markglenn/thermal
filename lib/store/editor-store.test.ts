@@ -324,5 +324,44 @@ describe('editor store', () => {
       expect(useEditorStore.getState().viewport.zoom).toBe(1);
       expect(useEditorStore.getState().selectedComponentId).toBeNull();
     });
+
+    it('clears label meta', () => {
+      useEditorStore.getState().setLabelMeta('label-123', 'My Label');
+      useEditorStore.getState().resetDocument();
+      expect(useEditorStore.getState().currentLabelId).toBeNull();
+      expect(useEditorStore.getState().currentLabelName).toBeNull();
+    });
+  });
+
+  describe('setLabelMeta', () => {
+    it('sets currentLabelId and currentLabelName', () => {
+      useEditorStore.getState().setLabelMeta('id-1', 'Test Label');
+      expect(useEditorStore.getState().currentLabelId).toBe('id-1');
+      expect(useEditorStore.getState().currentLabelName).toBe('Test Label');
+    });
+
+    it('can clear label meta by passing null', () => {
+      useEditorStore.getState().setLabelMeta('id-1', 'Test Label');
+      useEditorStore.getState().setLabelMeta(null, null);
+      expect(useEditorStore.getState().currentLabelId).toBeNull();
+      expect(useEditorStore.getState().currentLabelName).toBeNull();
+    });
+
+    it('does not affect document or selection', () => {
+      const id = useEditorStore.getState().addComponent('text');
+      useEditorStore.getState().setLabelMeta('label-1', 'Label');
+      expect(useEditorStore.getState().document.components).toHaveLength(1);
+      expect(useEditorStore.getState().selectedComponentId).toBe(id);
+    });
+
+    it('is excluded from undo history (partialize only tracks document)', () => {
+      useEditorStore.getState().setLabelMeta('id-1', 'Label A');
+      useEditorStore.getState().setLabelMeta('id-2', 'Label B');
+      // Undo should not affect label meta since partialize only tracks document
+      useEditorStore.temporal.getState().undo();
+      // Label meta should remain unchanged
+      expect(useEditorStore.getState().currentLabelId).toBe('id-2');
+      expect(useEditorStore.getState().currentLabelName).toBe('Label B');
+    });
   });
 });
