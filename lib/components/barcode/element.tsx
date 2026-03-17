@@ -36,9 +36,10 @@ export function BarcodeElement({ props, isSelected }: Props) {
         margin: 0,
         background: 'transparent',
       });
-    } catch {
+    } catch (err) {
       if (svgRef.current) {
-        svgRef.current.innerHTML = '';
+        const msg = err instanceof Error ? err.message : 'Invalid barcode';
+        svgRef.current.innerHTML = `<text x="4" y="16" font-size="12" fill="#dc2626" font-family="sans-serif">${msg}</text>`;
       }
     }
   }, [props.content, props.encoding, props.height, props.showText]);

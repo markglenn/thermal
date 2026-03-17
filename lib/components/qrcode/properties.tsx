@@ -27,25 +27,31 @@ export function QrCodeProperties({ componentId, props }: Props) {
             className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm"
           />
         </label>
-        <div className="flex gap-2">
-          <label className="flex-1">
-            <span className="text-xs text-gray-500">Magnification</span>
-            <NumberInput value={props.magnification} onChange={(v) => update({ magnification: v })} min={1} max={10} fallback={5} />
-          </label>
-          <label className="flex-1">
-            <span className="text-xs text-gray-500">Error Correction</span>
-            <select
-              value={props.errorCorrection}
-              onChange={(e) => update({ errorCorrection: e.target.value as QrErrorCorrection })}
-              className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm"
-            >
-              <option value="L">L (7%)</option>
-              <option value="M">M (15%)</option>
-              <option value="Q">Q (25%)</option>
-              <option value="H">H (30%)</option>
-            </select>
-          </label>
-        </div>
+        <label>
+          <span className="text-xs text-gray-500">Size ({props.magnification})</span>
+          <input
+            type="range"
+            min={1}
+            max={20}
+            step={1}
+            value={props.magnification}
+            onChange={(e) => update({ magnification: parseInt(e.target.value) })}
+            className="w-full mt-1"
+          />
+        </label>
+        <label>
+          <span className="text-xs text-gray-500">Error Correction</span>
+          <select
+            value={props.errorCorrection}
+            onChange={(e) => update({ errorCorrection: e.target.value as QrErrorCorrection })}
+            className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm"
+          >
+            <option value="L">L (7%)</option>
+            <option value="M">M (15%)</option>
+            <option value="Q">Q (25%)</option>
+            <option value="H">H (30%)</option>
+          </select>
+        </label>
       </div>
     </div>
   );

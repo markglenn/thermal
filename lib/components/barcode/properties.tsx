@@ -9,6 +9,14 @@ interface Props {
   props: BarcodePropsType;
 }
 
+const DEFAULT_CONTENT: Record<BarcodeEncoding, string> = {
+  code128: '1234567890',
+  code39: '1234567890',
+  ean13: '0012345678905',
+  upca: '012345678905',
+  itf: '1234567890',
+};
+
 export function BarcodeProperties({ componentId, props }: Props) {
   const updateProperties = useEditorStore((s) => s.updateProperties);
   const update = (changes: Partial<BarcodePropsType>) => updateProperties(componentId, changes);
@@ -31,7 +39,15 @@ export function BarcodeProperties({ componentId, props }: Props) {
           <span className="text-xs text-gray-500">Encoding</span>
           <select
             value={props.encoding}
-            onChange={(e) => update({ encoding: e.target.value as BarcodeEncoding })}
+            onChange={(e) => {
+              const encoding = e.target.value as BarcodeEncoding;
+              const changes: Partial<BarcodePropsType> = { encoding };
+              // Update content to a valid default if current content is invalid for the new encoding
+              if (props.content === DEFAULT_CONTENT[props.encoding] || !props.content) {
+                changes.content = DEFAULT_CONTENT[encoding];
+              }
+              update(changes);
+            }}
             className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm"
           >
             <option value="code128">Code 128</option>

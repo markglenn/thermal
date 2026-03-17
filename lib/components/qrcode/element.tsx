@@ -9,8 +9,10 @@ interface Props {
   isSelected?: boolean;
 }
 
-// ZPL ^BQ renders QR with no left margin but a small top gap.
-// Render with no quiet zone and let the container handle positioning.
+// ZPL ^BQ adds a fixed 10-dot quiet zone above the QR code (empirically
+// measured across magnifications 1–10 and DPI 203/300/600 via Labelary).
+const ZPL_QR_TOP_GAP = 10;
+
 export function QrCodeElement({ props, isSelected }: Props) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [moduleCount, setModuleCount] = useState(21);
@@ -32,7 +34,7 @@ export function QrCodeElement({ props, isSelected }: Props) {
   const size = moduleCount * props.magnification;
 
   return (
-    <div ref={wrapperRef} style={isSelected ? { outline: '2px solid #3b82f6' } : undefined}>
+    <div ref={wrapperRef} style={{ paddingTop: ZPL_QR_TOP_GAP, ...(isSelected ? { outline: '2px solid #3b82f6' } : undefined) }}>
       <QRCodeSVG
         value={props.content || ' '}
         size={size}

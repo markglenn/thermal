@@ -3,16 +3,12 @@
 import { useState, useCallback } from 'react';
 import { Save, FolderOpen } from 'lucide-react';
 import { useEditorStore } from '@/lib/store/editor-store';
-import { useViewport } from '@/hooks/use-editor-store';
-import { MIN_ZOOM, MAX_ZOOM, ZOOM_STEP } from '@/lib/constants';
 import { captureThumbnail } from '@/lib/documents/thumbnail';
 import { SaveNameModal } from '@/components/documents/SaveNameModal';
 import { LabelBrowserModal } from '@/components/documents/LabelBrowserModal';
 import type { LabelDocument } from '@/lib/types';
 
 export function Toolbar() {
-  const viewport = useViewport();
-  const setViewport = useEditorStore((s) => s.setViewport);
   const showGrid = useEditorStore((s) => s.showGrid);
   const toggleGrid = useEditorStore((s) => s.toggleGrid);
   const resetDocument = useEditorStore((s) => s.resetDocument);
@@ -25,20 +21,6 @@ export function Toolbar() {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showBrowserModal, setShowBrowserModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-
-  const zoomIn = () => {
-    const z = Math.min(MAX_ZOOM, viewport.zoom + ZOOM_STEP);
-    setViewport(z, viewport.panX, viewport.panY);
-  };
-
-  const zoomOut = () => {
-    const z = Math.max(MIN_ZOOM, viewport.zoom - ZOOM_STEP);
-    setViewport(z, viewport.panX, viewport.panY);
-  };
-
-  const resetView = () => {
-    setViewport(1, 0, 0);
-  };
 
   const saveLabel = useCallback(async (name: string) => {
     setIsSaving(true);
@@ -97,18 +79,6 @@ export function Toolbar() {
           </span>
         )}
         <span className="mr-2" />
-
-        <div className="flex items-center gap-1 border-r border-gray-200 pr-2 mr-2">
-          <button onClick={zoomOut} className="px-1.5 py-0.5 rounded hover:bg-gray-100" title="Zoom out">
-            −
-          </button>
-          <button onClick={resetView} className="px-2 py-0.5 rounded hover:bg-gray-100 font-mono text-xs min-w-[3.5rem] text-center">
-            {Math.round(viewport.zoom * 100)}%
-          </button>
-          <button onClick={zoomIn} className="px-1.5 py-0.5 rounded hover:bg-gray-100" title="Zoom in">
-            +
-          </button>
-        </div>
 
         <button
           onClick={toggleGrid}
