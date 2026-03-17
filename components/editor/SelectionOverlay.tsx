@@ -1,7 +1,7 @@
 'use client';
 
 import type { ResolvedBounds, ResizeHandle, PinnableEdge } from '@/lib/types';
-import { useEditorStore } from '@/lib/store/editor-store';
+import { useEditorStore, beginUndoBatch } from '@/lib/store/editor-store';
 import { findComponent } from '@/lib/utils';
 import { getSizingMode } from '@/lib/components';
 
@@ -86,6 +86,7 @@ export function SelectionOverlay({ bounds, componentId }: Props) {
             onPointerDown={(e) => {
               e.stopPropagation();
               e.preventDefault();
+              beginUndoBatch();
               setResizeState({
                 componentId,
                 handle: h.position,

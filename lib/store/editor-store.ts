@@ -366,10 +366,12 @@ export const useEditorStore = create<EditorStore>()(
           state.document = doc;
           state.selectedComponentId = null;
         });
+        useEditorStore.temporal.getState().clear();
       },
 
       resetDocument: () => {
         set(() => ({ ...initialState }));
+        useEditorStore.temporal.getState().clear();
       },
 
       setLabelMeta: (id, name) => {
@@ -401,4 +403,24 @@ export function pauseTracking() {
 /** Resume undo tracking (call when editing ends, e.g. on blur) */
 export function resumeTracking() {
   useEditorStore.temporal.getState().resume();
+}
+
+// Snapshot of the document state captured before a drag/resize begins
+let _preDragSnapshot: { document: LabelDocument } | null = null;
+
+/** Capture document state and pause tracking — call at the start of drag/resize */
+export function beginUndoBatch() {
+  _preDragSnapshot = { document: JSON.parse(JSON.stringify(useEditorStore.getState().document)) };
+  useEditorStore.temporal.getState().pause();
+}
+
+/** Resume tracking and push the pre-drag snapshot as a single undo entry — call at the end of drag/resize */
+export function commitUndoBatch() {
+  useEditorStore.temporal.getState().resume();
+  if (_preDragSnapshot) {
+    const temporal = useEditorStore.temporal.getState();
+    // Push the pre-drag snapshot so undo goes back to the position before the drag
+    temporal.pastStates.push(_preDragSnapshot);
+    _preDragSnapshot = null;
+  }
 }
