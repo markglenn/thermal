@@ -148,8 +148,9 @@ export interface DragState {
   startX: number;
   startY: number;
   startConstraints: Constraints;
+  pins: PinnableEdge[];
   /** When dragging multiple selected components, track all their start constraints */
-  others?: { componentId: string; startConstraints: Constraints }[];
+  others?: { componentId: string; startConstraints: Constraints; pins: PinnableEdge[] }[];
 }
 
 export interface ResizeState {

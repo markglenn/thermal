@@ -310,7 +310,7 @@ describe('editor store', () => {
     });
 
     it('setDragState sets drag state', () => {
-      const ds = { componentId: 'x', startX: 0, startY: 0, startConstraints: {} };
+      const ds = { componentId: 'x', startX: 0, startY: 0, startConstraints: {}, pins: [] as const };
       useEditorStore.getState().setDragState(ds);
       expect(useEditorStore.getState().dragState).toEqual(ds);
     });
@@ -382,7 +382,7 @@ describe('editor store', () => {
       const id = useEditorStore.getState().addComponent('text', { left: 10, top: 20 });
       // Simulate entering a drag (captures snapshot)
       useEditorStore.getState().setDragState({
-        componentId: id, startX: 0, startY: 0, startConstraints: { left: 10, top: 20 },
+        componentId: id, startX: 0, startY: 0, startConstraints: { left: 10, top: 20 }, pins: [],
       });
       // Load a new document while drag snapshot exists
       const newDoc: LabelDocument = {

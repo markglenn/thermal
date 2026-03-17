@@ -1,43 +1,37 @@
 import { useCallback } from 'react';
 import { useEditorStore } from '@/lib/store/editor-store';
 import { findComponent } from '@/lib/utils';
-import type { Constraints } from '@/lib/types';
+import type { Constraints, PinnableEdge } from '@/lib/types';
 
 export function useCanvasDrag() {
-  const selectComponent = useEditorStore((s) => s.selectComponent);
-  const setDragState = useEditorStore((s) => s.setDragState);
   const dragState = useEditorStore((s) => s.dragState);
-  const updateConstraints = useEditorStore((s) => s.updateConstraints);
 
   const handleComponentPointerDown = useCallback(
     (e: React.PointerEvent, componentId: string) => {
       if (e.button !== 0) return;
       e.stopPropagation();
 
-      const state = useEditorStore.getState();
+      const store = useEditorStore.getState();
       const isToggle = e.shiftKey || e.metaKey || e.ctrlKey;
-      const alreadySelected = state.selectedComponentIds.includes(componentId);
+      const alreadySelected = store.selectedComponentIds.includes(componentId);
 
-      // If toggle-clicking, just toggle selection — don't start drag
       if (isToggle) {
-        selectComponent(componentId, { toggle: true });
+        store.selectComponent(componentId, { toggle: true });
         if (!alreadySelected) {
-          // Will be selected after toggle — start drag with the new set
-          const newIds = [...state.selectedComponentIds, componentId];
+          const newIds = [...store.selectedComponentIds, componentId];
           startDrag(e, componentId, newIds);
         }
         return;
       }
 
-      // If clicking an already-selected component in a multi-selection, keep the set
       if (!alreadySelected) {
-        selectComponent(componentId);
+        store.selectComponent(componentId);
       }
 
-      const selectedIds = alreadySelected ? state.selectedComponentIds : [componentId];
+      const selectedIds = alreadySelected ? store.selectedComponentIds : [componentId];
       startDrag(e, componentId, selectedIds);
     },
-    [selectComponent, setDragState]
+    []
   );
 
   function startDrag(e: React.PointerEvent, componentId: string, selectedIds: string[]) {
@@ -45,64 +39,67 @@ export function useCanvasDrag() {
     const comp = findComponent(state.document.components, componentId);
     if (!comp) return;
 
-    // Collect start constraints for other selected components
     const others = selectedIds
       .filter((id) => id !== componentId)
       .map((id) => {
         const c = findComponent(state.document.components, id);
-        return c ? { componentId: id, startConstraints: { ...c.constraints } } : null;
+        return c ? { componentId: id, startConstraints: { ...c.constraints }, pins: [...c.pins] } : null;
       })
-      .filter((x): x is { componentId: string; startConstraints: Constraints } => x !== null);
+      .filter((x): x is { componentId: string; startConstraints: Constraints; pins: PinnableEdge[] } => x !== null);
 
-    setDragState({
+    state.setDragState({
       componentId,
       startX: e.clientX,
       startY: e.clientY,
       startConstraints: { ...comp.constraints },
+      pins: [...comp.pins],
       others: others.length > 0 ? others : undefined,
     });
   }
 
   const handleDragMove = useCallback(
     (e: React.PointerEvent) => {
-      if (!dragState) return;
+      const ds = useEditorStore.getState().dragState;
+      if (!ds) return;
 
       const zoom = useEditorStore.getState().viewport.zoom;
-      const dx = (e.clientX - dragState.startX) / zoom;
-      const dy = (e.clientY - dragState.startY) / zoom;
+      const dx = (e.clientX - ds.startX) / zoom;
+      const dy = (e.clientY - ds.startY) / zoom;
 
-      // Move the primary dragged component
-      moveComponent(dragState.componentId, dragState.startConstraints, dx, dy);
+      moveComponent(ds.componentId, ds.startConstraints, ds.pins, dx, dy);
 
-      // Move other selected components by the same delta
-      if (dragState.others) {
-        for (const other of dragState.others) {
-          moveComponent(other.componentId, other.startConstraints, dx, dy);
+      if (ds.others) {
+        for (const other of ds.others) {
+          moveComponent(other.componentId, other.startConstraints, other.pins, dx, dy);
         }
       }
     },
-    [dragState, updateConstraints]
+    []
   );
 
-  function moveComponent(componentId: string, sc: Constraints, dx: number, dy: number) {
-    const comp = findComponent(useEditorStore.getState().document.components, componentId);
-    const pins = comp?.pins ?? [];
-    const newConstraints: Partial<Constraints> = {};
+  return { handleComponentPointerDown, handleDragMove, dragState };
+}
 
-    const hPinned = pins.includes('left') || pins.includes('right');
-    if (!hPinned) {
-      newConstraints.left = Math.round((sc.left ?? 0) + dx);
-    }
+function moveComponent(
+  componentId: string,
+  sc: Constraints,
+  pins: PinnableEdge[],
+  dx: number,
+  dy: number,
+) {
+  const newConstraints: Partial<Constraints> = {};
 
-    const vPinned = pins.includes('top') || pins.includes('bottom');
-    if (!vPinned) {
-      newConstraints.top = Math.round((sc.top ?? 0) + dy);
-    }
-
-    if (Object.keys(newConstraints).length > 0) {
-      useEditorStore.getState().updateConstraints(componentId, newConstraints);
-    }
+  const hPinned = pins.includes('left') || pins.includes('right');
+  if (!hPinned) {
+    newConstraints.left = Math.round((sc.left ?? 0) + dx);
   }
 
-  return { handleComponentPointerDown, handleDragMove, dragState };
+  const vPinned = pins.includes('top') || pins.includes('bottom');
+  if (!vPinned) {
+    newConstraints.top = Math.round((sc.top ?? 0) + dy);
+  }
+
+  if (Object.keys(newConstraints).length > 0) {
+    useEditorStore.getState().updateConstraints(componentId, newConstraints);
+  }
 }
