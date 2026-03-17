@@ -21,6 +21,7 @@ interface TabManagerActions {
   closeTab: (tabId: string) => void;
   setActiveTab: (tabId: string) => void;
   markDirty: (tabId: string, dirty: boolean) => void;
+  markClean: (tabId: string) => void;
   updateTabName: (tabId: string, name: string) => void;
   updateTabLabelId: (tabId: string, labelId: string) => void;
 }
@@ -31,14 +32,30 @@ function makeTabId(): string {
   return `tab_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 }
 
+// Snapshot of the document at last save/load — used to detect dirty state
+const cleanSnapshots = new Map<string, string>();
+
 function createTab(name: string = 'Untitled', labelId: string | null = null): TabInfo {
-  return {
-    id: makeTabId(),
-    labelId,
-    name,
-    store: createEditorStore(),
-    dirty: false,
-  };
+  const id = makeTabId();
+  const store = createEditorStore();
+
+  // Capture the initial document as "clean"
+  cleanSnapshots.set(id, JSON.stringify(store.getState().document));
+
+  // Subscribe to document changes and update dirty flag
+  store.subscribe((state, prevState) => {
+    if (state.document !== prevState.document) {
+      const clean = cleanSnapshots.get(id);
+      const current = JSON.stringify(state.document);
+      const isDirty = current !== clean;
+      const tab = useTabStore.getState().tabs.find((t) => t.id === id);
+      if (tab && tab.dirty !== isDirty) {
+        useTabStore.getState().markDirty(id, isDirty);
+      }
+    }
+  });
+
+  return { id, labelId, name, store, dirty: false };
 }
 
 // Create the initial tab
@@ -67,6 +84,7 @@ export const useTabStore = create<TabStore>()((set, get) => ({
       if (editorState.document.components.length === 0) {
         activeTab.store.getState().loadDocument(doc);
         activeTab.store.getState().setLabelMeta(labelId, name);
+        cleanSnapshots.set(activeTab.id, JSON.stringify(doc));
         set((s) => ({
           tabs: s.tabs.map((t) =>
             t.id === activeTab.id ? { ...t, labelId, name, dirty: false } : t
@@ -80,6 +98,7 @@ export const useTabStore = create<TabStore>()((set, get) => ({
     const tab = createTab(name, labelId);
     tab.store.getState().loadDocument(doc);
     tab.store.getState().setLabelMeta(labelId, name);
+    cleanSnapshots.set(tab.id, JSON.stringify(doc));
     set((s) => ({
       tabs: [...s.tabs, tab],
       activeTabId: tab.id,
@@ -88,13 +107,12 @@ export const useTabStore = create<TabStore>()((set, get) => ({
   },
 
   closeTab: (tabId) => {
+    cleanSnapshots.delete(tabId);
     const state = get();
     const remaining = state.tabs.filter((t) => t.id !== tabId);
 
     if (remaining.length === 0) {
-      // Closing the last tab — create a fresh one
-      const tab = createTab();
-      set({ tabs: [tab], activeTabId: tab.id });
+      set({ tabs: [], activeTabId: '' });
       return;
     }
 
@@ -116,6 +134,17 @@ export const useTabStore = create<TabStore>()((set, get) => ({
   markDirty: (tabId, dirty) => {
     set((state) => ({
       tabs: state.tabs.map((t) => (t.id === tabId ? { ...t, dirty } : t)),
+    }));
+  },
+
+  markClean: (tabId) => {
+    // Update the clean snapshot so future comparisons know what "saved" looks like
+    const tab = get().tabs.find((t) => t.id === tabId);
+    if (tab) {
+      cleanSnapshots.set(tabId, JSON.stringify(tab.store.getState().document));
+    }
+    set((state) => ({
+      tabs: state.tabs.map((t) => (t.id === tabId ? { ...t, dirty: false } : t)),
     }));
   },
 

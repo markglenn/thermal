@@ -46,7 +46,7 @@ export function Toolbar() {
         const activeTabId = tabState.activeTabId;
         tabState.updateTabName(activeTabId, name);
         tabState.updateTabLabelId(activeTabId, data.id);
-        tabState.markDirty(activeTabId, false);
+        tabState.markClean(activeTabId);
       }
       setShowSaveModal(false);
     } catch (e) {

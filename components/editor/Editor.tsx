@@ -15,7 +15,9 @@ import { LabelaryApiPreview } from '../preview/LabelaryApiPreview';
 import { PanelResizeHandle } from './PanelResizeHandle';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { DragGhost } from './DragGhost';
-import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, PanelBottomClose, PanelBottomOpen } from 'lucide-react';
+import { LabelBrowserModal } from '../documents/LabelBrowserModal';
+import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, PanelBottomClose, PanelBottomOpen, FilePlus, FolderOpen } from 'lucide-react';
+import type { LabelDocument } from '@/lib/types';
 
 export function Editor() {
   const activeTabId = useTabStore((s) => s.activeTabId);
@@ -24,7 +26,17 @@ export function Editor() {
     return tab?.store ?? null;
   });
 
-  if (!activeStore) return null;
+  if (!activeStore) {
+    return (
+      <div className="h-screen flex flex-col bg-white text-gray-900">
+        <div className="h-10 border-b border-gray-200 bg-white flex items-center px-3">
+          <span className="font-semibold text-gray-700 text-sm">Thermal</span>
+        </div>
+        <TabBar />
+        <EmptyState />
+      </div>
+    );
+  }
 
   return (
     <EditorStoreProvider key={activeTabId} store={activeStore}>
@@ -136,5 +148,51 @@ function EditorInner() {
         )}
       </div>
     </div>
+  );
+}
+
+function EmptyState() {
+  const createTab = useTabStore((s) => s.createTab);
+  const [showBrowser, setShowBrowser] = useState(false);
+
+  const handleOpenLabel = async (id: string) => {
+    const res = await fetch(`/api/labels/${id}`);
+    if (res.ok) {
+      const data = await res.json();
+      useTabStore.getState().openLabel(data.id, data.name, data.document as LabelDocument);
+    }
+    setShowBrowser(false);
+  };
+
+  return (
+    <>
+      <div className="flex-1 flex items-center justify-center bg-gray-50">
+        <div className="text-center space-y-4">
+          <p className="text-gray-400 text-sm">No labels open</p>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={createTab}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+            >
+              <FilePlus size={16} />
+              New Label
+            </button>
+            <button
+              onClick={() => setShowBrowser(true)}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded hover:bg-gray-100 text-sm text-gray-700"
+            >
+              <FolderOpen size={16} />
+              Open Label
+            </button>
+          </div>
+        </div>
+      </div>
+      {showBrowser && (
+        <LabelBrowserModal
+          onSelect={handleOpenLabel}
+          onCancel={() => setShowBrowser(false)}
+        />
+      )}
+    </>
   );
 }

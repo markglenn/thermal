@@ -1,6 +1,6 @@
 'use client';
 
-import { X, Plus } from 'lucide-react';
+import { X, Plus, Circle } from 'lucide-react';
 import { useTabStore, type TabInfo } from '@/lib/store/tab-store';
 
 export function TabBar() {
@@ -61,14 +61,20 @@ function Tab({
           : 'text-gray-500 hover:bg-gray-100'
       }`}
     >
-      {tab.dirty && <span className="text-blue-500 text-lg leading-none">*</span>}
       <span className="truncate">{tab.name}</span>
       <button
         onClick={onClose}
-        className="ml-auto text-gray-400 hover:text-gray-700 shrink-0"
+        className="ml-auto text-gray-400 hover:text-gray-700 shrink-0 w-3 h-3 flex items-center justify-center group/close"
         title="Close tab"
       >
-        <X size={12} />
+        {tab.dirty ? (
+          <>
+            <Circle size={8} className="text-blue-500 fill-blue-500 group-hover/close:hidden" />
+            <X size={12} className="hidden group-hover/close:block" />
+          </>
+        ) : (
+          <X size={12} />
+        )}
       </button>
     </div>
   );
