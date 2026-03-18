@@ -107,6 +107,7 @@ export interface LabelComponent {
   name: string;
   constraints: Constraints;
   pins: PinnableEdge[];
+  fieldBinding?: string;
   children?: LabelComponent[];
   // Discriminated union for type + props
   typeData: ComponentProperties;

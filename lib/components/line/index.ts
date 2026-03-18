@@ -13,6 +13,7 @@ export const lineComponent: ComponentDefinition<LineProperties> = {
     autoSized: false,
     rotatable: false,
     isContainer: false,
+    bindable: false,
   },
   defaultConstraints: { left: 0, top: 0, width: 200, height: 2 },
   defaultProps: {

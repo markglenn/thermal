@@ -12,6 +12,7 @@ export const containerComponent: ComponentDefinition<ContainerProperties> = {
     autoSized: false,
     rotatable: false,
     isContainer: true,
+    bindable: false,
   },
   defaultConstraints: { left: 0, top: 0, width: 300, height: 200 },
   defaultProps: {},

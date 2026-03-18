@@ -13,6 +13,7 @@ export const rectangleComponent: ComponentDefinition<RectangleProperties> = {
     autoSized: false,
     rotatable: false,
     isContainer: false,
+    bindable: false,
   },
   defaultConstraints: { left: 0, top: 0, width: 150, height: 100 },
   defaultProps: {

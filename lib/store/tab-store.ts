@@ -77,6 +77,13 @@ export const useTabStore = create<TabStore>()((set, get) => ({
   openLabel: (labelId, name, doc) => {
     const state = get();
 
+    // If this label is already open in a tab, switch to it
+    const existing = state.tabs.find((t) => t.labelId === labelId);
+    if (existing) {
+      set({ activeTabId: existing.id });
+      return existing.id;
+    }
+
     // If the active tab is a clean untitled tab with no components, reuse it
     const activeTab = state.tabs.find((t) => t.id === state.activeTabId);
     if (activeTab && !activeTab.dirty && !activeTab.labelId) {

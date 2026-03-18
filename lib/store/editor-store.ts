@@ -62,6 +62,7 @@ export interface EditorActions {
   togglePin: (id: string, edge: import('../types').PinnableEdge) => void;
   reorderComponents: (fromIndex: number, toIndex: number) => void;
   reparentComponent: (id: string, newParentId: string | null) => void;
+  updateFieldBinding: (id: string, binding: string | undefined) => void;
 
   // Selection
   selectComponent: (id: string | null, opts?: { toggle?: boolean }) => void;
@@ -228,6 +229,19 @@ export function createEditorStore() {
           set((state) => {
             const comp = findComponent(state.document.components, id);
             if (comp) comp.name = name;
+          });
+        },
+
+        updateFieldBinding: (id, binding) => {
+          set((state) => {
+            const comp = findComponent(state.document.components, id);
+            if (comp) {
+              if (binding) {
+                comp.fieldBinding = binding;
+              } else {
+                delete comp.fieldBinding;
+              }
+            }
           });
         },
 

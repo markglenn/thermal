@@ -6,6 +6,7 @@ export interface ComponentTraits {
   autoSized: boolean;
   rotatable: boolean;
   isContainer: boolean;
+  bindable: boolean;
 }
 
 export interface ComponentDefinition<TProps = unknown> {
