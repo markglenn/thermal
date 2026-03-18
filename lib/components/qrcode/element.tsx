@@ -34,7 +34,7 @@ export function QrCodeElement({ props, isSelected }: Props) {
   const size = moduleCount * props.magnification;
 
   return (
-    <div ref={wrapperRef} style={{ paddingTop: ZPL_QR_TOP_GAP, ...(isSelected ? { outline: '2px solid #3b82f6' } : undefined) }}>
+    <div ref={wrapperRef} style={{ paddingTop: ZPL_QR_TOP_GAP }}>
       <QRCodeSVG
         value={props.content || ' '}
         size={size}

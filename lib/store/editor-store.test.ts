@@ -127,13 +127,22 @@ describe('editor store', () => {
   });
 
   describe('updateConstraints', () => {
-    it('merges constraints onto a component', () => {
-      const id = useEditorStore.getState().addComponent('text', { left: 10 });
+    it('merges constraints onto a fixed-size component', () => {
+      const id = useEditorStore.getState().addComponent('rectangle', { left: 10 });
       useEditorStore.getState().updateConstraints(id, { top: 50, width: 200 });
       const comp = useEditorStore.getState().document.components[0];
       expect(comp.constraints.left).toBe(10);
       expect(comp.constraints.top).toBe(50);
       expect(comp.constraints.width).toBe(200);
+    });
+
+    it('filters out width/height for auto-sized components with computed sizes', () => {
+      const id = useEditorStore.getState().addComponent('barcode', { left: 10 });
+      const widthBefore = useEditorStore.getState().document.components[0].constraints.width;
+      useEditorStore.getState().updateConstraints(id, { top: 50, width: 999 });
+      const comp = useEditorStore.getState().document.components[0];
+      expect(comp.constraints.top).toBe(50);
+      expect(comp.constraints.width).toBe(widthBefore); // unchanged — auto-sized with computeContentSize
     });
   });
 
@@ -156,7 +165,7 @@ describe('editor store', () => {
 
   describe('togglePin', () => {
     it('adds a pin and sets the constraint value', () => {
-      const id = useEditorStore.getState().addComponent('text', { left: 10, top: 20, width: 100, height: 30 });
+      const id = useEditorStore.getState().addComponent('rectangle', { left: 10, top: 20, width: 100, height: 30 });
       useEditorStore.getState().togglePin(id, 'right');
       const comp = useEditorStore.getState().document.components[0];
       expect(comp.pins).toContain('right');
@@ -165,7 +174,7 @@ describe('editor store', () => {
     });
 
     it('removes a pin on second toggle', () => {
-      const id = useEditorStore.getState().addComponent('text', { left: 10, top: 20, width: 100, height: 30 });
+      const id = useEditorStore.getState().addComponent('rectangle', { left: 10, top: 20, width: 100, height: 30 });
       useEditorStore.getState().togglePin(id, 'right');
       useEditorStore.getState().togglePin(id, 'right');
       const comp = useEditorStore.getState().document.components[0];

@@ -28,4 +28,7 @@ export interface ComponentDefinition<TProps = unknown> {
 
   /** Override sizing mode (default uses traits.autoSized) */
   getSizingMode?: (component: LabelComponent) => SizingMode;
+
+  /** Compute intrinsic content size for auto/width-only components (pure, no DOM) */
+  computeContentSize?: (props: TProps, constraintWidth?: number) => { width: number; height: number };
 }

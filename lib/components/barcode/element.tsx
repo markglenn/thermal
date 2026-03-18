@@ -54,7 +54,7 @@ export function BarcodeElement({ props, isSelected }: Props) {
 
   const style: React.CSSProperties = {
     ...(ROTATION_STYLES[rot] ?? {}),
-    ...(isSelected ? { outline: '2px solid #3b82f6' } : {}),
+    // Selection outline handled by SelectionOverlay
   };
 
   return (

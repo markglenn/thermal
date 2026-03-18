@@ -13,7 +13,7 @@ interface Props {
 
 const HANDLE_SIZE = 8;
 
-const handles: { position: ResizeHandle; style: React.CSSProperties }[] = [
+const allHandles: { position: ResizeHandle; style: React.CSSProperties }[] = [
   { position: 'top-left', style: { top: -HANDLE_SIZE / 2, left: -HANDLE_SIZE / 2, cursor: 'nwse-resize' } },
   { position: 'top', style: { top: -HANDLE_SIZE / 2, left: '50%', marginLeft: -HANDLE_SIZE / 2, cursor: 'ns-resize' } },
   { position: 'top-right', style: { top: -HANDLE_SIZE / 2, right: -HANDLE_SIZE / 2, cursor: 'nesw-resize' } },
@@ -24,6 +24,24 @@ const handles: { position: ResizeHandle; style: React.CSSProperties }[] = [
   { position: 'left', style: { top: '50%', marginTop: -HANDLE_SIZE / 2, left: -HANDLE_SIZE / 2, cursor: 'ew-resize' } },
 ];
 
+const HANDLE_EDGES: Record<ResizeHandle, PinnableEdge[]> = {
+  'top-left': ['top', 'left'],
+  'top': ['top'],
+  'top-right': ['top', 'right'],
+  'right': ['right'],
+  'bottom-right': ['bottom', 'right'],
+  'bottom': ['bottom'],
+  'bottom-left': ['bottom', 'left'],
+  'left': ['left'],
+};
+
+// Handles that affect height
+const HEIGHT_HANDLES = new Set<ResizeHandle>(['top', 'bottom', 'top-left', 'top-right', 'bottom-left', 'bottom-right']);
+// Handles that affect width
+const WIDTH_HANDLES = new Set<ResizeHandle>(['left', 'right', 'top-left', 'top-right', 'bottom-left', 'bottom-right']);
+// Edge-only handles (not corners)
+const EDGE_HANDLES = new Set<ResizeHandle>(['top', 'right', 'bottom', 'left']);
+
 export function SelectionOverlay({ bounds, componentId, showHandles = true }: Props) {
   const setResizeState = useEditorStoreContext((s) => s.setResizeState);
   const selectedComponent = useEditorStoreContext((s) =>
@@ -32,10 +50,9 @@ export function SelectionOverlay({ bounds, componentId, showHandles = true }: Pr
 
   if (!selectedComponent) return null;
 
-  const autoSized = getSizingMode(selectedComponent) === 'auto';
-
-  // Auto-sized components render their own selection outline (handles rotation/transforms)
-  if (autoSized) return null;
+  const sizing = getSizingMode(selectedComponent);
+  const pins = selectedComponent.pins ?? [];
+  const isImage = selectedComponent.typeData.type === 'image';
 
   return (
     <div
@@ -49,31 +66,16 @@ export function SelectionOverlay({ bounds, componentId, showHandles = true }: Pr
       }}
     >
       <div className="absolute inset-0 pointer-events-none" style={{ outline: '2px solid #3b82f6' }} />
-      {!showHandles ? null : handles.map((h) => {
+      {showHandles && allHandles.map((h) => {
+        // Sizing mode restrictions
+        if (sizing === 'auto') return null;
+        if (sizing === 'width-only' && HEIGHT_HANDLES.has(h.position)) return null;
+
         // Hide handles that touch a pinned edge
-        const pins = selectedComponent.pins ?? [];
-        const isText = selectedComponent.typeData.type === 'text';
-        const handleEdges: Record<ResizeHandle, PinnableEdge[]> = {
-          'top-left': ['top', 'left'],
-          'top': ['top'],
-          'top-right': ['top', 'right'],
-          'right': ['right'],
-          'bottom-right': ['bottom', 'right'],
-          'bottom': ['bottom'],
-          'bottom-left': ['bottom', 'left'],
-          'left': ['left'],
-        };
-        const touchesPinnedEdge = handleEdges[h.position].some((e) => pins.includes(e));
-        if (touchesPinnedEdge) return null;
+        if (HANDLE_EDGES[h.position].some((e) => pins.includes(e))) return null;
 
-        // Text components: hide all handles that affect height
-        const affectsHeight = ['top', 'bottom', 'top-left', 'top-right', 'bottom-left', 'bottom-right'].includes(h.position);
-        if (isText && affectsHeight) return null;
-
-        // Image components: only corner handles (proportional resize)
-        const isImage = selectedComponent.typeData.type === 'image';
-        const isEdgeOnly = ['top', 'right', 'bottom', 'left'].includes(h.position);
-        if (isImage && isEdgeOnly) return null;
+        // Image: only corner handles (proportional resize)
+        if (isImage && EDGE_HANDLES.has(h.position)) return null;
 
         return (
           <div

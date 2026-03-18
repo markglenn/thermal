@@ -65,7 +65,7 @@ export function TextElement({ props, isSelected }: Props) {
           transformOrigin: rot === 180 ? 'center' : 'top left',
         }
       : {}),
-    ...(isSelected ? { outline: '2px solid #3b82f6' } : {}),
+    // Selection outline handled by SelectionOverlay
   };
 
   if (fb) {

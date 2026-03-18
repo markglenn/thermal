@@ -3,7 +3,7 @@
 import { useRef, useEffect } from 'react';
 import type { LabelComponent, ResolvedBounds } from '@/lib/types';
 import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
-import { getDefinition, getSizingMode } from '@/lib/components';
+import { getDefinition } from '@/lib/components';
 
 interface Props {
   component: LabelComponent;
@@ -18,8 +18,7 @@ export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: P
   const storeApi = useEditorStoreApi();
 
   const def = getDefinition(component.typeData.type);
-  const sizingMode = getSizingMode(component);
-  const needsMeasure = sizingMode !== 'fixed';
+  const needsMeasure = !def.computeContentSize;
 
   useEffect(() => {
     if (needsMeasure && ref.current && onMeasure) {
@@ -29,6 +28,8 @@ export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: P
     }
   });
 
+  const Element = def.Element;
+
   const style: React.CSSProperties = {
     position: 'absolute',
     left: bounds.x,
@@ -36,15 +37,12 @@ export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: P
     cursor: 'move',
   };
 
-  if (sizingMode === 'fixed') {
+  if (needsMeasure) {
+    // Let content determine size — DOM measurement will feed back into absoluteBoundsMap
+  } else {
     style.width = bounds.width;
     style.height = bounds.height;
-  } else if (sizingMode === 'width-only') {
-    style.width = bounds.width;
   }
-
-  const Element = def.Element;
-  const showSelectionOnElement = isSelected && sizingMode === 'auto';
 
   return (
     <div
@@ -54,7 +52,7 @@ export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: P
         if (onDragStart) onDragStart(e, component.id);
       }}
     >
-      <Element props={component.typeData.props} isSelected={showSelectionOnElement} />
+      <Element props={component.typeData.props} isSelected={isSelected} />
     </div>
   );
 }

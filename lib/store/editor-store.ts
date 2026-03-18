@@ -14,6 +14,7 @@ import { DEFAULT_LABEL, DEFAULT_ZOOM, GRID_SIZE, DUPLICATE_OFFSET, UNDO_THROTTLE
 import { createComponent, generateId } from './editor-actions';
 import { findComponent } from '@/lib/utils';
 import { resolveConstraints } from '@/lib/constraints/resolver';
+import { recomputeContentSize, filterConstraintsForMode, recomputeAllSizes } from '@/lib/components/recompute-size';
 
 const initialDocument: LabelDocument = {
   version: 1,
@@ -142,6 +143,7 @@ export function createEditorStore() {
 
         addComponent: (type, constraintOverrides) => {
           const comp = createComponent(type, constraintOverrides);
+          recomputeContentSize(comp);
           set((state) => {
             state.document.components.push(comp);
             state.selectedComponentIds = [comp.id];
@@ -154,6 +156,7 @@ export function createEditorStore() {
           if (!currentContainer || !currentContainer.children) return null;
 
           const comp = createComponent(type, constraintOverrides);
+          recomputeContentSize(comp);
           set((state) => {
             const container = findComponent(state.document.components, containerId);
             if (container && container.children) {
@@ -199,8 +202,19 @@ export function createEditorStore() {
         updateConstraints: (id, constraints) => {
           set((state) => {
             const comp = findComponent(state.document.components, id);
-            if (comp) {
-              Object.assign(comp.constraints, constraints);
+            if (!comp) return;
+            const filtered = filterConstraintsForMode(comp, constraints);
+            // Apply updates — undefined values delete the constraint
+            for (const [key, val] of Object.entries(filtered)) {
+              if (val === undefined) {
+                delete comp.constraints[key as keyof typeof comp.constraints];
+              } else {
+                (comp.constraints as Record<string, number>)[key] = val as number;
+              }
+            }
+            // For width-only: if width changed, recompute height
+            if (filtered.width !== undefined) {
+              recomputeContentSize(comp);
             }
           });
         },
@@ -209,8 +223,11 @@ export function createEditorStore() {
           set((state) => {
             for (const { id, constraints } of updates) {
               const comp = findComponent(state.document.components, id);
-              if (comp) {
-                Object.assign(comp.constraints, constraints);
+              if (!comp) continue;
+              const filtered = filterConstraintsForMode(comp, constraints);
+              Object.assign(comp.constraints, filtered);
+              if (filtered.width !== undefined) {
+                recomputeContentSize(comp);
               }
             }
           });
@@ -221,6 +238,7 @@ export function createEditorStore() {
             const comp = findComponent(state.document.components, id);
             if (comp) {
               Object.assign(comp.typeData.props, props);
+              recomputeContentSize(comp);
             }
           });
         },
@@ -399,6 +417,8 @@ export function createEditorStore() {
         loadDocument: (doc) => {
           cancelThrottledHandleSet?.();
           getTemporalState().pause();
+          // Migrate: ensure all auto/width-only components have computed sizes
+          recomputeAllSizes(doc.components);
           set((state) => {
             state.document = doc;
             state.selectedComponentIds = [];

@@ -4,6 +4,8 @@ import type { TextProperties } from '@/lib/types';
 import { TextElement } from './element';
 import { TextProperties as TextPropertiesPanel } from './properties';
 import { generateTextZpl } from './zpl';
+// Text uses DOM measurement — Font 0 (CG Triumvirate) is proportional and
+// can't be computed without per-character width tables for the printer font.
 
 export const textComponent: ComponentDefinition<TextProperties> = {
   type: 'text',

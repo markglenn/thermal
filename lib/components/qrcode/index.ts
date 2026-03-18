@@ -4,6 +4,7 @@ import type { ComponentDefinition } from '../definition';
 import { QrCodeElement } from './element';
 import { QrCodeProperties as QrCodePropertiesPanel } from './properties';
 import { qrcodeCommand } from './zpl';
+import { computeQrCodeSize } from './compute-size';
 
 export const qrcodeComponent: ComponentDefinition<QrCodeProperties> = {
   type: 'qrcode',
@@ -19,4 +20,5 @@ export const qrcodeComponent: ComponentDefinition<QrCodeProperties> = {
   Element: QrCodeElement,
   PropertiesPanel: QrCodePropertiesPanel,
   generateZpl: qrcodeCommand,
+  computeContentSize: computeQrCodeSize,
 };

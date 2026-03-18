@@ -3,9 +3,10 @@
 import { useMemo } from 'react';
 import type { LabelComponent, PinnableEdge } from '@/lib/types';
 import { useEditorStoreContext } from '@/lib/store/editor-context';
-import { getSizingMode } from '@/lib/components';
+import { getSizingMode, getDefinition } from '@/lib/components';
 import { useDocument } from '@/lib/store/editor-context';
 import { resolveDocument } from '@/lib/constraints/resolver';
+import { labelWidthDots, labelHeightDots } from '@/lib/constants';
 import { NumberInput } from './NumberInput';
 
 interface Props {
@@ -100,8 +101,13 @@ export function ConstraintEditor({ component }: Props) {
   const w = Math.round(bounds?.width ?? 0);
   const h = Math.round(bounds?.height ?? 0);
 
+  const labelW = labelWidthDots(doc.label);
+  const labelH = labelHeightDots(doc.label);
+
   const sizingMode = getSizingMode(component);
   const autoSized = sizingMode === 'auto';
+  const def = getDefinition(component.typeData.type);
+  const isDomMeasured = !def.computeContentSize;
 
   const hPinned = isPinned('left') || isPinned('right');
   const vPinned = isPinned('top') || isPinned('bottom');
@@ -159,23 +165,57 @@ export function ConstraintEditor({ component }: Props) {
       <div className="flex flex-col items-center gap-1">
         {/* Top */}
         <div className="flex flex-col items-center gap-0.5">
-          <PinValue value={c.top ?? 0} isPinned={isPinned('top')} onChange={(v) => updateConstraints(component.id, { top: v })} />
+          <PinValue value={c.top ?? 0} isPinned={isPinned('top')} onChange={(v) => {
+            const update: Record<string, number | undefined> = { top: v };
+            if (!isPinned('bottom')) {
+              update.bottom = undefined;
+            }
+            updateConstraints(component.id, update);
+          }} />
           <Strut isSet={isPinned('top')} onToggle={() => togglePin(component.id, 'top')} direction="vertical" disabled={autoSized && isPinned('bottom') && !isPinned('top')} />
         </div>
 
         {/* Middle: Left — Box — Right */}
         <div className="flex items-center gap-0.5">
-          <PinValue value={c.left ?? 0} isPinned={isPinned('left')} onChange={(v) => updateConstraints(component.id, { left: v })} />
+          <PinValue value={c.left ?? 0} isPinned={isPinned('left')} onChange={(v) => {
+            const update: Record<string, number | undefined> = { left: v };
+            if (!isPinned('right')) {
+              update.right = undefined;
+            }
+            updateConstraints(component.id, update);
+          }} />
           <Strut isSet={isPinned('left')} onToggle={() => togglePin(component.id, 'left')} direction="horizontal" disabled={autoSized && isPinned('right') && !isPinned('left')} />
           <div className="w-8 h-8 border-2 border-gray-300 rounded-sm bg-gray-50 shrink-0 mx-0.5" />
           <Strut isSet={isPinned('right')} onToggle={() => togglePin(component.id, 'right')} direction="horizontal" disabled={autoSized && isPinned('left') && !isPinned('right')} />
-          <PinValue value={c.right ?? 0} isPinned={isPinned('right')} onChange={(v) => updateConstraints(component.id, { right: v })} />
+          <PinValue value={c.right ?? 0} isPinned={isPinned('right')} onChange={(v) => {
+            const update: Record<string, number | undefined> = { right: v };
+            if (!isPinned('left')) {
+              if (isDomMeasured) {
+                update.left = labelW - v - w;
+              } else {
+                update.left = undefined;
+              }
+            }
+            updateConstraints(component.id, update);
+          }} />
         </div>
 
         {/* Bottom */}
         <div className="flex flex-col items-center gap-0.5">
           <Strut isSet={isPinned('bottom')} onToggle={() => togglePin(component.id, 'bottom')} direction="vertical" disabled={autoSized && isPinned('top') && !isPinned('bottom')} />
-          <PinValue value={c.bottom ?? 0} isPinned={isPinned('bottom')} onChange={(v) => updateConstraints(component.id, { bottom: v })} />
+          <PinValue value={c.bottom ?? 0} isPinned={isPinned('bottom')} onChange={(v) => {
+            const update: Record<string, number | undefined> = { bottom: v };
+            if (!isPinned('top')) {
+              // For DOM-measured components, compute top from current visual height
+              // so the component positions correctly from the bottom edge
+              if (isDomMeasured) {
+                update.top = labelH - v - h;
+              } else {
+                update.top = undefined;
+              }
+            }
+            updateConstraints(component.id, update);
+          }} />
         </div>
       </div>
     </div>

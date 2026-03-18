@@ -4,6 +4,7 @@ import type { ComponentDefinition } from '../definition';
 import { BarcodeElement } from './element';
 import { BarcodeProperties as BarcodePropertiesPanel } from './properties';
 import { barcodeCommand } from './zpl';
+import { computeBarcodeSize } from './compute-size';
 
 export const barcodeComponent: ComponentDefinition<BarcodeProperties> = {
   type: 'barcode',
@@ -21,4 +22,5 @@ export const barcodeComponent: ComponentDefinition<BarcodeProperties> = {
   Element: BarcodeElement,
   PropertiesPanel: BarcodePropertiesPanel,
   generateZpl: barcodeCommand,
+  computeContentSize: computeBarcodeSize,
 };
