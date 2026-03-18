@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
 import { findComponent } from '@/lib/utils';
-import { clampCoord } from '@/lib/constants';
+import { labelWidthDots, labelHeightDots } from '@/lib/constants';
 import type { ComponentLayout } from '@/lib/types';
 
 export function useCanvasDrag() {
@@ -63,19 +63,22 @@ export function useCanvasDrag() {
       const ds = storeApi.getState().dragState;
       if (!ds) return;
 
-      const zoom = storeApi.getState().viewport.zoom;
+      const state = storeApi.getState();
+      const zoom = state.viewport.zoom;
       const dx = (e.clientX - ds.startX) / zoom;
       const dy = (e.clientY - ds.startY) / zoom;
+      const lw = labelWidthDots(state.document.label);
+      const lh = labelHeightDots(state.document.label);
 
       // Collect all layout updates and apply in a single store mutation
       const updates: { id: string; layout: Partial<ComponentLayout> }[] = [];
 
-      const primary = computeMove(ds.startLayout, dx, dy);
+      const primary = computeMove(ds.startLayout, dx, dy, lw, lh);
       updates.push({ id: ds.componentId, layout: primary });
 
       if (ds.others) {
         for (const other of ds.others) {
-          const moved = computeMove(other.startLayout, dx, dy);
+          const moved = computeMove(other.startLayout, dx, dy, lw, lh);
           updates.push({ id: other.componentId, layout: moved });
         }
       }
@@ -92,13 +95,21 @@ function computeMove(
   startLayout: ComponentLayout,
   dx: number,
   dy: number,
+  labelWidth: number,
+  labelHeight: number,
 ): Partial<ComponentLayout> {
   // Invert delta for right/bottom anchors — dragging right should move
   // the component right (closer to the right edge = smaller x value)
   const effectiveDx = startLayout.horizontalAnchor === 'right' ? -dx : dx;
   const effectiveDy = startLayout.verticalAnchor === 'bottom' ? -dy : dy;
+
+  // Clamp so the component stays within the label bounds.
+  // x ranges from 0 (flush to anchored edge) to labelDimension - componentSize (flush to opposite edge)
+  const maxX = Math.max(0, labelWidth - startLayout.width);
+  const maxY = Math.max(0, labelHeight - startLayout.height);
+
   return {
-    x: clampCoord(startLayout.x + effectiveDx),
-    y: clampCoord(startLayout.y + effectiveDy),
+    x: Math.max(0, Math.min(maxX, Math.round(startLayout.x + effectiveDx))),
+    y: Math.max(0, Math.min(maxY, Math.round(startLayout.y + effectiveDy))),
   };
 }
