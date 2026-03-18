@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
 import { findComponent } from '@/lib/utils';
-import { MIN_RESIZE_SIZE, clampCoord } from '@/lib/constants';
+import { MIN_RESIZE_SIZE } from '@/lib/constants';
 import type { ComponentLayout, ImageProperties } from '@/lib/types';
 
 export function useCanvasResize() {
@@ -22,14 +22,23 @@ export function useCanvasResize() {
       const comp = findComponent(state.document.components, resizeState.componentId);
       const isImage = comp?.typeData.type === 'image';
 
-      // Invert deltas for right/bottom anchors so handle direction matches visual behavior
-      const effectiveDx = sl.horizontalAnchor === 'right' ? -dx : dx;
-      const effectiveDy = sl.verticalAnchor === 'bottom' ? -dy : dy;
+      // Handle names (left/right/top/bottom) are visual — "right" means the
+      // right side of the component on screen, regardless of anchor direction.
+      //
+      // Resize rules:
+      // - Dragging the right handle right → width increases (+dx)
+      // - Dragging the left handle left → width increases (-dx)
+      // - Dragging the bottom handle down → height increases (+dy)
+      // - Dragging the top handle up → height increases (-dy)
+      //
+      // Position (x/y) adjustment:
+      // - For left-anchored: dragging the LEFT handle changes x (anchor side moves)
+      // - For right-anchored: dragging the RIGHT handle changes x (anchor side moves)
+      // - Same for vertical axis with top/bottom
 
       const update: Partial<ComponentLayout> = {};
 
       if (isImage && comp) {
-        // Image: proportional resize driven by width
         const props = comp.typeData.props as ImageProperties;
         const aspectRatio = props.originalWidth / props.originalHeight;
         const maxW = props.originalWidth;
@@ -37,48 +46,68 @@ export function useCanvasResize() {
 
         let newWidth: number;
         if (handle.includes('right')) {
-          newWidth = sl.width + effectiveDx;
+          newWidth = sl.width + dx;
         } else if (handle.includes('left')) {
-          newWidth = sl.width - effectiveDx;
+          newWidth = sl.width - dx;
         } else {
           newWidth = sl.width;
         }
 
         newWidth = Math.round(Math.max(MIN_RESIZE_SIZE, Math.min(newWidth, maxW)));
         let newHeight = Math.round(Math.max(MIN_RESIZE_SIZE, Math.min(newWidth / aspectRatio, maxH)));
-        // Re-derive width in case height hit the max
         newWidth = Math.round(newHeight * aspectRatio);
 
         update.width = newWidth;
         update.height = newHeight;
 
-        // Adjust position for the free-edge corner drags
-        if (handle.includes('left')) {
+        // Adjust x when resizing from the anchor side
+        const anchorIsLeft = sl.horizontalAnchor === 'left';
+        if (handle.includes('left') && anchorIsLeft) {
           update.x = Math.round(sl.x + sl.width - newWidth);
         }
-        if (handle.startsWith('top')) {
+        if (handle.includes('right') && !anchorIsLeft) {
+          update.x = Math.round(sl.x + sl.width - newWidth);
+        }
+
+        const anchorIsTop = sl.verticalAnchor === 'top';
+        if (handle.startsWith('top') && anchorIsTop) {
+          update.y = Math.round(sl.y + sl.height - newHeight);
+        }
+        if (handle.includes('bottom') && !anchorIsTop) {
           update.y = Math.round(sl.y + sl.height - newHeight);
         }
       } else {
-        // Generic resize
+        const anchorIsLeft = sl.horizontalAnchor === 'left';
+        const anchorIsTop = sl.verticalAnchor === 'top';
+
         if (handle.includes('right')) {
-          update.width = Math.round(Math.max(MIN_RESIZE_SIZE, sl.width + effectiveDx));
+          update.width = Math.round(Math.max(MIN_RESIZE_SIZE, sl.width + dx));
+          // Right-anchored: right handle is the anchor side, adjust x
+          if (!anchorIsLeft) {
+            update.x = Math.round(sl.x + sl.width - update.width);
+          }
         }
         if (handle.includes('left')) {
-          const newWidth = Math.round(Math.max(MIN_RESIZE_SIZE, sl.width - effectiveDx));
-          const widthDelta = newWidth - sl.width;
+          const newWidth = Math.round(Math.max(MIN_RESIZE_SIZE, sl.width - dx));
           update.width = newWidth;
-          update.x = sl.x - widthDelta;
+          // Left-anchored: left handle is the anchor side, adjust x
+          if (anchorIsLeft) {
+            update.x = Math.round(sl.x + sl.width - newWidth);
+          }
         }
 
         if (handle.includes('bottom')) {
-          update.height = Math.round(Math.max(MIN_RESIZE_SIZE, sl.height + effectiveDy));
+          update.height = Math.round(Math.max(MIN_RESIZE_SIZE, sl.height + dy));
+          if (!anchorIsTop) {
+            update.y = Math.round(sl.y + sl.height - update.height);
+          }
         }
         if (handle.startsWith('top')) {
-          const newHeight = Math.round(Math.max(MIN_RESIZE_SIZE, sl.height - effectiveDy));
-          const heightDelta = newHeight - sl.height;
+          const newHeight = Math.round(Math.max(MIN_RESIZE_SIZE, sl.height - dy));
           update.height = newHeight;
-          update.y = sl.y - heightDelta;
+          if (anchorIsTop) {
+            update.y = Math.round(sl.y + sl.height - newHeight);
+          }
         }
       }
 
