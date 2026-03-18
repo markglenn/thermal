@@ -51,8 +51,5 @@ export function migrateDocument(components: LabelComponent[]): void {
       delete comp.constraints;
       delete comp.pins;
     }
-    if (comp.children) {
-      migrateDocument(comp.children);
-    }
   }
 }

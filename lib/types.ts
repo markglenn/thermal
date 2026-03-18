@@ -36,8 +36,7 @@ export type ComponentType =
   | 'qrcode'
   | 'image'
   | 'line'
-  | 'rectangle'
-  | 'container';
+  | 'rectangle';
 
 export type BarcodeEncoding = 'code128' | 'code39' | 'ean13' | 'upca' | 'itf';
 export type QrErrorCorrection = 'H' | 'Q' | 'M' | 'L';
@@ -103,16 +102,13 @@ export interface RectangleProperties {
   filled: boolean;
 }
 
-export interface ContainerProperties {}
-
 export type ComponentProperties =
   | { type: 'text'; props: TextProperties }
   | { type: 'barcode'; props: BarcodeProperties }
   | { type: 'qrcode'; props: QrCodeProperties }
   | { type: 'image'; props: ImageProperties }
   | { type: 'line'; props: LineProperties }
-  | { type: 'rectangle'; props: RectangleProperties }
-  | { type: 'container'; props: ContainerProperties };
+  | { type: 'rectangle'; props: RectangleProperties };
 
 export type PinnableEdge = 'top' | 'bottom' | 'left' | 'right';
 
@@ -125,7 +121,6 @@ export interface LabelComponent {
   /** @deprecated Use layout.horizontalAnchor/verticalAnchor instead. */
   pins?: PinnableEdge[];
   fieldBinding?: string;
-  children?: LabelComponent[];
   // Discriminated union for type + props
   typeData: ComponentProperties;
 }

@@ -116,9 +116,6 @@ function SortableLayerItem({ component, depth }: { component: LabelComponent; de
           ×
         </button>
       </div>
-      {component.children?.map((child) => (
-        <SortableLayerItem key={child.id} component={child} depth={depth + 1} />
-      ))}
     </>
   );
 }

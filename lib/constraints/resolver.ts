@@ -22,8 +22,7 @@ export function resolveLayout(
 }
 
 /**
- * Resolve all components in a tree, returning a flat map of id → ResolvedBounds.
- * Parent bounds are used as the coordinate space for children.
+ * Resolve all components, returning a flat map of id → ResolvedBounds.
  */
 export function resolveComponentTree(
   components: LabelComponent[],
@@ -31,18 +30,10 @@ export function resolveComponentTree(
   parentHeight: number
 ): Map<string, ResolvedBounds> {
   const result = new Map<string, ResolvedBounds>();
-
-  function walk(comps: LabelComponent[], pw: number, ph: number) {
-    for (const comp of comps) {
-      const bounds = resolveLayout(comp.layout, pw, ph);
-      result.set(comp.id, bounds);
-      if (comp.children && comp.children.length > 0) {
-        walk(comp.children, bounds.width, bounds.height);
-      }
-    }
+  for (const comp of components) {
+    const bounds = resolveLayout(comp.layout, parentWidth, parentHeight);
+    result.set(comp.id, bounds);
   }
-
-  walk(components, parentWidth, parentHeight);
   return result;
 }
 

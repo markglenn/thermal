@@ -5,7 +5,6 @@ export type SizingMode = 'auto' | 'fixed' | 'width-only';
 export interface ComponentTraits {
   autoSized: boolean;
   rotatable: boolean;
-  isContainer: boolean;
   bindable: boolean;
 }
 
@@ -31,4 +30,7 @@ export interface ComponentDefinition<TProps = unknown> {
 
   /** Compute intrinsic content size for auto/width-only components (pure, no DOM) */
   computeContentSize?: (props: TProps, constraintWidth?: number) => { width: number; height: number };
+
+  /** Constrain a manual size change (e.g. enforce aspect ratio, max size). Returns the adjusted update. */
+  constrainSize?: (props: TProps, currentLayout: ComponentLayout, change: Partial<Pick<ComponentLayout, 'width' | 'height'>>) => Partial<Pick<ComponentLayout, 'width' | 'height'>>;
 }

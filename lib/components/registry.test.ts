@@ -18,16 +18,15 @@ describe('getDefinition', () => {
 });
 
 describe('getAllDefinitions', () => {
-  it('returns all 7 registered components', () => {
+  it('returns all 6 registered components', () => {
     const defs = getAllDefinitions();
-    expect(defs).toHaveLength(7);
+    expect(defs).toHaveLength(6);
     const types = defs.map(d => d.type);
     expect(types).toContain('text');
     expect(types).toContain('barcode');
     expect(types).toContain('qrcode');
     expect(types).toContain('rectangle');
     expect(types).toContain('line');
-    expect(types).toContain('container');
     expect(types).toContain('image');
   });
 });
@@ -37,8 +36,7 @@ describe('getSizingMode', () => {
     return {
       id: 'test',
       name: 'test',
-      constraints: {},
-      pins: [],
+      layout: { x: 0, y: 0, width: 100, height: 40, horizontalAnchor: 'left', verticalAnchor: 'top' },
       typeData: { type, props: {} } as LabelComponent['typeData'],
     };
   }

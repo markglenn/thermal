@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useEditorStore } from './editor-store';
 import type { LabelDocument, ComponentLayout } from '../types';
 
@@ -45,36 +45,6 @@ describe('editor store', () => {
       const comp = useEditorStore.getState().document.components[0];
       expect(comp.layout.x).toBe(99);
       expect(comp.layout.y).toBe(77);
-    });
-  });
-
-  describe('addComponentToContainer', () => {
-    it('adds a component inside a container', () => {
-      const containerId = useEditorStore.getState().addComponent('container');
-      const childId = useEditorStore.getState().addComponentToContainer(containerId, 'text');
-      const container = useEditorStore.getState().document.components[0];
-      expect(container.children).toHaveLength(1);
-      expect(container.children![0].id).toBe(childId);
-    });
-
-    it('selects the child component', () => {
-      const containerId = useEditorStore.getState().addComponent('container');
-      const childId = useEditorStore.getState().addComponentToContainer(containerId, 'text');
-      expect(useEditorStore.getState().selectedComponentIds).toEqual([childId]);
-    });
-
-    it('returns null if container does not exist', () => {
-      const result = useEditorStore.getState().addComponentToContainer('nonexistent', 'text');
-      expect(result).toBeNull();
-      expect(useEditorStore.getState().document.components).toHaveLength(0);
-    });
-
-    it('returns null if target is not a container', () => {
-      const rectId = useEditorStore.getState().addComponent('rectangle');
-      const result = useEditorStore.getState().addComponentToContainer(rectId, 'text');
-      expect(result).toBeNull();
-      // Only the rectangle should exist, no orphaned text
-      expect(useEditorStore.getState().document.components).toHaveLength(1);
     });
   });
 
@@ -230,37 +200,6 @@ describe('editor store', () => {
     });
   });
 
-  describe('reparentComponent', () => {
-    it('moves a component into a container', () => {
-      const textId = useEditorStore.getState().addComponent('text');
-      const containerId = useEditorStore.getState().addComponent('container');
-      useEditorStore.getState().reparentComponent(textId, containerId);
-      const state = useEditorStore.getState();
-      expect(state.document.components).toHaveLength(1); // only container at root
-      expect(state.document.components[0].children).toHaveLength(1);
-      expect(state.document.components[0].children![0].id).toBe(textId);
-    });
-
-    it('moves a component to root', () => {
-      const containerId = useEditorStore.getState().addComponent('container');
-      const childId = useEditorStore.getState().addComponentToContainer(containerId, 'text');
-      useEditorStore.getState().reparentComponent(childId, null);
-      const state = useEditorStore.getState();
-      expect(state.document.components).toHaveLength(2);
-      expect(state.document.components[0].children).toHaveLength(0);
-    });
-
-    it('falls back to root if target is not a container', () => {
-      const textId = useEditorStore.getState().addComponent('text');
-      const rectId = useEditorStore.getState().addComponent('rectangle');
-      useEditorStore.getState().reparentComponent(textId, rectId);
-      // Rectangle has no children array, so text goes to root
-      const state = useEditorStore.getState();
-      const rootIds = state.document.components.map(c => c.id);
-      expect(rootIds).toContain(textId);
-    });
-  });
-
   describe('selectComponent', () => {
     it('sets selected component', () => {
       const id = useEditorStore.getState().addComponent('text');
@@ -289,16 +228,14 @@ describe('editor store', () => {
   });
 
   describe('selectAll', () => {
-    it('selects all components including children', () => {
+    it('selects all components', () => {
       const textId = useEditorStore.getState().addComponent('text');
-      const containerId = useEditorStore.getState().addComponent('container');
-      const childId = useEditorStore.getState().addComponentToContainer(containerId, 'rectangle');
+      const rectId = useEditorStore.getState().addComponent('rectangle');
       useEditorStore.getState().selectAll();
       const ids = useEditorStore.getState().selectedComponentIds;
       expect(ids).toContain(textId);
-      expect(ids).toContain(containerId);
-      expect(ids).toContain(childId);
-      expect(ids).toHaveLength(3);
+      expect(ids).toContain(rectId);
+      expect(ids).toHaveLength(2);
     });
   });
 

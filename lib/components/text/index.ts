@@ -11,7 +11,7 @@ export const textComponent: ComponentDefinition<TextProperties> = {
   type: 'text',
   label: 'Text',
   icon: Type,
-  traits: { autoSized: true, rotatable: true, isContainer: false, bindable: true },
+  traits: { autoSized: true, rotatable: true, bindable: true },
   defaultLayout: { x: 0, y: 0, width: 100, height: 30, horizontalAnchor: 'left', verticalAnchor: 'top' },
   defaultProps: {
     content: 'Label Text',

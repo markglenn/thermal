@@ -7,30 +7,12 @@ import { assignFieldNumbers } from './field-numbers';
 function generateComponentZpl(
   component: LabelComponent,
   boundsMap: Map<string, ResolvedBounds>,
-  parentOffsetX: number,
-  parentOffsetY: number
 ): string[] {
-  const localBounds = boundsMap.get(component.id);
-  if (!localBounds) return [];
-
-  const bounds: ResolvedBounds = {
-    x: localBounds.x + parentOffsetX,
-    y: localBounds.y + parentOffsetY,
-    width: localBounds.width,
-    height: localBounds.height,
-  };
+  const bounds = boundsMap.get(component.id);
+  if (!bounds) return [];
 
   const def = getDefinition(component.typeData.type);
-  const lines = [...def.generateZpl(component.typeData.props, bounds)];
-
-  // Recurse children
-  if (component.children) {
-    for (const child of component.children) {
-      lines.push(...generateComponentZpl(child, boundsMap, bounds.x, bounds.y));
-    }
-  }
-
-  return lines;
+  return [...def.generateZpl(component.typeData.props, bounds)];
 }
 
 /** Generate static ZPL with all content baked in (for preview). */
@@ -45,7 +27,7 @@ export function generateZpl(document: LabelDocument): string {
   lines.push(`^LL${heightDots}`);
 
   for (const component of document.components) {
-    lines.push(...generateComponentZpl(component, boundsMap, 0, 0));
+    lines.push(...generateComponentZpl(component, boundsMap));
   }
 
   lines.push('^XZ');
@@ -79,35 +61,20 @@ export function generateZplTemplate(document: LabelDocument, formatName: string 
   lines.push(`^PW${widthDots}`);
   lines.push(`^LL${heightDots}`);
 
-  function walkTemplate(components: LabelComponent[], offsetX: number, offsetY: number) {
-    for (const comp of components) {
-      const localBounds = boundsMap.get(comp.id);
-      if (!localBounds) continue;
+  for (const comp of document.components) {
+    const bounds = boundsMap.get(comp.id);
+    if (!bounds) continue;
 
-      const bounds: ResolvedBounds = {
-        x: localBounds.x + offsetX,
-        y: localBounds.y + offsetY,
-        width: localBounds.width,
-        height: localBounds.height,
-      };
+    const def = getDefinition(comp.typeData.type);
+    let compLines = [...def.generateZpl(comp.typeData.props, bounds)];
 
-      const def = getDefinition(comp.typeData.type);
-      let compLines = [...def.generateZpl(comp.typeData.props, bounds)];
-
-      const fn = fieldMap.byComponentId.get(comp.id);
-      if (fn !== undefined && comp.fieldBinding) {
-        compLines = replaceFD(compLines, `^FN${fn}"${comp.fieldBinding}"^FS`);
-      }
-
-      lines.push(...compLines);
-
-      if (comp.children) {
-        walkTemplate(comp.children, bounds.x, bounds.y);
-      }
+    const fn = fieldMap.byComponentId.get(comp.id);
+    if (fn !== undefined && comp.fieldBinding) {
+      compLines = replaceFD(compLines, `^FN${fn}"${comp.fieldBinding}"^FS`);
     }
-  }
 
-  walkTemplate(document.components, 0, 0);
+    lines.push(...compLines);
+  }
   lines.push('^XZ');
   return lines.join('\n');
 }
@@ -126,35 +93,20 @@ export function generateZplMerge(document: LabelDocument, fieldData: Record<stri
   lines.push(`^PW${widthDots}`);
   lines.push(`^LL${heightDots}`);
 
-  function walkMerge(components: LabelComponent[], offsetX: number, offsetY: number) {
-    for (const comp of components) {
-      const localBounds = boundsMap.get(comp.id);
-      if (!localBounds) continue;
+  for (const comp of document.components) {
+    const bounds = boundsMap.get(comp.id);
+    if (!bounds) continue;
 
-      const bounds: ResolvedBounds = {
-        x: localBounds.x + offsetX,
-        y: localBounds.y + offsetY,
-        width: localBounds.width,
-        height: localBounds.height,
-      };
+    const def = getDefinition(comp.typeData.type);
+    let compLines = [...def.generateZpl(comp.typeData.props, bounds)];
 
-      const def = getDefinition(comp.typeData.type);
-      let compLines = [...def.generateZpl(comp.typeData.props, bounds)];
-
-      if (comp.fieldBinding && comp.fieldBinding in fieldData) {
-        const value = fieldData[comp.fieldBinding];
-        compLines = replaceFD(compLines, `^FD${value}^FS`);
-      }
-
-      lines.push(...compLines);
-
-      if (comp.children) {
-        walkMerge(comp.children, bounds.x, bounds.y);
-      }
+    if (comp.fieldBinding && comp.fieldBinding in fieldData) {
+      const value = fieldData[comp.fieldBinding];
+      compLines = replaceFD(compLines, `^FD${value}^FS`);
     }
-  }
 
-  walkMerge(document.components, 0, 0);
+    lines.push(...compLines);
+  }
   lines.push('^XZ');
   return lines.join('\n');
 }

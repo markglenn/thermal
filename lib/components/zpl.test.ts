@@ -4,7 +4,6 @@ import { barcodeCommand } from './barcode/zpl';
 import { qrcodeCommand } from './qrcode/zpl';
 import { rectangleZpl } from './rectangle/zpl';
 import { lineZpl } from './line/zpl';
-import { containerZpl } from './container/zpl';
 import { imageZpl } from './image/zpl';
 import type { ResolvedBounds } from './../types';
 
@@ -191,12 +190,6 @@ describe('lineZpl', () => {
       '^FO50,100',
       '^GB3,80,3^FS',
     ]);
-  });
-});
-
-describe('containerZpl', () => {
-  it('returns empty array (containers have no visual output)', () => {
-    expect(containerZpl({}, bounds)).toEqual([]);
   });
 });
 

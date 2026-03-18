@@ -4,6 +4,7 @@ import type { ComponentDefinition } from '../definition';
 import { ImageElement } from './element';
 import { ImagePropertiesPanel } from './properties';
 import { imageZpl } from './zpl';
+import { constrainImageSize } from './constrain-size';
 
 export const imageComponent: ComponentDefinition<ImageProperties> = {
   type: 'image',
@@ -12,7 +13,6 @@ export const imageComponent: ComponentDefinition<ImageProperties> = {
   traits: {
     autoSized: false,
     rotatable: false,
-    isContainer: false,
     bindable: false,
   },
   defaultLayout: { x: 0, y: 0, width: 100, height: 100, horizontalAnchor: 'left', verticalAnchor: 'top' },
@@ -33,4 +33,5 @@ export const imageComponent: ComponentDefinition<ImageProperties> = {
   Element: ImageElement,
   PropertiesPanel: ImagePropertiesPanel,
   generateZpl: imageZpl,
+  constrainSize: constrainImageSize,
 };

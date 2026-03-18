@@ -2,14 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { assignFieldNumbers } from './field-numbers';
 import type { LabelComponent } from '../types';
 
-function makeComp(id: string, type: string, fieldBinding?: string, children?: LabelComponent[]): LabelComponent {
+function makeComp(id: string, type: string, fieldBinding?: string): LabelComponent {
   return {
     id,
     name: id,
-    constraints: { left: 0, top: 0 },
-    pins: [],
+    layout: { x: 0, y: 0, width: 100, height: 40, horizontalAnchor: 'left', verticalAnchor: 'top' },
     fieldBinding,
-    children,
     typeData: { type: type as 'text', props: {} as never },
   };
 }
@@ -37,18 +35,6 @@ describe('assignFieldNumbers', () => {
     expect(result.byComponentId.get('a')).toBe(1);
     expect(result.byComponentId.get('b')).toBe(2);
     expect(result.byBindingName.get('name')).toEqual([1, 2]);
-  });
-
-  it('walks children in containers', () => {
-    const comps = [
-      makeComp('container', 'container', undefined, [
-        makeComp('child', 'text', 'label'),
-      ]),
-      makeComp('root', 'barcode', 'code'),
-    ];
-    const result = assignFieldNumbers(comps);
-    expect(result.byComponentId.get('child')).toBe(1);
-    expect(result.byComponentId.get('root')).toBe(2);
   });
 
   it('returns empty maps when no bindings exist', () => {

@@ -12,7 +12,6 @@ export const lineComponent: ComponentDefinition<LineProperties> = {
   traits: {
     autoSized: false,
     rotatable: false,
-    isContainer: false,
     bindable: false,
   },
   defaultLayout: { x: 0, y: 0, width: 200, height: 2, horizontalAnchor: 'left', verticalAnchor: 'top' },

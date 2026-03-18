@@ -10,7 +10,7 @@ export const qrcodeComponent: ComponentDefinition<QrCodeProperties> = {
   type: 'qrcode',
   label: 'QR Code',
   icon: QrCode,
-  traits: { autoSized: true, rotatable: false, isContainer: false, bindable: true },
+  traits: { autoSized: true, rotatable: false, bindable: true },
   defaultLayout: { x: 0, y: 0, width: 100, height: 100, horizontalAnchor: 'left', verticalAnchor: 'top' },
   defaultProps: {
     content: 'https://example.com',

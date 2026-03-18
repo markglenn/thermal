@@ -17,6 +17,5 @@ export function createComponent(
     name: def.label,
     layout: { ...def.defaultLayout, ...layoutOverrides },
     typeData: { type, props: structuredClone(def.defaultProps) } as ComponentProperties,
-    children: def.traits.isContainer ? [] : undefined,
   };
 }

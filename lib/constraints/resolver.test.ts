@@ -116,13 +116,12 @@ describe('resolveLayout', () => {
 });
 
 describe('resolveComponentTree', () => {
-  function makeComponent(id: string, layout: Partial<ComponentLayout>, children?: LabelComponent[]): LabelComponent {
+  function makeComponent(id: string, layout: Partial<ComponentLayout>): LabelComponent {
     return {
       id,
       name: id,
       layout: defaultLayout(layout),
       typeData: { type: 'rectangle', props: { borderThickness: 1, cornerRadius: 0, filled: false } },
-      children,
     };
   }
 
@@ -136,34 +135,13 @@ describe('resolveComponentTree', () => {
     expect(result.get('b')).toEqual({ x: 120, y: 10, width: 100, height: 50 });
   });
 
-  it('resolves children relative to parent bounds', () => {
-    const child = makeComponent('child', { x: 5, y: 5, width: 40, height: 20 });
-    const parent = makeComponent('parent', { x: 50, y: 50, width: 200, height: 100 }, [child]);
-
-    const result = resolveComponentTree([parent], 400, 200);
-
-    // Parent resolved relative to label
-    expect(result.get('parent')).toEqual({ x: 50, y: 50, width: 200, height: 100 });
-    // Child resolved relative to parent (200x100)
-    expect(result.get('child')).toEqual({ x: 5, y: 5, width: 40, height: 20 });
-  });
-
-  it('resolves deeply nested children', () => {
-    const grandchild = makeComponent('gc', { x: 2, y: 2, width: 10, height: 10 });
-    const child = makeComponent('c', { x: 10, y: 10, width: 80, height: 40 }, [grandchild]);
-    const parent = makeComponent('p', { x: 0, y: 0, width: 200, height: 100 }, [child]);
-
-    const result = resolveComponentTree([parent], 400, 200);
-    expect(result.get('gc')).toEqual({ x: 2, y: 2, width: 10, height: 10 });
-  });
-
-  it('resolves right-anchored child within parent', () => {
-    const child = makeComponent('child', { x: 10, y: 5, width: 40, height: 20, horizontalAnchor: 'right' });
-    const parent = makeComponent('parent', { x: 0, y: 0, width: 200, height: 100 }, [child]);
-
-    const result = resolveComponentTree([parent], 400, 200);
-    // child x = parentWidth(200) - 10 - 40 = 150
-    expect(result.get('child')).toEqual({ x: 150, y: 5, width: 40, height: 20 });
+  it('resolves right-anchored component', () => {
+    const components = [
+      makeComponent('a', { x: 10, y: 5, width: 40, height: 20, horizontalAnchor: 'right' }),
+    ];
+    const result = resolveComponentTree(components, 400, 200);
+    // x = 400 - 10 - 40 = 350
+    expect(result.get('a')).toEqual({ x: 350, y: 5, width: 40, height: 20 });
   });
 
   it('returns empty map for empty components', () => {

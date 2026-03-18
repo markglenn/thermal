@@ -22,12 +22,6 @@ describe('createComponent', () => {
     expect(comp.name).toBe('Text');
     expect(comp.layout.horizontalAnchor).toBe('left');
     expect(comp.layout.verticalAnchor).toBe('top');
-    expect(comp.children).toBeUndefined();
-  });
-
-  it('creates a container with empty children array', () => {
-    const comp = createComponent('container');
-    expect(comp.children).toEqual([]);
   });
 
   it('applies layout overrides', () => {

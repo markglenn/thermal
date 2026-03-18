@@ -10,7 +10,6 @@ import { usePaletteDrop } from '@/hooks/use-palette-drop';
 import { useAbsoluteBounds } from '@/hooks/use-absolute-bounds';
 import { useMarqueeSelect } from '@/hooks/use-marquee-select';
 import { CanvasComponent } from './CanvasComponent';
-import { ContainerComponent } from './ContainerComponent';
 import { SelectionOverlay } from './SelectionOverlay';
 import { ConstraintGuides } from './ConstraintGuides';
 import { GridOverlay } from './GridOverlay';
@@ -103,17 +102,6 @@ export function Canvas() {
           {document.components.map((comp) => {
             const b = boundsMap.get(comp.id);
             if (!b) return null;
-            if (comp.typeData.type === 'container') {
-              return (
-                <ContainerComponent
-                  key={comp.id}
-                  component={comp}
-                  bounds={b}
-                  boundsMap={boundsMap}
-                  onDragStart={handleComponentPointerDown}
-                />
-              );
-            }
             return (
               <CanvasComponent
                 key={comp.id}

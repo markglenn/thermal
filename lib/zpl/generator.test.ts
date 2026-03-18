@@ -70,43 +70,6 @@ describe('generateZpl', () => {
     expect(zpl).toContain('^GB200,100,3,B,5^FS');
   });
 
-  it('generates ZPL for nested container with child', () => {
-    const doc: LabelDocument = {
-      ...baseDoc,
-      components: [{
-        id: 'c1',
-        name: 'Container',
-        layout: {
-          x: 50, y: 50, width: 200, height: 100,
-          horizontalAnchor: 'left', verticalAnchor: 'top',
-        },
-        typeData: { type: 'container', props: {} },
-        children: [{
-          id: 't1',
-          name: 'Text',
-          layout: {
-            x: 10, y: 10, width: 80, height: 30,
-            horizontalAnchor: 'left', verticalAnchor: 'top',
-          },
-          typeData: {
-            type: 'text',
-            props: {
-              content: 'Nested',
-              font: '0',
-              fontSize: 20,
-              fontWidth: 20,
-              rotation: 0,
-            },
-          },
-        }],
-      }],
-    };
-    const zpl = generateZpl(doc);
-    // Child should be offset by parent position: 50+10=60, 50+10=60
-    expect(zpl).toContain('^FO60,60');
-    expect(zpl).toContain('^FDNested^FS');
-  });
-
   it('uses correct dimensions for different DPI', () => {
     const doc: LabelDocument = {
       ...baseDoc,

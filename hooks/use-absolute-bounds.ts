@@ -68,9 +68,6 @@ export function useAbsoluteBounds() {
         }
 
         result.set(comp.id, { x: b.x + offsetX, y: b.y + offsetY, width: w, height: h });
-        if (comp.children) {
-          walk(comp.children, b.x + offsetX, b.y + offsetY);
-        }
       }
     }
     walk(document.components, 0, 0);

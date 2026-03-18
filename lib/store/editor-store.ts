@@ -39,24 +39,9 @@ const initialState: EditorState = {
   currentLabelName: null,
 };
 
-function findParentArray(
-  components: LabelComponent[],
-  id: string
-): LabelComponent[] | null {
-  for (const comp of components) {
-    if (comp.id === id) return components;
-    if (comp.children) {
-      const found = findParentArray(comp.children, id);
-      if (found) return found;
-    }
-  }
-  return null;
-}
-
 export interface EditorActions {
   // Component CRUD
   addComponent: (type: ComponentType, layoutOverrides?: Partial<ComponentLayout>) => string;
-  addComponentToContainer: (containerId: string, type: ComponentType, layoutOverrides?: Partial<ComponentLayout>) => string | null;
   removeComponent: (id: string) => void;
   duplicateComponent: (id: string) => void;
   updateLayout: (id: string, layout: Partial<ComponentLayout>) => void;
@@ -65,7 +50,6 @@ export interface EditorActions {
   renameComponent: (id: string, name: string) => void;
   setAnchor: (id: string, horizontal?: HorizontalAnchor, vertical?: VerticalAnchor) => void;
   reorderComponents: (fromIndex: number, toIndex: number) => void;
-  reparentComponent: (id: string, newParentId: string | null) => void;
   updateFieldBinding: (id: string, binding: string | undefined) => void;
 
   // Selection
@@ -154,50 +138,26 @@ export function createEditorStore() {
           return comp.id;
         },
 
-        addComponentToContainer: (containerId, type, layoutOverrides) => {
-          const currentContainer = findComponent(get().document.components, containerId);
-          if (!currentContainer || !currentContainer.children) return null;
-
-          const comp = createComponent(type, layoutOverrides);
-          recomputeContentSize(comp);
-          set((state) => {
-            const container = findComponent(state.document.components, containerId);
-            if (container && container.children) {
-              container.children.push(comp);
-              state.selectedComponentIds = [comp.id];
-            }
-          });
-          return comp.id;
-        },
-
         removeComponent: (id) => {
           set((state) => {
-            const parent = findParentArray(state.document.components, id);
-            if (parent) {
-              const idx = parent.findIndex((c) => c.id === id);
-              if (idx !== -1) parent.splice(idx, 1);
-            }
+            const idx = state.document.components.findIndex((c) => c.id === id);
+            if (idx !== -1) state.document.components.splice(idx, 1);
             state.selectedComponentIds = state.selectedComponentIds.filter((sid) => sid !== id);
           });
         },
 
         duplicateComponent: (id) => {
           set((state) => {
-            const parent = findParentArray(state.document.components, id);
-            if (!parent) return;
-            const idx = parent.findIndex((c) => c.id === id);
+            const comps = state.document.components;
+            const idx = comps.findIndex((c) => c.id === id);
             if (idx === -1) return;
-            const original = parent[idx];
+            const original = comps[idx];
             const cloned = structuredClone(current(original)) as LabelComponent;
-            function reassignIds(comp: LabelComponent) {
-              comp.id = generateId();
-              comp.name = comp.name + ' Copy';
-              if (comp.children) comp.children.forEach(reassignIds);
-            }
-            reassignIds(cloned);
+            cloned.id = generateId();
+            cloned.name = cloned.name + ' Copy';
             cloned.layout.x += DUPLICATE_OFFSET;
             cloned.layout.y += DUPLICATE_OFFSET;
-            parent.splice(idx + 1, 0, cloned);
+            comps.splice(idx + 1, 0, cloned);
             state.selectedComponentIds = [cloned.id];
           });
         },
@@ -306,27 +266,6 @@ export function createEditorStore() {
           });
         },
 
-        reparentComponent: (id, newParentId) => {
-          set((state) => {
-            const currentParent = findParentArray(state.document.components, id);
-            if (!currentParent) return;
-            const idx = currentParent.findIndex((c) => c.id === id);
-            if (idx === -1) return;
-            const [comp] = currentParent.splice(idx, 1);
-
-            if (newParentId === null) {
-              state.document.components.push(comp);
-            } else {
-              const newParent = findComponent(state.document.components, newParentId);
-              if (newParent && newParent.children) {
-                newParent.children.push(comp);
-              } else {
-                state.document.components.push(comp);
-              }
-            }
-          });
-        },
-
         selectComponent: (id, opts) => {
           set((state) => {
             if (id === null) {
@@ -346,15 +285,7 @@ export function createEditorStore() {
 
         selectAll: () => {
           set((state) => {
-            function collectIds(comps: LabelComponent[]): string[] {
-              const ids: string[] = [];
-              for (const c of comps) {
-                ids.push(c.id);
-                if (c.children) ids.push(...collectIds(c.children));
-              }
-              return ids;
-            }
-            state.selectedComponentIds = collectIds(state.document.components);
+            state.selectedComponentIds = state.document.components.map((c) => c.id);
           });
         },
 

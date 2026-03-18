@@ -2,10 +2,11 @@
 
 import { useMemo } from 'react';
 import type { LabelComponent, HorizontalAnchor, VerticalAnchor } from '@/lib/types';
-import { useEditorStoreContext } from '@/lib/store/editor-context';
-import { getSizingMode } from '@/lib/components';
+import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
+import { getDefinition, getSizingMode } from '@/lib/components';
 import { useDocument } from '@/lib/store/editor-context';
 import { resolveDocument } from '@/lib/constraints/resolver';
+import { reconvertImageAtBounds } from '@/lib/components/image/reconvert';
 import { NumberInput } from './NumberInput';
 
 interface Props {
@@ -33,6 +34,7 @@ const DOT_POSITIONS: Record<string, string> = {
 export function ConstraintEditor({ component }: Props) {
   const updateLayout = useEditorStoreContext((s) => s.updateLayout);
   const setAnchor = useEditorStoreContext((s) => s.setAnchor);
+  const storeApi = useEditorStoreApi();
   const doc = useDocument();
 
   const layout = component.layout;
@@ -44,14 +46,27 @@ export function ConstraintEditor({ component }: Props) {
   const w = Math.round(bounds?.width ?? layout.width);
   const h = Math.round(bounds?.height ?? layout.height);
 
+  const def = getDefinition(component.typeData.type);
   const sizingMode = getSizingMode(component);
   const isAutoSized = sizingMode === 'auto';
   const isWidthOnly = sizingMode === 'width-only';
 
   const setX = (val: number) => updateLayout(component.id, { x: val });
   const setY = (val: number) => updateLayout(component.id, { y: val });
-  const setW = (val: number) => updateLayout(component.id, { width: val });
-  const setH = (val: number) => updateLayout(component.id, { height: val });
+  const setW = (val: number) => {
+    const size = def.constrainSize
+      ? def.constrainSize(component.typeData.props, layout, { width: val })
+      : { width: val };
+    updateLayout(component.id, size);
+    reconvertImageAtBounds(component.id, storeApi);
+  };
+  const setH = (val: number) => {
+    const size = def.constrainSize
+      ? def.constrainSize(component.typeData.props, layout, { height: val })
+      : { height: val };
+    updateLayout(component.id, size);
+    reconvertImageAtBounds(component.id, storeApi);
+  };
 
   const offsetInput = (value: number, onChange: (v: number) => void) => (
     <NumberInput

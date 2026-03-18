@@ -12,7 +12,6 @@ export const rectangleComponent: ComponentDefinition<RectangleProperties> = {
   traits: {
     autoSized: false,
     rotatable: false,
-    isContainer: false,
     bindable: false,
   },
   defaultLayout: { x: 0, y: 0, width: 150, height: 100, horizontalAnchor: 'left', verticalAnchor: 'top' },

@@ -56,17 +56,7 @@ export function useSelectedComponent() {
   return useEditorStoreContext((s) => {
     if (s.selectedComponentIds.length !== 1) return null;
     const id = s.selectedComponentIds[0];
-    function find(components: typeof s.document.components): typeof s.document.components[0] | null {
-      for (const c of components) {
-        if (c.id === id) return c;
-        if (c.children) {
-          const found = find(c.children);
-          if (found) return found;
-        }
-      }
-      return null;
-    }
-    return find(s.document.components);
+    return s.document.components.find((c) => c.id === id) ?? null;
   });
 }
 

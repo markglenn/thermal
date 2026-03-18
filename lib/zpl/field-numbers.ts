@@ -23,28 +23,21 @@ export function assignFieldNumbers(components: LabelComponent[]): FieldNumberMap
   const mappings: FieldMapping[] = [];
   let nextNumber = 1;
 
-  function walk(comps: LabelComponent[]) {
-    for (const comp of comps) {
-      if (comp.fieldBinding) {
-        const fn = nextNumber++;
-        byComponentId.set(comp.id, fn);
+  for (const comp of components) {
+    if (comp.fieldBinding) {
+      const fn = nextNumber++;
+      byComponentId.set(comp.id, fn);
 
-        const existing = byBindingName.get(comp.fieldBinding) ?? [];
-        existing.push(fn);
-        byBindingName.set(comp.fieldBinding, existing);
+      const existing = byBindingName.get(comp.fieldBinding) ?? [];
+      existing.push(fn);
+      byBindingName.set(comp.fieldBinding, existing);
 
-        mappings.push({
-          fieldNumber: fn,
-          bindingName: comp.fieldBinding,
-          componentId: comp.id,
-        });
-      }
-      if (comp.children) {
-        walk(comp.children);
-      }
+      mappings.push({
+        fieldNumber: fn,
+        bindingName: comp.fieldBinding,
+        componentId: comp.id,
+      });
     }
   }
-
-  walk(components);
   return { byComponentId, byBindingName, mappings };
 }

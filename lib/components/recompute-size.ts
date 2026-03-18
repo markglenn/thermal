@@ -30,8 +30,5 @@ export function recomputeContentSize(comp: LabelComponent): void {
 export function recomputeAllSizes(components: LabelComponent[]): void {
   for (const comp of components) {
     recomputeContentSize(comp);
-    if (comp.children) {
-      recomputeAllSizes(comp.children);
-    }
   }
 }
