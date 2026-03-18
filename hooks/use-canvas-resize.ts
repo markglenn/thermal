@@ -22,6 +22,10 @@ export function useCanvasResize() {
       const comp = findComponent(state.document.components, resizeState.componentId);
       const isImage = comp?.typeData.type === 'image';
 
+      // Invert deltas for right/bottom anchors so handle direction matches visual behavior
+      const effectiveDx = sl.horizontalAnchor === 'right' ? -dx : dx;
+      const effectiveDy = sl.verticalAnchor === 'bottom' ? -dy : dy;
+
       const update: Partial<ComponentLayout> = {};
 
       if (isImage && comp) {
@@ -33,9 +37,9 @@ export function useCanvasResize() {
 
         let newWidth: number;
         if (handle.includes('right')) {
-          newWidth = sl.width + dx;
+          newWidth = sl.width + effectiveDx;
         } else if (handle.includes('left')) {
-          newWidth = sl.width - dx;
+          newWidth = sl.width - effectiveDx;
         } else {
           newWidth = sl.width;
         }
@@ -48,7 +52,7 @@ export function useCanvasResize() {
         update.width = newWidth;
         update.height = newHeight;
 
-        // Adjust position for left/top corner drags
+        // Adjust position for the free-edge corner drags
         if (handle.includes('left')) {
           update.x = Math.round(sl.x + sl.width - newWidth);
         }
@@ -58,23 +62,23 @@ export function useCanvasResize() {
       } else {
         // Generic resize
         if (handle.includes('right')) {
-          update.width = Math.round(Math.max(MIN_RESIZE_SIZE, sl.width + dx));
+          update.width = Math.round(Math.max(MIN_RESIZE_SIZE, sl.width + effectiveDx));
         }
         if (handle.includes('left')) {
-          const newWidth = Math.round(Math.max(MIN_RESIZE_SIZE, sl.width - dx));
+          const newWidth = Math.round(Math.max(MIN_RESIZE_SIZE, sl.width - effectiveDx));
           const widthDelta = newWidth - sl.width;
           update.width = newWidth;
-          update.x = clampCoord(sl.x - widthDelta);
+          update.x = sl.x - widthDelta;
         }
 
         if (handle.includes('bottom')) {
-          update.height = Math.round(Math.max(MIN_RESIZE_SIZE, sl.height + dy));
+          update.height = Math.round(Math.max(MIN_RESIZE_SIZE, sl.height + effectiveDy));
         }
         if (handle.startsWith('top')) {
-          const newHeight = Math.round(Math.max(MIN_RESIZE_SIZE, sl.height - dy));
+          const newHeight = Math.round(Math.max(MIN_RESIZE_SIZE, sl.height - effectiveDy));
           const heightDelta = newHeight - sl.height;
           update.height = newHeight;
-          update.y = clampCoord(sl.y - heightDelta);
+          update.y = sl.y - heightDelta;
         }
       }
 
