@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
 import { findComponent } from '@/lib/utils';
+import { labelWidthDots, labelHeightDots } from '@/lib/constants';
 import type { ComponentLayout } from '@/lib/types';
 
 export function useCanvasDrag() {
@@ -62,17 +63,20 @@ export function useCanvasDrag() {
       const ds = storeApi.getState().dragState;
       if (!ds) return;
 
-      const zoom = storeApi.getState().viewport.zoom;
+      const state = storeApi.getState();
+      const zoom = state.viewport.zoom;
       const dx = (e.clientX - ds.startX) / zoom;
       const dy = (e.clientY - ds.startY) / zoom;
+      const lw = labelWidthDots(state.document.label);
+      const lh = labelHeightDots(state.document.label);
 
       const updates: { id: string; layout: Partial<ComponentLayout> }[] = [];
 
-      updates.push({ id: ds.componentId, layout: computeMove(ds.startLayout, dx, dy) });
+      updates.push({ id: ds.componentId, layout: computeMove(ds.startLayout, dx, dy, lw, lh) });
 
       if (ds.others) {
         for (const other of ds.others) {
-          updates.push({ id: other.componentId, layout: computeMove(other.startLayout, dx, dy) });
+          updates.push({ id: other.componentId, layout: computeMove(other.startLayout, dx, dy, lw, lh) });
         }
       }
 
@@ -88,14 +92,31 @@ function computeMove(
   startLayout: ComponentLayout,
   dx: number,
   dy: number,
+  labelWidth: number,
+  labelHeight: number,
 ): Partial<ComponentLayout> {
   // Invert delta for right/bottom anchors — dragging right should move
   // the component right (closer to the right edge = smaller x value)
   const effectiveDx = startLayout.horizontalAnchor === 'right' ? -dx : dx;
   const effectiveDy = startLayout.verticalAnchor === 'bottom' ? -dy : dy;
 
-  return {
-    x: Math.round(startLayout.x + effectiveDx),
-    y: Math.round(startLayout.y + effectiveDy),
-  };
+  let newX = Math.round(startLayout.x + effectiveDx);
+  let newY = Math.round(startLayout.y + effectiveDy);
+
+  // Ensure the resolved top-left position never goes below 0,0.
+  // Left-anchored: resolved x = layout.x → clamp layout.x >= 0
+  // Right-anchored: resolved x = labelW - layout.x - width → clamp layout.x <= labelW - width
+  if (startLayout.horizontalAnchor === 'left') {
+    newX = Math.max(0, newX);
+  } else {
+    newX = Math.min(newX, labelWidth - startLayout.width);
+  }
+
+  if (startLayout.verticalAnchor === 'top') {
+    newY = Math.max(0, newY);
+  } else {
+    newY = Math.min(newY, labelHeight - startLayout.height);
+  }
+
+  return { x: newX, y: newY };
 }
