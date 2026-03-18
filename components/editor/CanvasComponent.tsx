@@ -3,7 +3,7 @@
 import { useRef, useEffect } from 'react';
 import type { LabelComponent, ResolvedBounds } from '@/lib/types';
 import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
-import { getDefinition } from '@/lib/components';
+import { getDefinition, getSizingMode } from '@/lib/components';
 
 interface Props {
   component: LabelComponent;
@@ -18,7 +18,10 @@ export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: P
   const storeApi = useEditorStoreApi();
 
   const def = getDefinition(component.typeData.type);
-  const needsMeasure = !def.computeContentSize;
+  const sizing = getSizingMode(component);
+  // DOM measurement is only needed for components without computeContentSize
+  // that are auto or width-only sized (i.e., text)
+  const needsMeasure = !def.computeContentSize && (sizing === 'auto' || sizing === 'width-only');
 
   useEffect(() => {
     if (needsMeasure && ref.current && onMeasure) {
@@ -37,12 +40,15 @@ export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: P
     cursor: 'move',
   };
 
-  if (needsMeasure) {
-    // Let content determine size — DOM measurement will feed back into absoluteBoundsMap
-  } else {
+  if (sizing === 'fixed') {
+    // Fixed components always use constraint-resolved bounds
     style.width = bounds.width;
     style.height = bounds.height;
+  } else if (sizing === 'width-only') {
+    // Width from constraints, height from content
+    style.width = bounds.width;
   }
+  // auto: no explicit width/height — content determines size
 
   return (
     <div

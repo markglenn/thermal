@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useDocument, useEditorStoreApi } from '@/lib/store/editor-context';
 import { resolveDocument } from '@/lib/constraints/resolver';
-import { getDefinition } from '@/lib/components';
+import { getDefinition, getSizingMode } from '@/lib/components';
 import { findComponent } from '@/lib/utils';
 import type { LabelComponent, ResolvedBounds } from '@/lib/types';
 
@@ -24,14 +24,28 @@ export function useAbsoluteBounds() {
       return next;
     });
 
-    // Write measured size into constraints so the resolver has correct
+    // Write measured size into constraints only for DOM-measured components
+    // (those without computeContentSize, like text) so the resolver has correct
     // dimensions for pin calculations. Pause tracking to avoid undo entries.
     const state = storeApi.getState();
     const comp = findComponent(state.document.components, id);
-    if (comp && (comp.constraints.width !== w || comp.constraints.height !== h)) {
-      storeApi.temporal.getState().pause();
-      state.updateConstraints(id, { width: w, height: h });
-      storeApi.temporal.getState().resume();
+    if (comp) {
+      const def = getDefinition(comp.typeData.type);
+      const sizing = getSizingMode(comp);
+      // Only write back for components that need DOM measurement AND don't have
+      // explicit size constraints already (auto or width-only sizing)
+      if (!def.computeContentSize && (sizing === 'auto' || sizing === 'width-only')) {
+        const writeW = sizing === 'auto' && comp.constraints.width !== w;
+        const writeH = comp.constraints.height !== h;
+        if (writeW || writeH) {
+          storeApi.temporal.getState().pause();
+          const update: Record<string, number> = {};
+          if (writeW) update.width = w;
+          if (writeH) update.height = h;
+          state.updateConstraints(id, update);
+          storeApi.temporal.getState().resume();
+        }
+      }
     }
   }, [storeApi]);
 
