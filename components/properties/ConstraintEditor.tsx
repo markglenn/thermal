@@ -13,17 +13,24 @@ interface Props {
 }
 
 const ANCHOR_CORNERS: {
-  label: string;
   horizontal: HorizontalAnchor;
   vertical: VerticalAnchor;
+  position: string;
 }[] = [
-  { label: 'TL', horizontal: 'left', vertical: 'top' },
-  { label: 'TR', horizontal: 'right', vertical: 'top' },
-  { label: 'BL', horizontal: 'left', vertical: 'bottom' },
-  { label: 'BR', horizontal: 'right', vertical: 'bottom' },
+  { horizontal: 'left', vertical: 'top', position: 'top-left' },
+  { horizontal: 'right', vertical: 'top', position: 'top-right' },
+  { horizontal: 'left', vertical: 'bottom', position: 'bottom-left' },
+  { horizontal: 'right', vertical: 'bottom', position: 'bottom-right' },
 ];
 
-function AnchorGrid({
+const DOT_POSITIONS: Record<string, string> = {
+  'top-left': 'top-0 left-0 -translate-x-1/2 -translate-y-1/2',
+  'top-right': 'top-0 right-0 translate-x-1/2 -translate-y-1/2',
+  'bottom-left': 'bottom-0 left-0 -translate-x-1/2 translate-y-1/2',
+  'bottom-right': 'bottom-0 right-0 translate-x-1/2 translate-y-1/2',
+};
+
+function AnchorPicker({
   horizontal,
   vertical,
   onChange,
@@ -33,23 +40,28 @@ function AnchorGrid({
   onChange: (h: HorizontalAnchor, v: VerticalAnchor) => void;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-1 w-fit">
+    <div className="relative w-16 h-10 border-2 border-gray-300 rounded bg-gray-50">
+      {/* Crosshair lines */}
+      <div className="absolute inset-0 flex items-center">
+        <div className="w-full h-px bg-gray-200" />
+      </div>
+      <div className="absolute inset-0 flex justify-center">
+        <div className="h-full w-px bg-gray-200" />
+      </div>
+      {/* Corner dots */}
       {ANCHOR_CORNERS.map((corner) => {
-        const isActive =
-          corner.horizontal === horizontal && corner.vertical === vertical;
+        const isActive = corner.horizontal === horizontal && corner.vertical === vertical;
         return (
           <button
-            key={corner.label}
+            key={corner.position}
             onClick={() => onChange(corner.horizontal, corner.vertical)}
-            className={`w-7 h-7 rounded text-[10px] font-bold border transition-colors ${
+            className={`absolute ${DOT_POSITIONS[corner.position]} w-3 h-3 rounded-full border-2 transition-all ${
               isActive
-                ? 'bg-blue-500 text-white border-blue-600'
-                : 'bg-gray-100 text-gray-400 border-gray-200 hover:bg-gray-200 hover:text-gray-600'
+                ? 'bg-blue-500 border-blue-600 scale-110'
+                : 'bg-white border-gray-300 hover:border-blue-400 hover:bg-blue-50'
             }`}
-            title={`Anchor ${corner.vertical}-${corner.horizontal}`}
-          >
-            {corner.label}
-          </button>
+            title={`Anchor ${corner.position.replace('-', ' ')}`}
+          />
         );
       })}
     </div>
@@ -129,7 +141,7 @@ export function ConstraintEditor({ component }: Props) {
 
       {/* Anchor */}
       <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Anchor</h3>
-      <AnchorGrid
+      <AnchorPicker
         horizontal={layout.horizontalAnchor}
         vertical={layout.verticalAnchor}
         onChange={(h, v) => setAnchor(component.id, h, v)}
