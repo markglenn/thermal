@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
 import { findComponent } from '@/lib/utils';
 import { clampCoord } from '@/lib/constants';
-import type { Constraints, PinnableEdge } from '@/lib/types';
+import type { ComponentLayout } from '@/lib/types';
 
 export function useCanvasDrag() {
   const dragState = useEditorStoreContext((s) => s.dragState);
@@ -45,16 +45,15 @@ export function useCanvasDrag() {
       .filter((id) => id !== componentId)
       .map((id) => {
         const c = findComponent(state.document.components, id);
-        return c ? { componentId: id, startConstraints: { ...c.constraints }, pins: [...c.pins] } : null;
+        return c ? { componentId: id, startLayout: { ...c.layout } } : null;
       })
-      .filter((x): x is { componentId: string; startConstraints: Constraints; pins: PinnableEdge[] } => x !== null);
+      .filter((x): x is { componentId: string; startLayout: ComponentLayout } => x !== null);
 
     state.setDragState({
       componentId,
       startX: e.clientX,
       startY: e.clientY,
-      startConstraints: { ...comp.constraints },
-      pins: [...comp.pins],
+      startLayout: { ...comp.layout },
       others: others.length > 0 ? others : undefined,
     });
   }
@@ -68,22 +67,20 @@ export function useCanvasDrag() {
       const dx = (e.clientX - ds.startX) / zoom;
       const dy = (e.clientY - ds.startY) / zoom;
 
-      // Collect all constraint updates and apply in a single store mutation
-      const updates: { id: string; constraints: Partial<Constraints> }[] = [];
+      // Collect all layout updates and apply in a single store mutation
+      const updates: { id: string; layout: Partial<ComponentLayout> }[] = [];
 
-      const primary = computeMove(ds.startConstraints, ds.pins, dx, dy);
-      if (primary) updates.push({ id: ds.componentId, constraints: primary });
+      const primary = computeMove(ds.startLayout, dx, dy);
+      updates.push({ id: ds.componentId, layout: primary });
 
       if (ds.others) {
         for (const other of ds.others) {
-          const moved = computeMove(other.startConstraints, other.pins, dx, dy);
-          if (moved) updates.push({ id: other.componentId, constraints: moved });
+          const moved = computeMove(other.startLayout, dx, dy);
+          updates.push({ id: other.componentId, layout: moved });
         }
       }
 
-      if (updates.length > 0) {
-        storeApi.getState().updateMultipleConstraints(updates);
-      }
+      storeApi.getState().updateMultipleLayouts(updates);
     },
     []
   );
@@ -92,22 +89,12 @@ export function useCanvasDrag() {
 }
 
 function computeMove(
-  sc: Constraints,
-  pins: PinnableEdge[],
+  startLayout: ComponentLayout,
   dx: number,
   dy: number,
-): Partial<Constraints> | null {
-  const newConstraints: Partial<Constraints> = {};
-
-  const hPinned = pins.includes('left') || pins.includes('right');
-  if (!hPinned) {
-    newConstraints.left = clampCoord((sc.left ?? 0) + dx);
-  }
-
-  const vPinned = pins.includes('top') || pins.includes('bottom');
-  if (!vPinned) {
-    newConstraints.top = clampCoord((sc.top ?? 0) + dy);
-  }
-
-  return Object.keys(newConstraints).length > 0 ? newConstraints : null;
+): Partial<ComponentLayout> {
+  return {
+    x: clampCoord(startLayout.x + dx),
+    y: clampCoord(startLayout.y + dy),
+  };
 }

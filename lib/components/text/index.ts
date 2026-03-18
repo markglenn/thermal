@@ -12,7 +12,7 @@ export const textComponent: ComponentDefinition<TextProperties> = {
   label: 'Text',
   icon: Type,
   traits: { autoSized: true, rotatable: true, isContainer: false, bindable: true },
-  defaultConstraints: { left: 0, top: 0 },
+  defaultLayout: { x: 0, y: 0, width: 100, height: 30, horizontalAnchor: 'left', verticalAnchor: 'top' },
   defaultProps: {
     content: 'Label Text',
     font: '0',

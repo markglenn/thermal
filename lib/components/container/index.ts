@@ -14,7 +14,7 @@ export const containerComponent: ComponentDefinition<ContainerProperties> = {
     isContainer: true,
     bindable: false,
   },
-  defaultConstraints: { left: 0, top: 0, width: 300, height: 200 },
+  defaultLayout: { x: 0, y: 0, width: 300, height: 200, horizontalAnchor: 'left', verticalAnchor: 'top' },
   defaultProps: {},
   Element: ContainerElement,
   PropertiesPanel: null,

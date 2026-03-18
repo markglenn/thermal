@@ -11,7 +11,7 @@ export const barcodeComponent: ComponentDefinition<BarcodeProperties> = {
   label: 'Barcode',
   icon: Barcode,
   traits: { autoSized: true, rotatable: true, isContainer: false, bindable: true },
-  defaultConstraints: { left: 0, top: 0 },
+  defaultLayout: { x: 0, y: 0, width: 100, height: 80, horizontalAnchor: 'left', verticalAnchor: 'top' },
   defaultProps: {
     content: '1234567890',
     encoding: 'code128',

@@ -15,7 +15,7 @@ export const lineComponent: ComponentDefinition<LineProperties> = {
     isContainer: false,
     bindable: false,
   },
-  defaultConstraints: { left: 0, top: 0, width: 200, height: 2 },
+  defaultLayout: { x: 0, y: 0, width: 200, height: 2, horizontalAnchor: 'left', verticalAnchor: 'top' },
   defaultProps: {
     thickness: 2,
     orientation: 'horizontal',

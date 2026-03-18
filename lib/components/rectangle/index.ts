@@ -15,7 +15,7 @@ export const rectangleComponent: ComponentDefinition<RectangleProperties> = {
     isContainer: false,
     bindable: false,
   },
-  defaultConstraints: { left: 0, top: 0, width: 150, height: 100 },
+  defaultLayout: { x: 0, y: 0, width: 150, height: 100, horizontalAnchor: 'left', verticalAnchor: 'top' },
   defaultProps: {
     borderThickness: 2,
     cornerRadius: 0,

@@ -1,6 +1,6 @@
 'use client';
 
-import type { ResolvedBounds, ResizeHandle, PinnableEdge } from '@/lib/types';
+import type { ResolvedBounds, ResizeHandle } from '@/lib/types';
 import { useEditorStoreContext } from '@/lib/store/editor-context';
 import { findComponent } from '@/lib/utils';
 import { getSizingMode } from '@/lib/components';
@@ -24,21 +24,8 @@ const allHandles: { position: ResizeHandle; style: React.CSSProperties }[] = [
   { position: 'left', style: { top: '50%', marginTop: -HANDLE_SIZE / 2, left: -HANDLE_SIZE / 2, cursor: 'ew-resize' } },
 ];
 
-const HANDLE_EDGES: Record<ResizeHandle, PinnableEdge[]> = {
-  'top-left': ['top', 'left'],
-  'top': ['top'],
-  'top-right': ['top', 'right'],
-  'right': ['right'],
-  'bottom-right': ['bottom', 'right'],
-  'bottom': ['bottom'],
-  'bottom-left': ['bottom', 'left'],
-  'left': ['left'],
-};
-
 // Handles that affect height
 const HEIGHT_HANDLES = new Set<ResizeHandle>(['top', 'bottom', 'top-left', 'top-right', 'bottom-left', 'bottom-right']);
-// Handles that affect width
-const WIDTH_HANDLES = new Set<ResizeHandle>(['left', 'right', 'top-left', 'top-right', 'bottom-left', 'bottom-right']);
 // Edge-only handles (not corners)
 const EDGE_HANDLES = new Set<ResizeHandle>(['top', 'right', 'bottom', 'left']);
 
@@ -51,7 +38,6 @@ export function SelectionOverlay({ bounds, componentId, showHandles = true }: Pr
   if (!selectedComponent) return null;
 
   const sizing = getSizingMode(selectedComponent);
-  const pins = selectedComponent.pins ?? [];
   const isImage = selectedComponent.typeData.type === 'image';
 
   return (
@@ -70,9 +56,6 @@ export function SelectionOverlay({ bounds, componentId, showHandles = true }: Pr
         // Sizing mode restrictions
         if (sizing === 'auto') return null;
         if (sizing === 'width-only' && HEIGHT_HANDLES.has(h.position)) return null;
-
-        // Hide handles that touch a pinned edge
-        if (HANDLE_EDGES[h.position].some((e) => pins.includes(e))) return null;
 
         // Image: only corner handles (proportional resize)
         if (isImage && EDGE_HANDLES.has(h.position)) return null;
@@ -94,7 +77,7 @@ export function SelectionOverlay({ bounds, componentId, showHandles = true }: Pr
                 handle: h.position,
                 startX: e.clientX,
                 startY: e.clientY,
-                startConstraints: { ...selectedComponent.constraints },
+                startLayout: { ...selectedComponent.layout },
               });
             }}
           />

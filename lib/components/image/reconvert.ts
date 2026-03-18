@@ -15,9 +15,9 @@ export async function reconvertImageAtBounds(componentId: string, storeApi: Edit
   const props = comp.typeData.props as ImageProperties;
   if (!props.data) return;
 
-  // Use constraint dimensions as target size
-  const targetWidth = comp.constraints.width ?? props.originalWidth;
-  const targetHeight = comp.constraints.height ?? props.originalHeight;
+  // Use layout dimensions as target size
+  const targetWidth = comp.layout.width ?? props.originalWidth;
+  const targetHeight = comp.layout.height ?? props.originalHeight;
 
   // Skip if dimensions haven't changed from what's already computed
   if (targetWidth === props.zplWidth && targetHeight === props.zplHeight) return;

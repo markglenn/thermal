@@ -6,15 +6,18 @@ import type {
   EditorState,
   LabelDocument,
   LabelComponent,
-  Constraints,
+  ComponentLayout,
   ComponentType,
   LabelConfig,
+  HorizontalAnchor,
+  VerticalAnchor,
 } from '../types';
 import { DEFAULT_LABEL, DEFAULT_ZOOM, GRID_SIZE, DUPLICATE_OFFSET, UNDO_THROTTLE_MS, labelWidthDots, labelHeightDots } from '../constants';
 import { createComponent, generateId } from './editor-actions';
 import { findComponent } from '@/lib/utils';
-import { resolveConstraints } from '@/lib/constraints/resolver';
-import { recomputeContentSize, filterConstraintsForMode, recomputeAllSizes } from '@/lib/components/recompute-size';
+import { resolveLayout } from '@/lib/constraints/resolver';
+import { recomputeContentSize, recomputeAllSizes } from '@/lib/components/recompute-size';
+import { migrateDocument } from '@/lib/constraints/migrate';
 
 const initialDocument: LabelDocument = {
   version: 1,
@@ -52,15 +55,15 @@ function findParentArray(
 
 export interface EditorActions {
   // Component CRUD
-  addComponent: (type: ComponentType, constraintOverrides?: Partial<Constraints>) => string;
-  addComponentToContainer: (containerId: string, type: ComponentType, constraintOverrides?: Partial<Constraints>) => string | null;
+  addComponent: (type: ComponentType, layoutOverrides?: Partial<ComponentLayout>) => string;
+  addComponentToContainer: (containerId: string, type: ComponentType, layoutOverrides?: Partial<ComponentLayout>) => string | null;
   removeComponent: (id: string) => void;
   duplicateComponent: (id: string) => void;
-  updateConstraints: (id: string, constraints: Partial<Constraints>) => void;
-  updateMultipleConstraints: (updates: { id: string; constraints: Partial<Constraints> }[]) => void;
+  updateLayout: (id: string, layout: Partial<ComponentLayout>) => void;
+  updateMultipleLayouts: (updates: { id: string; layout: Partial<ComponentLayout> }[]) => void;
   updateProperties: (id: string, props: Record<string, unknown>) => void;
   renameComponent: (id: string, name: string) => void;
-  togglePin: (id: string, edge: import('../types').PinnableEdge) => void;
+  setAnchor: (id: string, horizontal?: HorizontalAnchor, vertical?: VerticalAnchor) => void;
   reorderComponents: (fromIndex: number, toIndex: number) => void;
   reparentComponent: (id: string, newParentId: string | null) => void;
   updateFieldBinding: (id: string, binding: string | undefined) => void;
@@ -141,8 +144,8 @@ export function createEditorStore() {
         ...initialState,
         _undoBatchSnapshot: null,
 
-        addComponent: (type, constraintOverrides) => {
-          const comp = createComponent(type, constraintOverrides);
+        addComponent: (type, layoutOverrides) => {
+          const comp = createComponent(type, layoutOverrides);
           recomputeContentSize(comp);
           set((state) => {
             state.document.components.push(comp);
@@ -151,11 +154,11 @@ export function createEditorStore() {
           return comp.id;
         },
 
-        addComponentToContainer: (containerId, type, constraintOverrides) => {
+        addComponentToContainer: (containerId, type, layoutOverrides) => {
           const currentContainer = findComponent(get().document.components, containerId);
           if (!currentContainer || !currentContainer.children) return null;
 
-          const comp = createComponent(type, constraintOverrides);
+          const comp = createComponent(type, layoutOverrides);
           recomputeContentSize(comp);
           set((state) => {
             const container = findComponent(state.document.components, containerId);
@@ -192,41 +195,32 @@ export function createEditorStore() {
               if (comp.children) comp.children.forEach(reassignIds);
             }
             reassignIds(cloned);
-            if (cloned.constraints.left !== undefined) cloned.constraints.left += DUPLICATE_OFFSET;
-            if (cloned.constraints.top !== undefined) cloned.constraints.top += DUPLICATE_OFFSET;
+            cloned.layout.x += DUPLICATE_OFFSET;
+            cloned.layout.y += DUPLICATE_OFFSET;
             parent.splice(idx + 1, 0, cloned);
             state.selectedComponentIds = [cloned.id];
           });
         },
 
-        updateConstraints: (id, constraints) => {
+        updateLayout: (id, layout) => {
           set((state) => {
             const comp = findComponent(state.document.components, id);
             if (!comp) return;
-            const filtered = filterConstraintsForMode(comp, constraints);
-            // Apply updates — undefined values delete the constraint
-            for (const [key, val] of Object.entries(filtered)) {
-              if (val === undefined) {
-                delete comp.constraints[key as keyof typeof comp.constraints];
-              } else {
-                (comp.constraints as Record<string, number>)[key] = val as number;
-              }
-            }
-            // For width-only: if width changed, recompute height
-            if (filtered.width !== undefined) {
+            Object.assign(comp.layout, layout);
+            // If width changed, recompute height for width-only components
+            if (layout.width !== undefined) {
               recomputeContentSize(comp);
             }
           });
         },
 
-        updateMultipleConstraints: (updates) => {
+        updateMultipleLayouts: (updates) => {
           set((state) => {
-            for (const { id, constraints } of updates) {
+            for (const { id, layout } of updates) {
               const comp = findComponent(state.document.components, id);
               if (!comp) continue;
-              const filtered = filterConstraintsForMode(comp, constraints);
-              Object.assign(comp.constraints, filtered);
-              if (filtered.width !== undefined) {
+              Object.assign(comp.layout, layout);
+              if (layout.width !== undefined) {
                 recomputeContentSize(comp);
               }
             }
@@ -263,41 +257,39 @@ export function createEditorStore() {
           });
         },
 
-        togglePin: (id, edge) => {
+        setAnchor: (id, horizontal, vertical) => {
           const currentState = get();
           const currentComp = findComponent(currentState.document.components, id);
           if (!currentComp) return;
 
-          const alreadyPinned = currentComp.pins.includes(edge);
-
-          let pinValue = 0;
-          if (!alreadyPinned && currentComp.constraints[edge] === undefined) {
-            const { label } = currentState.document;
-            const lw = labelWidthDots(label);
-            const lh = labelHeightDots(label);
-            const bounds = resolveConstraints(currentComp.constraints, lw, lh);
-
-            switch (edge) {
-              case 'left': pinValue = bounds.x; break;
-              case 'top': pinValue = bounds.y; break;
-              case 'right': pinValue = Math.max(0, lw - bounds.x - bounds.width); break;
-              case 'bottom': pinValue = Math.max(0, lh - bounds.y - bounds.height); break;
-            }
-          }
+          // Resolve the current visual position so we can recompute x/y
+          // to keep the component in the same place after anchor change
+          const { label } = currentState.document;
+          const lw = labelWidthDots(label);
+          const lh = labelHeightDots(label);
+          const bounds = resolveLayout(currentComp.layout, lw, lh);
 
           set((state) => {
             const comp = findComponent(state.document.components, id);
             if (!comp) return;
-            const idx = comp.pins.indexOf(edge);
-            if (idx >= 0) {
-              comp.pins.splice(idx, 1);
-              if (edge === 'right' || edge === 'bottom') {
-                delete comp.constraints[edge];
+
+            if (horizontal !== undefined && horizontal !== comp.layout.horizontalAnchor) {
+              comp.layout.horizontalAnchor = horizontal;
+              // Recompute x to keep same visual position
+              if (horizontal === 'right') {
+                comp.layout.x = Math.max(0, lw - bounds.x - bounds.width);
+              } else {
+                comp.layout.x = bounds.x;
               }
-            } else {
-              comp.pins.push(edge);
-              if (comp.constraints[edge] === undefined) {
-                comp.constraints[edge] = pinValue;
+            }
+
+            if (vertical !== undefined && vertical !== comp.layout.verticalAnchor) {
+              comp.layout.verticalAnchor = vertical;
+              // Recompute y to keep same visual position
+              if (vertical === 'bottom') {
+                comp.layout.y = Math.max(0, lh - bounds.y - bounds.height);
+              } else {
+                comp.layout.y = bounds.y;
               }
             }
           });
@@ -417,7 +409,9 @@ export function createEditorStore() {
         loadDocument: (doc) => {
           cancelThrottledHandleSet?.();
           getTemporalState().pause();
-          // Migrate: ensure all auto/width-only components have computed sizes
+          // Migrate legacy constraints/pins to layout model
+          migrateDocument(doc.components);
+          // Recompute sizes for auto/width-only components
           recomputeAllSizes(doc.components);
           set((state) => {
             state.document = doc;

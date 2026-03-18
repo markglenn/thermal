@@ -15,7 +15,7 @@ interface Props {
 
 export function ImagePropertiesPanel({ componentId, props }: Props) {
   const updateProperties = useEditorStoreContext((s) => s.updateProperties);
-  const updateConstraints = useEditorStoreContext((s) => s.updateConstraints);
+  const updateLayout = useEditorStoreContext((s) => s.updateLayout);
   const storeApi = useEditorStoreApi();
   const [showModal, setShowModal] = useState(false);
 
@@ -30,8 +30,8 @@ export function ImagePropertiesPanel({ componentId, props }: Props) {
 
     if (props.data) {
       const comp = findComponent(storeApi.getState().document.components, componentId);
-      const zplWidth = comp?.constraints.width ?? props.originalWidth;
-      const zplHeight = comp?.constraints.height ?? props.originalHeight;
+      const zplWidth = comp?.layout.width ?? props.originalWidth;
+      const zplHeight = comp?.layout.height ?? props.originalHeight;
 
       const [result, preview, previewFull] = await Promise.all([
         convertImageToMonochrome(
@@ -112,7 +112,7 @@ export function ImagePropertiesPanel({ componentId, props }: Props) {
                   zplWidth: 0,
                   zplHeight: 0,
                 });
-                updateConstraints(componentId, { width: 100, height: 100 });
+                updateLayout(componentId, { width: 100, height: 100 });
               }}
               className="flex-1 px-2 py-1.5 text-xs text-red-600 border border-red-300 rounded hover:bg-red-50 flex items-center justify-center gap-1"
             >
@@ -177,11 +177,11 @@ export function ImagePropertiesPanel({ componentId, props }: Props) {
           onConfirm={(result) => {
             updateProperties(componentId, result);
             const comp = findComponent(storeApi.getState().document.components, componentId);
-            const currentWidth = comp?.constraints.width;
-            const currentHeight = comp?.constraints.height;
+            const currentWidth = comp?.layout.width;
+            const currentHeight = comp?.layout.height;
             // If component is still at default 200x200 (no prior image), resize to image dimensions
             if (currentWidth === 100 && currentHeight === 100 && !props.data) {
-              updateConstraints(componentId, {
+              updateLayout(componentId, {
                 width: result.originalWidth,
                 height: result.originalHeight,
               });

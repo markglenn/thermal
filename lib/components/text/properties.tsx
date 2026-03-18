@@ -1,8 +1,7 @@
 'use client';
 
 import type { TextProperties as TextPropsType, ZplFont, Rotation, TextJustification, FieldBlockProperties } from '@/lib/types';
-import { useEditorStoreContext, useEditorStoreApi, usePauseTracking, useResumeTracking } from '@/lib/store/editor-context';
-import { findComponent } from '@/lib/utils';
+import { useEditorStoreContext, usePauseTracking, useResumeTracking } from '@/lib/store/editor-context';
 import { NumberInput } from '@/components/properties/NumberInput';
 
 interface Props {
@@ -12,9 +11,7 @@ interface Props {
 
 export function TextProperties({ componentId, props }: Props) {
   const updateProperties = useEditorStoreContext((s) => s.updateProperties);
-  const updateConstraints = useEditorStoreContext((s) => s.updateConstraints);
-  const togglePin = useEditorStoreContext((s) => s.togglePin);
-  const storeApi = useEditorStoreApi();
+  const updateLayout = useEditorStoreContext((s) => s.updateLayout);
   const pauseTracking = usePauseTracking();
   const resumeTracking = useResumeTracking();
   const update = (changes: Partial<TextPropsType>) => updateProperties(componentId, changes);
@@ -25,19 +22,11 @@ export function TextProperties({ componentId, props }: Props) {
   const toggleFieldBlock = () => {
     if (hasFieldBlock) {
       update({ fieldBlock: undefined });
-      // Clean up constraints invalid for auto-sized text
-      updateConstraints(componentId, { width: undefined, right: undefined, bottom: undefined });
-      // Remove right/bottom pins if active
-      const current = findComponent(storeApi.getState().document.components, componentId);
-      if (current) {
-        if (current.pins.includes('right')) togglePin(componentId, 'right');
-        if (current.pins.includes('bottom')) togglePin(componentId, 'bottom');
-      }
     } else {
       update({
         fieldBlock: { maxLines: 3, lineSpacing: 0, justification: 'L' },
       });
-      updateConstraints(componentId, { width: 200 });
+      updateLayout(componentId, { width: 200 });
     }
   };
 

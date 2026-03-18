@@ -1,4 +1,4 @@
-import type { Constraints, LabelComponent, ResolvedBounds } from '../types';
+import type { ComponentLayout, LabelComponent, ResolvedBounds } from '../types';
 
 export type SizingMode = 'auto' | 'fixed' | 'width-only';
 
@@ -14,7 +14,7 @@ export interface ComponentDefinition<TProps = unknown> {
   label: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;
   traits: ComponentTraits;
-  defaultConstraints: Constraints;
+  defaultLayout: ComponentLayout;
   defaultProps: TProps;
 
   /** Canvas rendering component */

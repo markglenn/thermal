@@ -1,4 +1,18 @@
-// Constraint system - all values in dots
+// Layout system - all values in dots
+export type HorizontalAnchor = 'left' | 'right';
+export type VerticalAnchor = 'top' | 'bottom';
+
+export interface ComponentLayout {
+  x: number;           // distance from anchored horizontal edge
+  y: number;           // distance from anchored vertical edge
+  width: number;
+  height: number;
+  horizontalAnchor: HorizontalAnchor;  // which edge x is measured from
+  verticalAnchor: VerticalAnchor;      // which edge y is measured from
+}
+
+// Legacy Constraints type — kept temporarily for migration compatibility.
+// All new code should use ComponentLayout.
 export interface Constraints {
   top?: number;
   bottom?: number;
@@ -8,7 +22,7 @@ export interface Constraints {
   height?: number;
 }
 
-// Resolved absolute position (output of constraint resolver)
+// Resolved absolute position (output of layout resolver)
 export interface ResolvedBounds {
   x: number;
   y: number;
@@ -105,8 +119,11 @@ export type PinnableEdge = 'top' | 'bottom' | 'left' | 'right';
 export interface LabelComponent {
   id: string;
   name: string;
-  constraints: Constraints;
-  pins: PinnableEdge[];
+  layout: ComponentLayout;
+  /** @deprecated Use layout instead. Kept for migration of saved documents. */
+  constraints?: Constraints;
+  /** @deprecated Use layout.horizontalAnchor/verticalAnchor instead. */
+  pins?: PinnableEdge[];
   fieldBinding?: string;
   children?: LabelComponent[];
   // Discriminated union for type + props
@@ -148,10 +165,9 @@ export interface DragState {
   componentId: string;
   startX: number;
   startY: number;
-  startConstraints: Constraints;
-  pins: PinnableEdge[];
-  /** When dragging multiple selected components, track all their start constraints */
-  others?: { componentId: string; startConstraints: Constraints; pins: PinnableEdge[] }[];
+  startLayout: ComponentLayout;
+  /** When dragging multiple selected components, track all their start layouts */
+  others?: { componentId: string; startLayout: ComponentLayout }[];
 }
 
 export interface ResizeState {
@@ -159,7 +175,7 @@ export interface ResizeState {
   handle: ResizeHandle;
   startX: number;
   startY: number;
-  startConstraints: Constraints;
+  startLayout: ComponentLayout;
 }
 
 export interface PaletteDropState {

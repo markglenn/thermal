@@ -1,12 +1,24 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { useEditorStore } from './editor-store';
-import type { LabelDocument } from '../types';
+import type { LabelDocument, ComponentLayout } from '../types';
 
 // Register all components so createComponent can look them up
 import '../components';
 
 function resetStore() {
   useEditorStore.getState().resetDocument();
+}
+
+function defaultLayout(overrides: Partial<ComponentLayout> = {}): ComponentLayout {
+  return {
+    x: 0,
+    y: 0,
+    width: 100,
+    height: 40,
+    horizontalAnchor: 'left',
+    verticalAnchor: 'top',
+    ...overrides,
+  };
 }
 
 describe('editor store', () => {
@@ -28,11 +40,11 @@ describe('editor store', () => {
       expect(useEditorStore.getState().selectedComponentIds).toEqual([id]);
     });
 
-    it('applies constraint overrides', () => {
-      useEditorStore.getState().addComponent('text', { left: 99, top: 77 });
+    it('applies layout overrides', () => {
+      useEditorStore.getState().addComponent('text', { x: 99, y: 77 });
       const comp = useEditorStore.getState().document.components[0];
-      expect(comp.constraints.left).toBe(99);
-      expect(comp.constraints.top).toBe(77);
+      expect(comp.layout.x).toBe(99);
+      expect(comp.layout.y).toBe(77);
     });
   });
 
@@ -109,12 +121,12 @@ describe('editor store', () => {
     });
 
     it('offsets the duplicate by 20 dots', () => {
-      useEditorStore.getState().addComponent('text', { left: 10, top: 20 });
+      useEditorStore.getState().addComponent('text', { x: 10, y: 20 });
       const originalId = useEditorStore.getState().document.components[0].id;
       useEditorStore.getState().duplicateComponent(originalId);
       const copy = useEditorStore.getState().document.components[1];
-      expect(copy.constraints.left).toBe(30); // 10 + 20
-      expect(copy.constraints.top).toBe(40); // 20 + 20
+      expect(copy.layout.x).toBe(30); // 10 + 20
+      expect(copy.layout.y).toBe(40); // 20 + 20
     });
 
     it('selects the duplicate', () => {
@@ -126,23 +138,14 @@ describe('editor store', () => {
     });
   });
 
-  describe('updateConstraints', () => {
-    it('merges constraints onto a fixed-size component', () => {
-      const id = useEditorStore.getState().addComponent('rectangle', { left: 10 });
-      useEditorStore.getState().updateConstraints(id, { top: 50, width: 200 });
+  describe('updateLayout', () => {
+    it('merges layout onto a fixed-size component', () => {
+      const id = useEditorStore.getState().addComponent('rectangle', { x: 10 });
+      useEditorStore.getState().updateLayout(id, { y: 50, width: 200 });
       const comp = useEditorStore.getState().document.components[0];
-      expect(comp.constraints.left).toBe(10);
-      expect(comp.constraints.top).toBe(50);
-      expect(comp.constraints.width).toBe(200);
-    });
-
-    it('filters out width/height for auto-sized components with computed sizes', () => {
-      const id = useEditorStore.getState().addComponent('barcode', { left: 10 });
-      const widthBefore = useEditorStore.getState().document.components[0].constraints.width;
-      useEditorStore.getState().updateConstraints(id, { top: 50, width: 999 });
-      const comp = useEditorStore.getState().document.components[0];
-      expect(comp.constraints.top).toBe(50);
-      expect(comp.constraints.width).toBe(widthBefore); // unchanged — auto-sized with computeContentSize
+      expect(comp.layout.x).toBe(10);
+      expect(comp.layout.y).toBe(50);
+      expect(comp.layout.width).toBe(200);
     });
   });
 
@@ -163,34 +166,40 @@ describe('editor store', () => {
     });
   });
 
-  describe('togglePin', () => {
-    it('adds a pin and sets the constraint value', () => {
-      const id = useEditorStore.getState().addComponent('rectangle', { left: 10, top: 20, width: 100, height: 30 });
-      useEditorStore.getState().togglePin(id, 'right');
+  describe('setAnchor', () => {
+    it('changes horizontal anchor and recomputes x to keep same visual position', () => {
+      // Default label is 2" x 1" @ 203 DPI = 406 x 203 dots
+      const id = useEditorStore.getState().addComponent('rectangle', { x: 10, y: 20, width: 100, height: 30 });
+      useEditorStore.getState().setAnchor(id, 'right');
       const comp = useEditorStore.getState().document.components[0];
-      expect(comp.pins).toContain('right');
-      // right = labelWidth - left - width = 406 - 10 - 100 = 296
-      expect(comp.constraints.right).toBe(296);
+      expect(comp.layout.horizontalAnchor).toBe('right');
+      // x recomputed: 406 - 10 - 100 = 296
+      expect(comp.layout.x).toBe(296);
     });
 
-    it('removes a pin on second toggle', () => {
-      const id = useEditorStore.getState().addComponent('rectangle', { left: 10, top: 20, width: 100, height: 30 });
-      useEditorStore.getState().togglePin(id, 'right');
-      useEditorStore.getState().togglePin(id, 'right');
+    it('changes vertical anchor and recomputes y to keep same visual position', () => {
+      const id = useEditorStore.getState().addComponent('rectangle', { x: 10, y: 20, width: 100, height: 30 });
+      useEditorStore.getState().setAnchor(id, undefined, 'bottom');
       const comp = useEditorStore.getState().document.components[0];
-      expect(comp.pins).not.toContain('right');
-      // right constraint is removed when unpinning right/bottom
-      expect(comp.constraints.right).toBeUndefined();
+      expect(comp.layout.verticalAnchor).toBe('bottom');
+      // y recomputed: 203 - 20 - 30 = 153
+      expect(comp.layout.y).toBe(153);
     });
 
-    it('does not remove constraint when unpinning left', () => {
-      const id = useEditorStore.getState().addComponent('text', { left: 10, top: 20 });
-      // Pin left, then unpin
-      useEditorStore.getState().togglePin(id, 'left');
-      useEditorStore.getState().togglePin(id, 'left');
+    it('changing anchor back to left restores original x', () => {
+      const id = useEditorStore.getState().addComponent('rectangle', { x: 10, y: 20, width: 100, height: 30 });
+      useEditorStore.getState().setAnchor(id, 'right');
+      useEditorStore.getState().setAnchor(id, 'left');
       const comp = useEditorStore.getState().document.components[0];
-      // left constraint should still exist since only right/bottom get deleted
-      expect(comp.constraints.left).toBe(10);
+      expect(comp.layout.horizontalAnchor).toBe('left');
+      expect(comp.layout.x).toBe(10);
+    });
+
+    it('does nothing if anchor is already the same', () => {
+      const id = useEditorStore.getState().addComponent('rectangle', { x: 10, y: 20, width: 100, height: 30 });
+      useEditorStore.getState().setAnchor(id, 'left');
+      const comp = useEditorStore.getState().document.components[0];
+      expect(comp.layout.x).toBe(10); // unchanged
     });
   });
 
@@ -319,13 +328,24 @@ describe('editor store', () => {
     });
 
     it('setDragState sets drag state', () => {
-      const ds = { componentId: 'x', startX: 0, startY: 0, startConstraints: {}, pins: [] as const };
+      const ds = {
+        componentId: 'x',
+        startX: 0,
+        startY: 0,
+        startLayout: defaultLayout(),
+      };
       useEditorStore.getState().setDragState(ds);
       expect(useEditorStore.getState().dragState).toEqual(ds);
     });
 
     it('setResizeState sets resize state', () => {
-      const rs = { componentId: 'x', handle: 'top-left' as const, startX: 0, startY: 0, startConstraints: {} };
+      const rs = {
+        componentId: 'x',
+        handle: 'top-left' as const,
+        startX: 0,
+        startY: 0,
+        startLayout: defaultLayout(),
+      };
       useEditorStore.getState().setResizeState(rs);
       expect(useEditorStore.getState().resizeState).toEqual(rs);
     });
@@ -388,10 +408,13 @@ describe('editor store', () => {
 
     it('undo after load does not restore a stale drag snapshot', () => {
       vi.useFakeTimers();
-      const id = useEditorStore.getState().addComponent('text', { left: 10, top: 20 });
+      const id = useEditorStore.getState().addComponent('text', { x: 10, y: 20 });
       // Simulate entering a drag (captures snapshot)
       useEditorStore.getState().setDragState({
-        componentId: id, startX: 0, startY: 0, startConstraints: { left: 10, top: 20 }, pins: [],
+        componentId: id,
+        startX: 0,
+        startY: 0,
+        startLayout: defaultLayout({ x: 10, y: 20 }),
       });
       // Load a new document while drag snapshot exists
       const newDoc: LabelDocument = {

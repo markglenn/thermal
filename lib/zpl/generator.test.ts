@@ -27,8 +27,10 @@ describe('generateZpl', () => {
       components: [{
         id: 't1',
         name: 'Text',
-        constraints: { left: 10, top: 20, width: 100, height: 30 },
-        pins: [],
+        layout: {
+          x: 10, y: 20, width: 100, height: 30,
+          horizontalAnchor: 'left', verticalAnchor: 'top',
+        },
         typeData: {
           type: 'text',
           props: {
@@ -53,8 +55,10 @@ describe('generateZpl', () => {
       components: [{
         id: 'r1',
         name: 'Rect',
-        constraints: { left: 0, top: 0, width: 200, height: 100 },
-        pins: [],
+        layout: {
+          x: 0, y: 0, width: 200, height: 100,
+          horizontalAnchor: 'left', verticalAnchor: 'top',
+        },
         typeData: {
           type: 'rectangle',
           props: { borderThickness: 3, cornerRadius: 5, filled: false },
@@ -72,14 +76,18 @@ describe('generateZpl', () => {
       components: [{
         id: 'c1',
         name: 'Container',
-        constraints: { left: 50, top: 50, width: 200, height: 100 },
-        pins: [],
+        layout: {
+          x: 50, y: 50, width: 200, height: 100,
+          horizontalAnchor: 'left', verticalAnchor: 'top',
+        },
         typeData: { type: 'container', props: {} },
         children: [{
           id: 't1',
           name: 'Text',
-          constraints: { left: 10, top: 10, width: 80, height: 30 },
-          pins: [],
+          layout: {
+            x: 10, y: 10, width: 80, height: 30,
+            horizontalAnchor: 'left', verticalAnchor: 'top',
+          },
           typeData: {
             type: 'text',
             props: {

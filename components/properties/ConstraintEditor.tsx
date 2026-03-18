@@ -1,127 +1,81 @@
 'use client';
 
 import { useMemo } from 'react';
-import type { LabelComponent, PinnableEdge } from '@/lib/types';
+import type { LabelComponent, HorizontalAnchor, VerticalAnchor } from '@/lib/types';
 import { useEditorStoreContext } from '@/lib/store/editor-context';
-import { getSizingMode, getDefinition } from '@/lib/components';
+import { getSizingMode } from '@/lib/components';
 import { useDocument } from '@/lib/store/editor-context';
 import { resolveDocument } from '@/lib/constraints/resolver';
-import { labelWidthDots, labelHeightDots } from '@/lib/constants';
 import { NumberInput } from './NumberInput';
 
 interface Props {
   component: LabelComponent;
 }
 
-function PinValue({
-  value,
-  isPinned,
+const ANCHOR_CORNERS: {
+  label: string;
+  horizontal: HorizontalAnchor;
+  vertical: VerticalAnchor;
+}[] = [
+  { label: 'TL', horizontal: 'left', vertical: 'top' },
+  { label: 'TR', horizontal: 'right', vertical: 'top' },
+  { label: 'BL', horizontal: 'left', vertical: 'bottom' },
+  { label: 'BR', horizontal: 'right', vertical: 'bottom' },
+];
+
+function AnchorGrid({
+  horizontal,
+  vertical,
   onChange,
 }: {
-  value: number;
-  isPinned: boolean;
-  onChange: (v: number) => void;
+  horizontal: HorizontalAnchor;
+  vertical: VerticalAnchor;
+  onChange: (h: HorizontalAnchor, v: VerticalAnchor) => void;
 }) {
-  if (!isPinned) {
-    return <div className="w-10 h-5" />;
-  }
   return (
-    <NumberInput
-      value={value}
-      onChange={onChange}
-      fallback={0}
-      className="w-10 h-5 text-xs text-center rounded outline-none bg-white border border-blue-400 text-blue-600 font-medium"
-    />
-  );
-}
-
-function Strut({
-  isSet,
-  onToggle,
-  direction,
-  disabled,
-}: {
-  isSet: boolean;
-  onToggle: () => void;
-  direction: 'horizontal' | 'vertical';
-  disabled?: boolean;
-}) {
-  const isH = direction === 'horizontal';
-
-  let color = 'bg-gray-300';
-  let className = 'hover:opacity-60';
-  let title = 'Pin to edge';
-
-  if (disabled) {
-    color = 'bg-gray-200';
-    className = 'opacity-30 cursor-not-allowed';
-    title = 'Cannot pin both edges on auto-sized component';
-  } else if (isSet) {
-    color = 'bg-red-500';
-    className = '';
-    title = 'Unpin';
-  }
-
-  return (
-    <button
-      onClick={disabled ? undefined : onToggle}
-      className={`flex items-center justify-center shrink-0 ${className}`}
-      title={title}
-    >
-      {isH ? (
-        <div className="flex items-center h-4 w-7">
-          <div className={`w-0.5 h-3 ${color}`} />
-          <div className={`flex-1 h-px ${color}`} />
-          <div className={`w-0.5 h-3 ${color}`} />
-        </div>
-      ) : (
-        <div className="flex flex-col items-center w-4 h-7">
-          <div className={`h-0.5 w-3 ${color}`} />
-          <div className={`flex-1 w-px ${color}`} />
-          <div className={`h-0.5 w-3 ${color}`} />
-        </div>
-      )}
-    </button>
+    <div className="grid grid-cols-2 gap-1 w-fit">
+      {ANCHOR_CORNERS.map((corner) => {
+        const isActive =
+          corner.horizontal === horizontal && corner.vertical === vertical;
+        return (
+          <button
+            key={corner.label}
+            onClick={() => onChange(corner.horizontal, corner.vertical)}
+            className={`w-7 h-7 rounded text-[10px] font-bold border transition-colors ${
+              isActive
+                ? 'bg-blue-500 text-white border-blue-600'
+                : 'bg-gray-100 text-gray-400 border-gray-200 hover:bg-gray-200 hover:text-gray-600'
+            }`}
+            title={`Anchor ${corner.vertical}-${corner.horizontal}`}
+          >
+            {corner.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
 export function ConstraintEditor({ component }: Props) {
-  const updateConstraints = useEditorStoreContext((s) => s.updateConstraints);
-  const togglePin = useEditorStoreContext((s) => s.togglePin);
+  const updateLayout = useEditorStoreContext((s) => s.updateLayout);
+  const setAnchor = useEditorStoreContext((s) => s.setAnchor);
   const doc = useDocument();
 
-  const pins = component.pins;
-  const isPinned = (edge: PinnableEdge) => pins.includes(edge);
-  const c = component.constraints;
+  const layout = component.layout;
 
   const boundsMap = useMemo(() => resolveDocument(doc), [doc]);
   const bounds = boundsMap.get(component.id);
-  const x = Math.round(bounds?.x ?? 0);
-  const y = Math.round(bounds?.y ?? 0);
-  const w = Math.round(bounds?.width ?? 0);
-  const h = Math.round(bounds?.height ?? 0);
-
-  const labelW = labelWidthDots(doc.label);
-  const labelH = labelHeightDots(doc.label);
+  const w = Math.round(bounds?.width ?? layout.width);
+  const h = Math.round(bounds?.height ?? layout.height);
 
   const sizingMode = getSizingMode(component);
-  const autoSized = sizingMode === 'auto';
-  const def = getDefinition(component.typeData.type);
-  const isDomMeasured = !def.computeContentSize;
+  const isAutoSized = sizingMode === 'auto';
+  const isWidthOnly = sizingMode === 'width-only';
 
-  const hPinned = isPinned('left') || isPinned('right');
-  const vPinned = isPinned('top') || isPinned('bottom');
-
-  const setX = (val: number) => {
-    if (hPinned) return;
-    updateConstraints(component.id, { left: val });
-  };
-  const setY = (val: number) => {
-    if (vPinned) return;
-    updateConstraints(component.id, { top: val });
-  };
-  const setW = (val: number) => updateConstraints(component.id, { width: val });
-  const setH = (val: number) => updateConstraints(component.id, { height: val });
+  const setX = (val: number) => updateLayout(component.id, { x: val });
+  const setY = (val: number) => updateLayout(component.id, { y: val });
+  const setW = (val: number) => updateLayout(component.id, { width: val });
+  const setH = (val: number) => updateLayout(component.id, { height: val });
 
   return (
     <div className="p-3 border-b border-gray-200">
@@ -129,95 +83,57 @@ export function ConstraintEditor({ component }: Props) {
       <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Position</h3>
       <div className="grid grid-cols-4 gap-1 mb-3">
         <label className="flex items-center gap-1 col-span-2">
-          <span className={`text-xs shrink-0 ${hPinned ? 'text-gray-300' : 'text-gray-500'}`}>X</span>
+          <span className="text-xs text-gray-500 shrink-0">X</span>
           <NumberInput
-            value={x}
+            value={Math.round(layout.x)}
             onChange={setX}
             fallback={0}
-            className={`w-full px-1.5 py-0.5 border rounded text-xs ${hPinned ? 'border-gray-200 text-gray-300 bg-gray-50' : 'border-gray-300'}`}
+            className="w-full px-1.5 py-0.5 border border-gray-300 rounded text-xs"
           />
         </label>
         <label className="flex items-center gap-1 col-span-2">
-          <span className={`text-xs shrink-0 ${vPinned ? 'text-gray-300' : 'text-gray-500'}`}>Y</span>
+          <span className="text-xs text-gray-500 shrink-0">Y</span>
           <NumberInput
-            value={y}
+            value={Math.round(layout.y)}
             onChange={setY}
             fallback={0}
-            className={`w-full px-1.5 py-0.5 border rounded text-xs ${vPinned ? 'border-gray-200 text-gray-300 bg-gray-50' : 'border-gray-300'}`}
+            className="w-full px-1.5 py-0.5 border border-gray-300 rounded text-xs"
           />
         </label>
-        {!autoSized && (
-          <>
-            <label className="flex items-center gap-1 col-span-2">
-              <span className="text-xs text-gray-500 shrink-0">W</span>
-              <NumberInput value={w} onChange={setW} fallback={100} className="w-full px-1.5 py-0.5 border border-gray-300 rounded text-xs" />
-            </label>
-            <label className="flex items-center gap-1 col-span-2">
-              <span className="text-xs text-gray-500 shrink-0">H</span>
-              <NumberInput value={h} onChange={setH} fallback={40} className="w-full px-1.5 py-0.5 border border-gray-300 rounded text-xs" />
-            </label>
-          </>
-        )}
       </div>
 
-      {/* Pin diagram with inline values */}
-      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Pins</h3>
-      <div className="flex flex-col items-center gap-1">
-        {/* Top */}
-        <div className="flex flex-col items-center gap-0.5">
-          <PinValue value={c.top ?? 0} isPinned={isPinned('top')} onChange={(v) => {
-            const update: Record<string, number | undefined> = { top: v };
-            if (!isPinned('bottom')) {
-              update.bottom = undefined;
-            }
-            updateConstraints(component.id, update);
-          }} />
-          <Strut isSet={isPinned('top')} onToggle={() => togglePin(component.id, 'top')} direction="vertical" disabled={autoSized && isPinned('bottom') && !isPinned('top')} />
-        </div>
-
-        {/* Middle: Left — Box — Right */}
-        <div className="flex items-center gap-0.5">
-          <PinValue value={c.left ?? 0} isPinned={isPinned('left')} onChange={(v) => {
-            const update: Record<string, number | undefined> = { left: v };
-            if (!isPinned('right')) {
-              update.right = undefined;
-            }
-            updateConstraints(component.id, update);
-          }} />
-          <Strut isSet={isPinned('left')} onToggle={() => togglePin(component.id, 'left')} direction="horizontal" disabled={autoSized && isPinned('right') && !isPinned('left')} />
-          <div className="w-8 h-8 border-2 border-gray-300 rounded-sm bg-gray-50 shrink-0 mx-0.5" />
-          <Strut isSet={isPinned('right')} onToggle={() => togglePin(component.id, 'right')} direction="horizontal" disabled={autoSized && isPinned('left') && !isPinned('right')} />
-          <PinValue value={c.right ?? 0} isPinned={isPinned('right')} onChange={(v) => {
-            const update: Record<string, number | undefined> = { right: v };
-            if (!isPinned('left')) {
-              if (isDomMeasured) {
-                update.left = labelW - v - w;
-              } else {
-                update.left = undefined;
-              }
-            }
-            updateConstraints(component.id, update);
-          }} />
-        </div>
-
-        {/* Bottom */}
-        <div className="flex flex-col items-center gap-0.5">
-          <Strut isSet={isPinned('bottom')} onToggle={() => togglePin(component.id, 'bottom')} direction="vertical" disabled={autoSized && isPinned('top') && !isPinned('bottom')} />
-          <PinValue value={c.bottom ?? 0} isPinned={isPinned('bottom')} onChange={(v) => {
-            const update: Record<string, number | undefined> = { bottom: v };
-            if (!isPinned('top')) {
-              // For DOM-measured components, compute top from current visual height
-              // so the component positions correctly from the bottom edge
-              if (isDomMeasured) {
-                update.top = labelH - v - h;
-              } else {
-                update.top = undefined;
-              }
-            }
-            updateConstraints(component.id, update);
-          }} />
-        </div>
+      {/* Size */}
+      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Size</h3>
+      <div className="grid grid-cols-4 gap-1 mb-3">
+        <label className="flex items-center gap-1 col-span-2">
+          <span className="text-xs text-gray-500 shrink-0">W</span>
+          {isAutoSized ? (
+            <span className="w-full px-1.5 py-0.5 border border-gray-200 rounded text-xs text-gray-400 bg-gray-50">
+              {w}
+            </span>
+          ) : (
+            <NumberInput value={w} onChange={setW} fallback={100} min={1} className="w-full px-1.5 py-0.5 border border-gray-300 rounded text-xs" />
+          )}
+        </label>
+        <label className="flex items-center gap-1 col-span-2">
+          <span className="text-xs text-gray-500 shrink-0">H</span>
+          {isAutoSized || isWidthOnly ? (
+            <span className="w-full px-1.5 py-0.5 border border-gray-200 rounded text-xs text-gray-400 bg-gray-50">
+              {h}
+            </span>
+          ) : (
+            <NumberInput value={h} onChange={setH} fallback={40} min={1} className="w-full px-1.5 py-0.5 border border-gray-300 rounded text-xs" />
+          )}
+        </label>
       </div>
+
+      {/* Anchor */}
+      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Anchor</h3>
+      <AnchorGrid
+        horizontal={layout.horizontalAnchor}
+        vertical={layout.verticalAnchor}
+        onChange={(h, v) => setAnchor(component.id, h, v)}
+      />
     </div>
   );
 }

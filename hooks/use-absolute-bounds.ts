@@ -24,25 +24,25 @@ export function useAbsoluteBounds() {
       return next;
     });
 
-    // Write measured size into constraints only for DOM-measured components
+    // Write measured size into layout only for DOM-measured components
     // (those without computeContentSize, like text) so the resolver has correct
-    // dimensions for pin calculations. Pause tracking to avoid undo entries.
+    // dimensions for anchor calculations. Pause tracking to avoid undo entries.
     const state = storeApi.getState();
     const comp = findComponent(state.document.components, id);
     if (comp) {
       const def = getDefinition(comp.typeData.type);
       const sizing = getSizingMode(comp);
       // Only write back for components that need DOM measurement AND don't have
-      // explicit size constraints already (auto or width-only sizing)
+      // explicit size in layout already (auto or width-only sizing)
       if (!def.computeContentSize && (sizing === 'auto' || sizing === 'width-only')) {
-        const writeW = sizing === 'auto' && comp.constraints.width !== w;
-        const writeH = comp.constraints.height !== h;
+        const writeW = sizing === 'auto' && comp.layout.width !== w;
+        const writeH = comp.layout.height !== h;
         if (writeW || writeH) {
           storeApi.temporal.getState().pause();
           const update: Record<string, number> = {};
           if (writeW) update.width = w;
           if (writeH) update.height = h;
-          state.updateConstraints(id, update);
+          state.updateLayout(id, update);
           storeApi.temporal.getState().resume();
         }
       }

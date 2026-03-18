@@ -1,4 +1,4 @@
-import type { LabelComponent, ComponentType, ComponentProperties, Constraints } from '../types';
+import type { LabelComponent, ComponentType, ComponentProperties, ComponentLayout } from '../types';
 import { getDefinition } from '../components';
 
 let nextId = 1;
@@ -9,14 +9,13 @@ export function generateId(): string {
 
 export function createComponent(
   type: ComponentType,
-  constraintOverrides?: Partial<Constraints>
+  layoutOverrides?: Partial<ComponentLayout>
 ): LabelComponent {
   const def = getDefinition(type);
   return {
     id: generateId(),
     name: def.label,
-    constraints: { ...def.defaultConstraints, ...constraintOverrides },
-    pins: [],
+    layout: { ...def.defaultLayout, ...layoutOverrides },
     typeData: { type, props: structuredClone(def.defaultProps) } as ComponentProperties,
     children: def.traits.isContainer ? [] : undefined,
   };

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useCallback, useMemo } from 'react';
+import { useRef, useCallback } from 'react';
 import { useEditorStoreContext, useEditorStoreApi, useDocument, useViewport } from '@/lib/store/editor-context';
 import { labelWidthDots, labelHeightDots } from '@/lib/constants';
 import { useCanvasZoomPan } from '@/hooks/use-canvas-zoom-pan';
@@ -71,23 +71,12 @@ export function Canvas() {
   // For single selection, show resize handles. For multi-select, show outlines only.
   const primarySelectedId = selectedIds.length === 1 ? selectedIds[0] : null;
 
-  // Cursor based on pinned axes during drag
-  const dragCursor = useMemo(() => {
-    if (!dragState || dragState.pins.length === 0) return undefined;
-    const hPinned = dragState.pins.includes('left') || dragState.pins.includes('right');
-    const vPinned = dragState.pins.includes('top') || dragState.pins.includes('bottom');
-    if (hPinned && vPinned) return 'not-allowed';
-    if (vPinned) return 'ew-resize';
-    if (hPinned) return 'ns-resize';
-    return undefined;
-  }, [dragState]);
-
   return (
     <div
       ref={canvasRef}
       tabIndex={0}
       className="flex-1 overflow-hidden bg-gray-100 relative outline-none"
-      style={{ cursor: dragCursor ?? (isPanning ? 'grabbing' : 'grab') }}
+      style={{ cursor: dragState ? 'grabbing' : (isPanning ? 'grabbing' : 'grab') }}
       onPointerDown={handleCanvasPointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}

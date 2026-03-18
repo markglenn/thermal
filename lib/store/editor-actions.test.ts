@@ -20,7 +20,8 @@ describe('createComponent', () => {
     const comp = createComponent('text');
     expect(comp.typeData.type).toBe('text');
     expect(comp.name).toBe('Text');
-    expect(comp.pins).toEqual([]);
+    expect(comp.layout.horizontalAnchor).toBe('left');
+    expect(comp.layout.verticalAnchor).toBe('top');
     expect(comp.children).toBeUndefined();
   });
 
@@ -29,15 +30,17 @@ describe('createComponent', () => {
     expect(comp.children).toEqual([]);
   });
 
-  it('applies constraint overrides', () => {
-    const comp = createComponent('text', { left: 50, top: 100 });
-    expect(comp.constraints.left).toBe(50);
-    expect(comp.constraints.top).toBe(100);
+  it('applies layout overrides', () => {
+    const comp = createComponent('text', { x: 50, y: 100 });
+    expect(comp.layout.x).toBe(50);
+    expect(comp.layout.y).toBe(100);
   });
 
-  it('preserves default constraints not overridden', () => {
-    const comp = createComponent('text', { left: 50 });
-    // Should have the default constraints from the text definition, plus the override
-    expect(comp.constraints.left).toBe(50);
+  it('preserves default layout values not overridden', () => {
+    const comp = createComponent('text', { x: 50 });
+    // Should have the default layout from the text definition, plus the override
+    expect(comp.layout.x).toBe(50);
+    expect(comp.layout.horizontalAnchor).toBe('left');
+    expect(comp.layout.verticalAnchor).toBe('top');
   });
 });

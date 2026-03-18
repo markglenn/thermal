@@ -19,7 +19,7 @@ export function useKeyboardShortcuts() {
     function handleKeyDown(e: KeyboardEvent) {
       const mod = e.ctrlKey || e.metaKey;
       const state = storeApi.getState();
-      const { selectedComponentIds, removeComponent, duplicateComponent, updateConstraints, selectAll } = state;
+      const { selectedComponentIds, removeComponent, duplicateComponent, updateLayout, selectAll } = state;
 
       // Undo/Redo work even when focused on inputs
       if (e.key === 'z' && mod && !e.shiftKey) {
@@ -96,26 +96,16 @@ export function useKeyboardShortcuts() {
       if (selectedComponentIds.length > 0 && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
         e.preventDefault();
         const step = e.shiftKey ? 10 : 1;
-        const delta = {
-          ArrowUp: { top: -step },
-          ArrowDown: { top: step },
-          ArrowLeft: { left: -step },
-          ArrowRight: { left: step },
-        }[e.key] as Record<string, number>;
 
         for (const id of selectedComponentIds) {
           const comp = findComponent(state.document.components, id);
           if (comp) {
-            const updates: Record<string, number> = {};
-            for (const [key, val] of Object.entries(delta)) {
-              const current = comp.constraints[key as keyof typeof comp.constraints];
-              if (current !== undefined) {
-                updates[key] = current + val;
-              }
-            }
-            if (Object.keys(updates).length > 0) {
-              updateConstraints(id, updates);
-            }
+            const delta: { x?: number; y?: number } = {};
+            if (e.key === 'ArrowLeft') delta.x = comp.layout.x - step;
+            if (e.key === 'ArrowRight') delta.x = comp.layout.x + step;
+            if (e.key === 'ArrowUp') delta.y = comp.layout.y - step;
+            if (e.key === 'ArrowDown') delta.y = comp.layout.y + step;
+            updateLayout(id, delta);
           }
         }
         return;
