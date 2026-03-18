@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Save, FolderOpen } from 'lucide-react';
 import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
+import { EDITOR_EVENTS } from '@/hooks/use-keyboard-shortcuts';
 import { useTabStore } from '@/lib/store/tab-store';
 import { captureThumbnail } from '@/lib/documents/thumbnail';
 import { SaveNameModal } from '@/components/documents/SaveNameModal';
@@ -12,7 +13,6 @@ import type { LabelDocument } from '@/lib/types';
 export function Toolbar() {
   const showGrid = useEditorStoreContext((s) => s.showGrid);
   const toggleGrid = useEditorStoreContext((s) => s.toggleGrid);
-  const resetDocument = useEditorStoreContext((s) => s.resetDocument);
   const selectedIds = useEditorStoreContext((s) => s.selectedComponentIds);
   const removeComponent = useEditorStoreContext((s) => s.removeComponent);
   const duplicateComponent = useEditorStoreContext((s) => s.duplicateComponent);
@@ -74,6 +74,29 @@ export function Toolbar() {
     setShowBrowserModal(false);
   }, []);
 
+  // Listen for keyboard shortcut events
+  useEffect(() => {
+    const onSave = () => {
+      const store = storeApi.getState();
+      if (store.currentLabelId) {
+        saveLabel(store.currentLabelName || 'Untitled Label');
+      } else {
+        setShowSaveModal(true);
+      }
+    };
+    const onSaveAs = () => setShowSaveModal(true);
+    const onOpen = () => setShowBrowserModal(true);
+
+    window.addEventListener(EDITOR_EVENTS.SAVE, onSave);
+    window.addEventListener(EDITOR_EVENTS.SAVE_AS, onSaveAs);
+    window.addEventListener(EDITOR_EVENTS.OPEN, onOpen);
+    return () => {
+      window.removeEventListener(EDITOR_EVENTS.SAVE, onSave);
+      window.removeEventListener(EDITOR_EVENTS.SAVE_AS, onSaveAs);
+      window.removeEventListener(EDITOR_EVENTS.OPEN, onOpen);
+    };
+  }, [saveLabel, storeApi]);
+
   return (
     <>
       <div className="h-10 border-b border-gray-200 bg-white flex items-center px-3 gap-2 text-sm">
@@ -126,12 +149,6 @@ export function Toolbar() {
           </div>
         )}
 
-        <button
-          onClick={resetDocument}
-          className="px-2 py-0.5 rounded hover:bg-gray-100 text-xs text-gray-500"
-        >
-          Reset
-        </button>
       </div>
 
       {showSaveModal && (

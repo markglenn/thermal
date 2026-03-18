@@ -2,26 +2,67 @@
 
 import { useEffect } from 'react';
 import { useEditorStoreApi } from '@/lib/store/editor-context';
+import { useTabStore } from '@/lib/store/tab-store';
 import { findComponent } from '@/lib/utils';
+
+// Custom events for actions that need complex async handling (save/open)
+export const EDITOR_EVENTS = {
+  SAVE: 'editor:save',
+  SAVE_AS: 'editor:save-as',
+  OPEN: 'editor:open',
+} as const;
 
 export function useKeyboardShortcuts() {
   const storeApi = useEditorStoreApi();
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
+      const mod = e.ctrlKey || e.metaKey;
       const state = storeApi.getState();
       const { selectedComponentIds, removeComponent, duplicateComponent, updateConstraints, selectAll } = state;
 
       // Undo/Redo work even when focused on inputs
-      if (e.key === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
+      if (e.key === 'z' && mod && !e.shiftKey) {
         e.preventDefault();
         storeApi.temporal.getState().undo();
         return;
       }
-      if ((e.key === 'z' && (e.ctrlKey || e.metaKey) && e.shiftKey) ||
-          (e.key === 'y' && (e.ctrlKey || e.metaKey))) {
+      if ((e.key === 'z' && mod && e.shiftKey) ||
+          (e.key === 'y' && mod)) {
         e.preventDefault();
         storeApi.temporal.getState().redo();
+        return;
+      }
+
+      // Save / Save As / Open / New / Close — work even in inputs
+      if (e.key === 's' && mod && !e.shiftKey) {
+        e.preventDefault();
+        window.dispatchEvent(new Event(EDITOR_EVENTS.SAVE));
+        return;
+      }
+      if (e.key === 's' && mod && e.shiftKey) {
+        e.preventDefault();
+        window.dispatchEvent(new Event(EDITOR_EVENTS.SAVE_AS));
+        return;
+      }
+      if (e.key === 'o' && mod) {
+        e.preventDefault();
+        window.dispatchEvent(new Event(EDITOR_EVENTS.OPEN));
+        return;
+      }
+      if (e.key === 'n' && mod) {
+        e.preventDefault();
+        useTabStore.getState().createTab();
+        return;
+      }
+      if (e.key === 'w' && mod) {
+        e.preventDefault();
+        const tabState = useTabStore.getState();
+        const tab = tabState.tabs.find((t) => t.id === tabState.activeTabId);
+        if (tab?.dirty) {
+          if (!confirm(`"${tab.name}" has unsaved changes. Close anyway?`)) return;
+        }
+        tabState.closeTab(tabState.activeTabId);
         return;
       }
 
