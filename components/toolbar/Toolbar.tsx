@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { Save, FolderOpen } from 'lucide-react';
+import { Save, FolderOpen, Flame } from 'lucide-react';
 import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
 import { EDITOR_EVENTS } from '@/hooks/use-keyboard-shortcuts';
 import { useTabStore } from '@/lib/store/tab-store';
@@ -100,7 +100,10 @@ export function Toolbar() {
   return (
     <>
       <div className="h-10 border-b border-gray-200 bg-white flex items-center px-3 gap-2 text-sm">
-        <span className="font-semibold text-gray-700">Thermal</span>
+        <div className="flex items-center gap-1.5">
+          <Flame size={18} className="text-orange-500" />
+          <span className="font-bold text-base tracking-tight text-gray-900">Thermal</span>
+        </div>
         <span className="mr-2" />
 
         <button

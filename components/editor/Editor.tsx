@@ -16,7 +16,7 @@ import { PanelResizeHandle } from './PanelResizeHandle';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { DragGhost } from './DragGhost';
 import { LabelBrowserModal } from '../documents/LabelBrowserModal';
-import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, PanelBottomClose, PanelBottomOpen, FilePlus, FolderOpen } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, PanelBottomClose, PanelBottomOpen, FilePlus, FolderOpen, Flame } from 'lucide-react';
 import type { LabelDocument } from '@/lib/types';
 
 export function Editor() {
@@ -30,7 +30,10 @@ export function Editor() {
     return (
       <div className="h-screen flex flex-col bg-white text-gray-900">
         <div className="h-10 border-b border-gray-200 bg-white flex items-center px-3">
-          <span className="font-semibold text-gray-700 text-sm">Thermal</span>
+          <div className="flex items-center gap-1.5">
+            <Flame size={18} className="text-orange-500" />
+            <span className="font-bold text-base tracking-tight text-gray-900">Thermal</span>
+          </div>
         </div>
         <TabBar />
         <EmptyState />
