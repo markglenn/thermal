@@ -19,6 +19,14 @@ import { resolveLayout } from '@/lib/constraints/resolver';
 import { recomputeContentSize, recomputeAllSizes } from '@/lib/components/recompute-size';
 import { migrateDocument } from '@/lib/constraints/migrate';
 
+/** Offset a layout by `amount` in the visual "down-right" direction, respecting anchor. */
+function offsetForAnchor(layout: ComponentLayout, amount: number) {
+  // For right/bottom anchored components, increasing x/y moves them toward
+  // the anchor edge (visually left/up). Subtract to move visually down-right.
+  layout.x += layout.horizontalAnchor === 'right' ? -amount : amount;
+  layout.y += layout.verticalAnchor === 'bottom' ? -amount : amount;
+}
+
 const initialDocument: LabelDocument = {
   version: 1,
   label: { ...DEFAULT_LABEL },
@@ -44,6 +52,7 @@ export interface EditorActions {
   addComponent: (type: ComponentType, layoutOverrides?: Partial<ComponentLayout>) => string;
   removeComponent: (id: string) => void;
   duplicateComponent: (id: string) => void;
+  pasteComponents: (components: LabelComponent[]) => string[];
   updateLayout: (id: string, layout: Partial<ComponentLayout>) => void;
   updateMultipleLayouts: (updates: { id: string; layout: Partial<ComponentLayout> }[]) => void;
   updateProperties: (id: string, props: Record<string, unknown>) => void;
@@ -155,11 +164,24 @@ export function createEditorStore() {
             const cloned = structuredClone(current(original)) as LabelComponent;
             cloned.id = generateId();
             cloned.name = cloned.name + ' Copy';
-            cloned.layout.x += DUPLICATE_OFFSET;
-            cloned.layout.y += DUPLICATE_OFFSET;
+            offsetForAnchor(cloned.layout, DUPLICATE_OFFSET);
             comps.splice(idx + 1, 0, cloned);
             state.selectedComponentIds = [cloned.id];
           });
+        },
+
+        pasteComponents: (components) => {
+          const clones = components.map((c) => {
+            const cloned = structuredClone(c);
+            cloned.id = generateId();
+            offsetForAnchor(cloned.layout, DUPLICATE_OFFSET);
+            return cloned;
+          });
+          set((state) => {
+            state.document.components.push(...clones);
+            state.selectedComponentIds = clones.map((c) => c.id);
+          });
+          return clones.map((c) => c.id);
         },
 
         updateLayout: (id, layout) => {

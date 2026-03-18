@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useEditorStoreApi } from '@/lib/store/editor-context';
 import { useTabStore } from '@/lib/store/tab-store';
 import { findComponent } from '@/lib/utils';
+import { copyToClipboard, readClipboard } from '@/lib/store/clipboard';
 
 // Custom events for actions that need complex async handling (save/open)
 export const EDITOR_EVENTS = {
@@ -69,6 +70,37 @@ export function useKeyboardShortcuts() {
       // Ignore if user is typing in an input
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') return;
+
+      // Copy
+      if (e.key === 'c' && mod && selectedComponentIds.length > 0) {
+        e.preventDefault();
+        const components = selectedComponentIds
+          .map((id) => findComponent(state.document.components, id))
+          .filter((c): c is NonNullable<typeof c> => c !== null);
+        if (components.length > 0) copyToClipboard(components);
+        return;
+      }
+
+      // Cut
+      if (e.key === 'x' && mod && selectedComponentIds.length > 0) {
+        e.preventDefault();
+        const components = selectedComponentIds
+          .map((id) => findComponent(state.document.components, id))
+          .filter((c): c is NonNullable<typeof c> => c !== null);
+        if (components.length > 0) {
+          copyToClipboard(components);
+          [...selectedComponentIds].reverse().forEach((id) => removeComponent(id));
+        }
+        return;
+      }
+
+      // Paste
+      if (e.key === 'v' && mod) {
+        e.preventDefault();
+        const clip = readClipboard();
+        if (clip.length > 0) state.pasteComponents(clip);
+        return;
+      }
 
       // Select all
       if ((e.key === 'a' || e.key === 'A') && (e.ctrlKey || e.metaKey)) {

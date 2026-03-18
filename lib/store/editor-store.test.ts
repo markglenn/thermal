@@ -136,6 +136,38 @@ describe('editor store', () => {
     });
   });
 
+  describe('pasteComponents', () => {
+    it('adds cloned components with new IDs and offset', () => {
+      const id = useEditorStore.getState().addComponent('text', { x: 10, y: 20 });
+      const comp = useEditorStore.getState().document.components[0];
+      const pastedIds = useEditorStore.getState().pasteComponents([comp]);
+      const state = useEditorStore.getState();
+      expect(state.document.components).toHaveLength(2);
+      expect(pastedIds).toHaveLength(1);
+      expect(pastedIds[0]).not.toBe(id);
+      const pasted = state.document.components[1];
+      expect(pasted.layout.x).toBe(30); // 10 + 20
+      expect(pasted.layout.y).toBe(40); // 20 + 20
+    });
+
+    it('selects all pasted components', () => {
+      useEditorStore.getState().addComponent('text');
+      useEditorStore.getState().addComponent('rectangle');
+      const comps = useEditorStore.getState().document.components;
+      const pastedIds = useEditorStore.getState().pasteComponents(comps);
+      expect(useEditorStore.getState().selectedComponentIds).toEqual(pastedIds);
+    });
+
+    it('does not mutate the source components', () => {
+      const original = { ...useEditorStore.getState().addComponent('text') };
+      const comp = useEditorStore.getState().document.components[0];
+      const snapshot = structuredClone(comp);
+      useEditorStore.getState().pasteComponents([comp]);
+      expect(comp.id).toBe(snapshot.id);
+      expect(comp.layout.x).toBe(snapshot.layout.x);
+    });
+  });
+
   describe('setAnchor', () => {
     it('changes horizontal anchor and recomputes x to keep same visual position', () => {
       // Default label is 2" x 1" @ 203 DPI = 406 x 203 dots
