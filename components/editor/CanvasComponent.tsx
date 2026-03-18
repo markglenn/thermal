@@ -27,7 +27,15 @@ export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: P
     if (needsMeasure && ref.current && onMeasure) {
       const rect = ref.current.getBoundingClientRect();
       const zoom = storeApi.getState().viewport.zoom;
-      onMeasure(component.id, rect.width / zoom, rect.height / zoom);
+      let w = rect.width / zoom;
+      let h = rect.height / zoom;
+      // For rotated text (90/270), the CSS transform is on the child element,
+      // so the wrapper div's rect is unrotated. Swap dimensions to match visual bounds.
+      const rotation = (component.typeData.props as { rotation?: number }).rotation;
+      if (rotation === 90 || rotation === 270) {
+        [w, h] = [h, w];
+      }
+      onMeasure(component.id, w, h);
     }
   });
 

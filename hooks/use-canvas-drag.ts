@@ -93,8 +93,12 @@ function computeMove(
   dx: number,
   dy: number,
 ): Partial<ComponentLayout> {
+  // Invert delta for right/bottom anchors — dragging right should move
+  // the component right (closer to the right edge = smaller x value)
+  const effectiveDx = startLayout.horizontalAnchor === 'right' ? -dx : dx;
+  const effectiveDy = startLayout.verticalAnchor === 'bottom' ? -dy : dy;
   return {
-    x: clampCoord(startLayout.x + dx),
-    y: clampCoord(startLayout.y + dy),
+    x: clampCoord(startLayout.x + effectiveDx),
+    y: clampCoord(startLayout.y + effectiveDy),
   };
 }
