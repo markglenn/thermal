@@ -1,6 +1,6 @@
 'use client';
 
-import { X, Plus, Circle } from 'lucide-react';
+import { X, Plus, Circle, FileText } from 'lucide-react';
 import { useTabStore, type TabInfo } from '@/lib/store/tab-store';
 
 export function TabBar() {
@@ -61,6 +61,7 @@ function Tab({
           : 'text-gray-500 hover:bg-gray-100'
       }`}
     >
+      <FileText size={12} className="shrink-0 text-gray-400" />
       <span className="truncate">{tab.name}</span>
       <button
         onClick={onClose}
