@@ -13,10 +13,15 @@ export async function GET() {
       .from(tables.labels)
       .orderBy(desc(tables.labels.updatedAt));
 
-    // Get all latest versions in a single query using a subquery for max version per label
+    // Get latest version metadata (no document/thumbnail blob) in a single query
     const latestVersions = allLabels.length > 0
       ? await db
-          .select()
+          .select({
+            labelId: tables.labelVersions.labelId,
+            version: tables.labelVersions.version,
+            status: tables.labelVersions.status,
+            hasThumbnail: sql<boolean>`${tables.labelVersions.thumbnail} IS NOT NULL`.as('has_thumbnail'),
+          })
           .from(tables.labelVersions)
           .where(
             sql`(${tables.labelVersions.labelId}, ${tables.labelVersions.version}) IN (
@@ -35,19 +40,10 @@ export async function GET() {
 
     const result = allLabels.map((label) => {
       const latest = versionByLabelId.get(label.id);
-      let thumbnailUrl: string | null = null;
-      if (latest?.thumbnail) {
-        if (typeof latest.thumbnail === 'string') {
-          thumbnailUrl = latest.thumbnail;
-        } else {
-          thumbnailUrl = `data:image/png;base64,${Buffer.from(latest.thumbnail).toString('base64')}`;
-        }
-      }
-
       return {
         id: label.id,
         name: label.name,
-        thumbnailUrl,
+        hasThumbnail: !!latest?.hasThumbnail,
         latestVersion: latest?.version ?? 0,
         latestStatus: latest?.status ?? 'draft',
         updatedAt: label.updatedAt.toISOString(),
