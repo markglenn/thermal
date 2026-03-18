@@ -15,6 +15,15 @@ export const ZOOM_STEP = 0.1;
 
 export const GRID_SIZE = 8; // dots
 
+// ZPL ^FO coordinate range (0–32000 per spec)
+export const ZPL_COORD_MIN = 0;
+export const ZPL_COORD_MAX = 32000;
+
+/** Clamp and round a coordinate to the valid ZPL range (0–32000). */
+export function clampCoord(v: number): number {
+  return Math.max(ZPL_COORD_MIN, Math.min(ZPL_COORD_MAX, Math.round(v)));
+}
+
 // Constraint resolver fallbacks (dots) when width/height aren't specified
 export const FALLBACK_WIDTH = 100;
 export const FALLBACK_HEIGHT = 40;

@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
 import { findComponent } from '@/lib/utils';
+import { clampCoord } from '@/lib/constants';
 import type { Constraints, PinnableEdge } from '@/lib/types';
 
 export function useCanvasDrag() {
@@ -100,12 +101,12 @@ function computeMove(
 
   const hPinned = pins.includes('left') || pins.includes('right');
   if (!hPinned) {
-    newConstraints.left = Math.round((sc.left ?? 0) + dx);
+    newConstraints.left = clampCoord((sc.left ?? 0) + dx);
   }
 
   const vPinned = pins.includes('top') || pins.includes('bottom');
   if (!vPinned) {
-    newConstraints.top = Math.round((sc.top ?? 0) + dy);
+    newConstraints.top = clampCoord((sc.top ?? 0) + dy);
   }
 
   return Object.keys(newConstraints).length > 0 ? newConstraints : null;

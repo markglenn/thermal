@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
 import { findComponent } from '@/lib/utils';
-import { MIN_RESIZE_SIZE } from '@/lib/constants';
+import { MIN_RESIZE_SIZE, clampCoord } from '@/lib/constants';
 import type { ImageProperties } from '@/lib/types';
 
 export function useCanvasResize() {
@@ -60,20 +60,20 @@ export function useCanvasResize() {
         }
       } else {
         if (handle.includes('left')) {
-          if (sc.left !== undefined) newConstraints.left = Math.round(sc.left + dx);
+          if (sc.left !== undefined) newConstraints.left = clampCoord(sc.left + dx);
           if (sc.width !== undefined && sc.right === undefined) newConstraints.width = Math.round(Math.max(MIN_RESIZE_SIZE, sc.width - dx));
         }
         if (handle.includes('right') || handle === 'right') {
-          if (sc.right !== undefined) newConstraints.right = Math.round(sc.right - dx);
+          if (sc.right !== undefined) newConstraints.right = clampCoord(sc.right - dx);
           if (sc.width !== undefined && sc.left !== undefined && sc.right === undefined) newConstraints.width = Math.round(Math.max(MIN_RESIZE_SIZE, sc.width + dx));
         }
 
         if (handle.startsWith('top')) {
-          if (sc.top !== undefined) newConstraints.top = Math.round(sc.top + dy);
+          if (sc.top !== undefined) newConstraints.top = clampCoord(sc.top + dy);
           if (sc.height !== undefined && sc.bottom === undefined) newConstraints.height = Math.round(Math.max(MIN_RESIZE_SIZE, sc.height - dy));
         }
         if (handle.includes('bottom')) {
-          if (sc.bottom !== undefined) newConstraints.bottom = Math.round(sc.bottom - dy);
+          if (sc.bottom !== undefined) newConstraints.bottom = clampCoord(sc.bottom - dy);
           if (sc.height !== undefined && sc.top !== undefined && sc.bottom === undefined) newConstraints.height = Math.round(Math.max(MIN_RESIZE_SIZE, sc.height + dy));
         }
       }
