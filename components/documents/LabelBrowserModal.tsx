@@ -60,6 +60,7 @@ export function LabelBrowserModal({ onSelect, onCancel }: Props) {
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [cacheBust] = useState(() => Date.now());
   const searchRef = useRef<HTMLInputElement>(null);
 
   const fetchLabels = useCallback(async () => {
@@ -174,7 +175,7 @@ export function LabelBrowserModal({ onSelect, onCancel }: Props) {
                   <div className="aspect-[4/3] bg-gray-50 rounded mb-2 flex items-center justify-center overflow-hidden">
                     {label.hasThumbnail ? (
                       <img
-                        src={`/api/labels/${label.id}/thumbnail`}
+                        src={`/api/labels/${label.id}/thumbnail?t=${cacheBust}`}
                         alt={label.name}
                         loading="lazy"
                         className="max-w-full max-h-full object-contain"
