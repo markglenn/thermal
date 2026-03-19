@@ -18,13 +18,14 @@ describe('getDefinition', () => {
 });
 
 describe('getAllDefinitions', () => {
-  it('returns all 7 registered components', () => {
+  it('returns all 8 registered components', () => {
     const defs = getAllDefinitions();
-    expect(defs).toHaveLength(7);
+    expect(defs).toHaveLength(8);
     const types = defs.map(d => d.type);
     expect(types).toContain('text');
     expect(types).toContain('barcode');
     expect(types).toContain('qrcode');
+    expect(types).toContain('datamatrix');
     expect(types).toContain('rectangle');
     expect(types).toContain('ellipse');
     expect(types).toContain('line');

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { generateTextZpl } from './text/zpl';
 import { barcodeCommand } from './barcode/zpl';
 import { qrcodeCommand } from './qrcode/zpl';
+import { datamatrixZpl } from './datamatrix/zpl';
 import { rectangleZpl } from './rectangle/zpl';
 import { ellipseZpl } from './ellipse/zpl';
 import { lineZpl } from './line/zpl';
@@ -137,6 +138,28 @@ describe('qrcodeCommand', () => {
       bounds
     );
     expect(result).toContain('^FDHA,data^FS');
+  });
+});
+
+describe('datamatrixZpl', () => {
+  it('generates Data Matrix with module size', () => {
+    const result = datamatrixZpl(
+      { content: 'hello', moduleSize: 5 },
+      bounds
+    );
+    expect(result).toEqual([
+      '^FO50,100',
+      '^BXN,5,200',
+      '^FDhello^FS',
+    ]);
+  });
+
+  it('generates Data Matrix with different module size', () => {
+    const result = datamatrixZpl(
+      { content: 'test', moduleSize: 3 },
+      bounds
+    );
+    expect(result).toContain('^BXN,3,200');
   });
 });
 

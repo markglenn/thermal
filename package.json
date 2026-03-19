@@ -21,6 +21,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@libsql/client": "^0.17.0",
+    "bwip-js": "^4.8.0",
     "drizzle-orm": "^0.45.1",
     "immer": "^11.1.4",
     "jsbarcode": "^3.12.3",

@@ -36,6 +36,7 @@ export type ComponentType =
   | 'text'
   | 'barcode'
   | 'qrcode'
+  | 'datamatrix'
   | 'image'
   | 'line'
   | 'rectangle'
@@ -75,6 +76,11 @@ export interface QrCodeProperties {
   content: string;
   magnification: number;
   errorCorrection: QrErrorCorrection;
+}
+
+export interface DataMatrixProperties {
+  content: string;
+  moduleSize: number;
 }
 
 export type MonochromeMethod = 'threshold' | 'dither';
@@ -119,6 +125,7 @@ export type ComponentProperties =
   | { type: 'text'; props: TextProperties }
   | { type: 'barcode'; props: BarcodeProperties }
   | { type: 'qrcode'; props: QrCodeProperties }
+  | { type: 'datamatrix'; props: DataMatrixProperties }
   | { type: 'image'; props: ImageProperties }
   | { type: 'line'; props: LineProperties }
   | { type: 'rectangle'; props: RectangleProperties }
