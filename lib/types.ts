@@ -38,7 +38,8 @@ export type ComponentType =
   | 'qrcode'
   | 'image'
   | 'line'
-  | 'rectangle';
+  | 'rectangle'
+  | 'ellipse';
 
 export type BarcodeEncoding = 'code128' | 'code39' | 'ean13' | 'upca' | 'itf';
 export type QrErrorCorrection = 'H' | 'Q' | 'M' | 'L';
@@ -108,13 +109,20 @@ export interface RectangleProperties {
   filled: boolean;
 }
 
+export interface EllipseProperties {
+  borderThickness: number;
+  filled: boolean;
+  circle: boolean;
+}
+
 export type ComponentProperties =
   | { type: 'text'; props: TextProperties }
   | { type: 'barcode'; props: BarcodeProperties }
   | { type: 'qrcode'; props: QrCodeProperties }
   | { type: 'image'; props: ImageProperties }
   | { type: 'line'; props: LineProperties }
-  | { type: 'rectangle'; props: RectangleProperties };
+  | { type: 'rectangle'; props: RectangleProperties }
+  | { type: 'ellipse'; props: EllipseProperties };
 
 export type PinnableEdge = 'top' | 'bottom' | 'left' | 'right';
 

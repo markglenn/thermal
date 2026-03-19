@@ -17,6 +17,7 @@ import { createComponent, generateId } from './editor-actions';
 import { findComponent } from '@/lib/utils';
 import { resolveLayout } from '@/lib/constraints/resolver';
 import { recomputeContentSize, recomputeAllSizes } from '@/lib/components/recompute-size';
+import { getDefinition } from '@/lib/components/registry';
 import { migrateDocument } from '@/lib/constraints/migrate';
 
 /** Offset a layout by `amount` in the visual "down-right" direction, respecting anchor. */
@@ -194,6 +195,15 @@ export function createEditorStore() {
           set((state) => {
             const comp = findComponent(state.document.components, id);
             if (!comp) return;
+            // Apply size constraints (e.g. circle mode enforces equal width/height)
+            const def = getDefinition(comp.typeData.type);
+            if (def.constrainSize && (layout.width !== undefined || layout.height !== undefined)) {
+              const sizeChange: Partial<Pick<ComponentLayout, 'width' | 'height'>> = {};
+              if (layout.width !== undefined) sizeChange.width = layout.width;
+              if (layout.height !== undefined) sizeChange.height = layout.height;
+              const constrained = def.constrainSize(comp.typeData.props, comp.layout, sizeChange);
+              Object.assign(layout, constrained);
+            }
             Object.assign(comp.layout, layout);
             // If width changed, recompute height for width-only components
             if (layout.width !== undefined) {

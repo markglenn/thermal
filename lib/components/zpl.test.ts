@@ -3,6 +3,7 @@ import { generateTextZpl } from './text/zpl';
 import { barcodeCommand } from './barcode/zpl';
 import { qrcodeCommand } from './qrcode/zpl';
 import { rectangleZpl } from './rectangle/zpl';
+import { ellipseZpl } from './ellipse/zpl';
 import { lineZpl } from './line/zpl';
 import { imageZpl } from './image/zpl';
 import type { ResolvedBounds } from './../types';
@@ -166,6 +167,28 @@ describe('rectangleZpl', () => {
       bounds
     );
     expect(result).toContain('^GB200,80,2,B,8^FS');
+  });
+});
+
+describe('ellipseZpl', () => {
+  it('generates bordered ellipse', () => {
+    const result = ellipseZpl(
+      { borderThickness: 3, filled: false, circle: false },
+      bounds
+    );
+    expect(result).toEqual([
+      '^FO50,100',
+      '^GE200,80,3,B^FS',
+    ]);
+  });
+
+  it('generates filled ellipse with min dimension as thickness', () => {
+    const result = ellipseZpl(
+      { borderThickness: 3, filled: true, circle: false },
+      bounds
+    );
+    // filled: thickness = min(200, 80) = 80
+    expect(result).toContain('^GE200,80,80,B^FS');
   });
 });
 

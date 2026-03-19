@@ -5,6 +5,7 @@ import { qrcodeComponent } from './qrcode';
 import { rectangleComponent } from './rectangle';
 import { lineComponent } from './line';
 import { imageComponent } from './image';
+import { ellipseComponent } from './ellipse';
 
 // Order here determines palette order
 [
@@ -12,6 +13,7 @@ import { imageComponent } from './image';
   barcodeComponent,
   qrcodeComponent,
   rectangleComponent,
+  ellipseComponent,
   lineComponent,
   imageComponent,
 ].forEach(registerComponent);
