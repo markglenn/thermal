@@ -155,6 +155,24 @@ export interface LabelComponent {
   typeData: ComponentProperties;
 }
 
+export type VariableType = 'text' | 'date' | 'counter';
+
+export interface CounterConfig {
+  start: number;
+  increment: number;
+  padding: number;       // zero-pad width (e.g., 5 → "00001")
+  prefix: string;
+  suffix: string;
+}
+
+export interface LabelVariable {
+  name: string;
+  type: VariableType;
+  defaultValue: string;
+  format?: string;       // date format string (e.g., "YYYY-MM-DD")
+  counter?: CounterConfig;
+}
+
 export interface LabelConfig {
   widthInches: number;
   heightInches: number;
@@ -165,6 +183,7 @@ export interface LabelDocument {
   version: 1;
   label: LabelConfig;
   components: LabelComponent[];
+  variables?: LabelVariable[];
 }
 
 // Editor state types

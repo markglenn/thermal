@@ -6,6 +6,7 @@ import { recomputeContentSize } from '../components/recompute-size';
 import { fieldOrigin } from './commands';
 import { convertImageUrlToMonochrome } from '@/lib/components/image/convert-server';
 import { resolveImageLayout } from '@/lib/components/image/fit';
+import { mergeFieldData } from '../variables/resolve';
 
 /**
  * Replace the ^FD...^FS line with new content.
@@ -58,9 +59,11 @@ function substituteContent(comp: LabelComponent, value: string): void {
  * 3. Resolve layout with updated sizes (bounds now reflect real data)
  * 4. Generate ZPL with reflowed bounds
  */
-export async function generateZplMerge(document: LabelDocument, fieldData: Record<string, string>): Promise<string> {
+export async function generateZplMerge(document: LabelDocument, fieldData: Record<string, string>, index = 0): Promise<string> {
+  // Merge caller-supplied field data with resolved variables (date, counter)
+  const merged = mergeFieldData(document.variables ?? [], fieldData, index);
   // Apply field data and recompute sizes (handles text, barcode, qrcode)
-  const reflowed = applyFieldData(document, fieldData);
+  const reflowed = applyFieldData(document, merged);
   const boundsMap = resolveDocument(reflowed);
   const widthDots = labelWidthDots(reflowed.label);
   const heightDots = labelHeightDots(reflowed.label);

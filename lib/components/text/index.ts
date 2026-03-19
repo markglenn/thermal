@@ -4,7 +4,6 @@ import type { TextProperties } from '@/lib/types';
 import { TextElement } from './element';
 import { TextProperties as TextPropertiesPanel } from './properties';
 import { generateTextZpl } from './zpl';
-import { computeTextSize } from './compute-size';
 
 export const textComponent: ComponentDefinition<TextProperties> = {
   type: 'text',
@@ -22,7 +21,10 @@ export const textComponent: ComponentDefinition<TextProperties> = {
   Element: TextElement,
   PropertiesPanel: TextPropertiesPanel,
   generateZpl: generateTextZpl,
-  computeContentSize: computeTextSize,
+  // No computeContentSize — text uses DOM measurement for accurate
+  // proportional font sizing. The CSS rendering (scaleX, letter-spacing,
+  // font family) matches ZPL output closely, so DOM measurement is the
+  // source of truth for both auto and width-only sizing.
   getSizingMode: (component) => {
     if (component.typeData.type === 'text' && component.typeData.props.fieldBlock) {
       return 'width-only';

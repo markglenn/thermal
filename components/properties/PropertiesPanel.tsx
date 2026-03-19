@@ -5,6 +5,7 @@ import { useSelectedComponent, useEditorStoreContext, usePauseTracking, useResum
 import { getDefinition } from '@/lib/components';
 import { LabelSettings } from '../toolbar/LabelSettings';
 import { ConstraintEditor } from './ConstraintEditor';
+import { VariablesPanel } from './VariablesPanel';
 
 interface Props {
   onCollapse?: () => void;
@@ -59,12 +60,15 @@ export function PropertiesPanel({ onCollapse }: Props) {
       ) : (
         <MultiSelectOrEmptyMessage />
       )}
+
+      <VariablesPanel />
     </div>
   );
 }
 
 function FieldBindingEditor({ componentId, binding }: { componentId: string; binding?: string }) {
   const updateFieldBinding = useEditorStoreContext((s) => s.updateFieldBinding);
+  const variables = useEditorStoreContext((s) => s.document.variables) ?? [];
   const pauseTracking = usePauseTracking();
   const resumeTracking = useResumeTracking();
 
@@ -74,6 +78,18 @@ function FieldBindingEditor({ componentId, binding }: { componentId: string; bin
         <Link size={12} />
         Field Binding
       </h3>
+      {variables.length > 0 && (
+        <select
+          value={binding ?? ''}
+          onChange={(e) => updateFieldBinding(componentId, e.target.value || undefined)}
+          className="w-full px-2 py-1 border border-gray-300 rounded text-sm font-mono mb-1.5"
+        >
+          <option value="">None</option>
+          {variables.map((v) => (
+            <option key={v.name} value={v.name}>{v.name} ({v.type})</option>
+          ))}
+        </select>
+      )}
       <input
         value={binding ?? ''}
         onChange={(e) => {
@@ -87,7 +103,7 @@ function FieldBindingEditor({ componentId, binding }: { componentId: string; bin
         className="w-full px-2 py-1 border border-gray-300 rounded text-sm font-mono"
       />
       <p className="text-[10px] text-gray-400 mt-1">
-        Bind to a variable field for the print API
+        {variables.length > 0 ? 'Select a variable or type a custom field name' : 'Bind to a variable field for the print API'}
       </p>
     </div>
   );

@@ -60,10 +60,10 @@ export async function POST(
 
     const doc = versions[0].document as LabelDocument;
 
-    // Generate merged ZPL for each data entry
+    // Generate merged ZPL for each data entry, passing index for counter variables
     const zplBlocks = await Promise.all(
-      (data as Record<string, string>[]).map((fields) =>
-        generateZplMerge(doc, fields)
+      (data as Record<string, string>[]).map((fields, index) =>
+        generateZplMerge(doc, fields, index)
       )
     );
 

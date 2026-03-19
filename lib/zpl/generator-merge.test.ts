@@ -25,7 +25,7 @@ function makeDoc(components: LabelComponent[]): LabelDocument {
 }
 
 describe('applyFieldData', () => {
-  it('substitutes text content and recomputes size', () => {
+  it('substitutes text content', () => {
     const comp: LabelComponent = {
       id: 'text1',
       name: 'Name',
@@ -49,8 +49,9 @@ describe('applyFieldData', () => {
 
     // Content should be substituted
     expect((updated.typeData.props as { content: string }).content).toBe('Much Longer Name');
-    // Width should be recomputed: 16 chars * 12 fontWidth = 192
-    expect(updated.layout.width).toBe(192);
+    // Text uses DOM measurement — width is not recomputed server-side
+    // (ZPL text positioning uses ^FO origin, width doesn't affect output)
+    expect(updated.layout.width).toBe(150);
   });
 
   it('substitutes barcode content and recomputes size', () => {

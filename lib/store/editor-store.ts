@@ -6,6 +6,7 @@ import type {
   EditorState,
   LabelDocument,
   LabelComponent,
+  LabelVariable,
   ComponentLayout,
   ComponentType,
   LabelConfig,
@@ -88,6 +89,11 @@ export interface EditorActions {
   // Document
   loadDocument: (doc: LabelDocument) => void;
   resetDocument: () => void;
+
+  // Variables
+  addVariable: (variable: LabelVariable) => void;
+  updateVariable: (name: string, variable: Partial<LabelVariable>) => void;
+  removeVariable: (name: string) => void;
 
   // Label persistence
   setLabelMeta: (id: string | null, name: string | null) => void;
@@ -409,6 +415,30 @@ export function createEditorStore() {
           set(() => ({ ...initialState, _undoBatchSnapshot: null }));
           getTemporalState().clear();
           getTemporalState().resume();
+        },
+
+        addVariable: (variable) => {
+          set((state) => {
+            if (!state.document.variables) state.document.variables = [];
+            state.document.variables.push(variable);
+          });
+        },
+
+        updateVariable: (name, updates) => {
+          set((state) => {
+            const vars = state.document.variables;
+            if (!vars) return;
+            const idx = vars.findIndex((v) => v.name === name);
+            if (idx === -1) return;
+            Object.assign(vars[idx], updates);
+          });
+        },
+
+        removeVariable: (name) => {
+          set((state) => {
+            if (!state.document.variables) return;
+            state.document.variables = state.document.variables.filter((v) => v.name !== name);
+          });
         },
 
         setLabelMeta: (id, name) => {
