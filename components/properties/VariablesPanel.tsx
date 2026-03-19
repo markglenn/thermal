@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Trash2, Variable } from 'lucide-react';
 import { useEditorStoreContext, usePauseTracking, useResumeTracking } from '@/lib/store/editor-context';
 import { useDocument } from '@/lib/store/editor-context';
@@ -10,6 +10,40 @@ import { NumberInput } from './NumberInput';
 import type { LabelVariable, VariableType, CounterConfig } from '@/lib/types';
 
 const DEFAULT_COUNTER: CounterConfig = { start: 1, increment: 1, padding: 5, prefix: '', suffix: '' };
+
+function VariableNameInput({ name, onRename, onFocus, onBlur }: {
+  name: string;
+  onRename: (newName: string) => void;
+  onFocus: () => void;
+  onBlur: () => void;
+}) {
+  const [draft, setDraft] = useState(name);
+
+  useEffect(() => { setDraft(name); }, [name]);
+
+  const sanitize = (val: string) => val.replace(/[^a-zA-Z0-9_-]/g, '').replace(/^[^a-zA-Z]+/, '');
+
+  const commit = () => {
+    const sanitized = sanitize(draft);
+    if (sanitized && sanitized !== name) {
+      onRename(sanitized);
+    } else {
+      setDraft(name); // revert to current name if empty or unchanged
+    }
+    onBlur();
+  };
+
+  return (
+    <input
+      value={draft}
+      onChange={(e) => setDraft(sanitize(e.target.value))}
+      onFocus={onFocus}
+      onBlur={commit}
+      onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+      className="w-full px-1.5 py-0.5 border border-gray-300 rounded text-xs font-mono"
+    />
+  );
+}
 
 export function VariablesPanel() {
   const doc = useDocument();
@@ -66,8 +100,8 @@ export function VariablesPanel() {
       )}
 
       <div className="space-y-1">
-        {variables.map((v) => (
-          <div key={v.name} className="border border-gray-200 rounded">
+        {variables.map((v, i) => (
+          <div key={i} className="border border-gray-200 rounded">
             <button
               onClick={() => setExpanded(expanded === v.name ? null : v.name)}
               className="w-full flex items-center gap-2 px-2 py-1.5 text-left hover:bg-gray-50"
@@ -81,15 +115,14 @@ export function VariablesPanel() {
               <div className="px-2 pb-2 space-y-2 border-t border-gray-100">
                 <label className="block mt-2">
                   <span className="text-[10px] text-gray-500">Name</span>
-                  <input
-                    value={v.name}
-                    onChange={(e) => {
-                      const sanitized = e.target.value.replace(/[^a-zA-Z0-9_-]/g, '').replace(/^[^a-zA-Z]+/, '');
-                      if (sanitized && sanitized !== v.name) updateVariable(v.name, { name: sanitized });
+                  <VariableNameInput
+                    name={v.name}
+                    onRename={(newName) => {
+                      updateVariable(v.name, { name: newName });
+                      setExpanded(newName);
                     }}
                     onFocus={pauseTracking}
                     onBlur={resumeTracking}
-                    className="w-full px-1.5 py-0.5 border border-gray-300 rounded text-xs font-mono"
                   />
                 </label>
 
