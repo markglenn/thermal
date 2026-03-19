@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { PanelRightClose, Link } from 'lucide-react';
 import { useSelectedComponent, useEditorStoreContext, usePauseTracking, useResumeTracking } from '@/lib/store/editor-context';
 import { getDefinition } from '@/lib/components';
@@ -69,6 +70,8 @@ export function PropertiesPanel({ onCollapse }: Props) {
 function FieldBindingEditor({ componentId, binding }: { componentId: string; binding?: string }) {
   const updateFieldBinding = useEditorStoreContext((s) => s.updateFieldBinding);
   const variables = useEditorStoreContext((s) => s.document.variables) ?? [];
+  const isCustom = !!binding && !variables.some((v) => v.name === binding);
+  const [showCustom, setShowCustom] = useState(isCustom);
   const pauseTracking = usePauseTracking();
   const resumeTracking = useResumeTracking();
 
@@ -78,33 +81,46 @@ function FieldBindingEditor({ componentId, binding }: { componentId: string; bin
         <Link size={12} />
         Field Binding
       </h3>
-      {variables.length > 0 && (
-        <select
-          value={binding ?? ''}
-          onChange={(e) => updateFieldBinding(componentId, e.target.value || undefined)}
-          className="w-full px-2 py-1 border border-gray-300 rounded text-sm font-mono mb-1.5"
-        >
-          <option value="">None</option>
-          {variables.map((v) => (
-            <option key={v.name} value={v.name}>{v.name} ({v.type})</option>
-          ))}
-        </select>
+      {!showCustom ? (
+        <>
+          <select
+            value={binding ?? ''}
+            onChange={(e) => updateFieldBinding(componentId, e.target.value || undefined)}
+            className="w-full px-2 py-1 border border-gray-300 rounded text-sm font-mono"
+          >
+            <option value="">None</option>
+            {variables.map((v) => (
+              <option key={v.name} value={v.name}>{v.name} ({v.type})</option>
+            ))}
+          </select>
+          <button
+            onClick={() => setShowCustom(true)}
+            className="text-[10px] text-blue-500 hover:text-blue-700 mt-1"
+          >
+            Use custom field name
+          </button>
+        </>
+      ) : (
+        <>
+          <input
+            value={binding ?? ''}
+            onChange={(e) => {
+              const sanitized = e.target.value.replace(/[^a-zA-Z0-9_-]/g, '').replace(/^[^a-zA-Z]+/, '');
+              updateFieldBinding(componentId, sanitized || undefined);
+            }}
+            onFocus={pauseTracking}
+            onBlur={resumeTracking}
+            placeholder="e.g. recipientName"
+            className="w-full px-2 py-1 border border-gray-300 rounded text-sm font-mono"
+          />
+          <button
+            onClick={() => setShowCustom(false)}
+            className="text-[10px] text-blue-500 hover:text-blue-700 mt-1"
+          >
+            Select from variables
+          </button>
+        </>
       )}
-      <input
-        value={binding ?? ''}
-        onChange={(e) => {
-          // Strip invalid characters — allow letters, digits, underscores, hyphens
-          const sanitized = e.target.value.replace(/[^a-zA-Z0-9_-]/g, '').replace(/^[^a-zA-Z]+/, '');
-          updateFieldBinding(componentId, sanitized || undefined);
-        }}
-        onFocus={pauseTracking}
-        onBlur={resumeTracking}
-        placeholder="e.g. recipientName"
-        className="w-full px-2 py-1 border border-gray-300 rounded text-sm font-mono"
-      />
-      <p className="text-[10px] text-gray-400 mt-1">
-        {variables.length > 0 ? 'Select a variable or type a custom field name' : 'Bind to a variable field for the print API'}
-      </p>
     </div>
   );
 }
