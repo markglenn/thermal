@@ -5,6 +5,7 @@ import { Plus, Trash2, Variable } from 'lucide-react';
 import { useEditorStoreContext, usePauseTracking, useResumeTracking } from '@/lib/store/editor-context';
 import { useDocument } from '@/lib/store/editor-context';
 import { resolveVariables } from '@/lib/variables/resolve';
+import { CollapsibleSection } from '../ui/CollapsibleSection';
 import { NumberInput } from './NumberInput';
 import type { LabelVariable, VariableType, CounterConfig } from '@/lib/types';
 
@@ -43,23 +44,25 @@ export function VariablesPanel() {
   };
 
   return (
-    <div className="p-3 border-b border-gray-200">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
-          <Variable size={12} />
-          Variables
-        </h3>
+    <CollapsibleSection
+      title={`Variables${variables.length > 0 ? ` (${variables.length})` : ''}`}
+      icon={<Variable size={12} />}
+      defaultOpen
+    >
+      <div className="px-3 pb-3">
+      <div className="flex justify-end mb-1.5">
         <button
           onClick={handleAdd}
-          className="text-gray-400 hover:text-blue-500 transition-colors"
+          className="flex items-center gap-1 text-[10px] text-blue-500 hover:text-blue-700 transition-colors"
           title="Add variable"
         >
-          <Plus size={14} />
+          <Plus size={10} />
+          Add
         </button>
       </div>
 
       {variables.length === 0 && (
-        <p className="text-[10px] text-gray-400">No variables defined. Components can reference variables via field bindings.</p>
+        <p className="text-[10px] text-gray-400">No variables defined.</p>
       )}
 
       <div className="space-y-1">
@@ -184,6 +187,7 @@ export function VariablesPanel() {
           </div>
         ))}
       </div>
-    </div>
+      </div>
+    </CollapsibleSection>
   );
 }

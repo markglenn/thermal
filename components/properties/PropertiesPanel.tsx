@@ -6,7 +6,7 @@ import { useSelectedComponent, useEditorStoreContext, usePauseTracking, useResum
 import { getDefinition } from '@/lib/components';
 import { LabelSettings } from '../toolbar/LabelSettings';
 import { ConstraintEditor } from './ConstraintEditor';
-import { VariablesPanel } from './VariablesPanel';
+import { CollapsibleSection } from '../ui/CollapsibleSection';
 
 interface Props {
   onCollapse?: () => void;
@@ -42,16 +42,12 @@ export function PropertiesPanel({ onCollapse }: Props) {
 
       {selected ? (
         <>
-          <div className="px-3 py-2 border-b border-gray-200">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              {def?.label ?? selected.typeData.type}
-            </h3>
-          </div>
-
           <ConstraintEditor component={selected} />
 
           {Panel && (
-            <Panel componentId={selected.id} props={selected.typeData.props} />
+            <CollapsibleSection title={def?.label ?? selected.typeData.type}>
+              <Panel componentId={selected.id} props={selected.typeData.props} />
+            </CollapsibleSection>
           )}
 
           {def?.traits.bindable && (
@@ -61,8 +57,6 @@ export function PropertiesPanel({ onCollapse }: Props) {
       ) : (
         <MultiSelectOrEmptyMessage />
       )}
-
-      <VariablesPanel />
     </div>
   );
 }
@@ -76,11 +70,8 @@ function FieldBindingEditor({ componentId, binding }: { componentId: string; bin
   const resumeTracking = useResumeTracking();
 
   return (
-    <div className="p-3 border-b border-gray-200">
-      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-        <Link size={12} />
-        Field Binding
-      </h3>
+    <CollapsibleSection title="Field Binding" icon={<Link size={12} />}>
+      <div className="px-3 pb-3">
       {!showCustom ? (
         <>
           <select
@@ -121,6 +112,7 @@ function FieldBindingEditor({ componentId, binding }: { componentId: string; bin
           </button>
         </>
       )}
-    </div>
+      </div>
+    </CollapsibleSection>
   );
 }

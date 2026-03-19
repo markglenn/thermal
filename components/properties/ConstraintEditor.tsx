@@ -8,6 +8,7 @@ import { useDocument } from '@/lib/store/editor-context';
 import { resolveDocument } from '@/lib/constraints/resolver';
 import { reconvertImageAtBounds } from '@/lib/components/image/reconvert';
 import { NumberInput } from './NumberInput';
+import { CollapsibleSection } from '../ui/CollapsibleSection';
 
 interface Props {
   component: LabelComponent;
@@ -107,9 +108,8 @@ export function ConstraintEditor({ component }: Props) {
   );
 
   return (
-    <div className="p-3 border-b border-gray-200">
-      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Position & Anchor</h3>
-
+    <CollapsibleSection title="Position & Anchor">
+      <div className="px-3 pb-3">
       {/* Spatial layout: inputs on the anchored edges */}
       <div className="flex flex-col items-center gap-1.5 mb-4">
         {/* Top offset — only shown when top-anchored */}
@@ -211,6 +211,7 @@ export function ConstraintEditor({ component }: Props) {
           </div>
         </>
       )}
-    </div>
+      </div>
+    </CollapsibleSection>
   );
 }

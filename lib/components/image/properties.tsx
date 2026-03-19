@@ -72,13 +72,12 @@ export function ImagePropertiesPanel({ componentId, props }: Props) {
   };
 
   return (
-    <div className="p-3 border-b border-gray-200">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Image</h3>
-        {hasImage && (
+    <div className="px-3 pb-3">
+      {hasImage && (
+        <div className="flex justify-end mb-2">
           <span className="text-xs text-gray-400">{props.originalWidth} &times; {props.originalHeight}</span>
-        )}
-      </div>
+        </div>
+      )}
       <div className="space-y-3">
         {hasImage && (
           <div className="border border-gray-200 rounded p-1 bg-[repeating-conic-gradient(#e5e7eb_0%_25%,transparent_0%_50%)_0_0/12px_12px]">

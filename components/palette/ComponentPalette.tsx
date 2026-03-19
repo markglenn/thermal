@@ -4,6 +4,7 @@ import { PanelLeftClose } from 'lucide-react';
 import { getAllDefinitions } from '@/lib/components';
 import { PaletteItem } from './PaletteItem';
 import { LayerHierarchy } from './LayerHierarchy';
+import { VariablesPanel } from '../properties/VariablesPanel';
 import type { ComponentType } from '@/lib/types';
 
 interface Props {
@@ -35,6 +36,11 @@ export function ComponentPalette({ onCollapse }: Props) {
       {/* Layer hierarchy */}
       <div className="flex-1 overflow-y-auto border-t border-gray-200">
         <LayerHierarchy />
+      </div>
+
+      {/* Variables */}
+      <div className="shrink-0 border-t border-gray-200">
+        <VariablesPanel />
       </div>
     </div>
   );

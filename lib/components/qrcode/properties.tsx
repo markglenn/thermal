@@ -16,8 +16,7 @@ export function QrCodeProperties({ componentId, props }: Props) {
   const update = (changes: Partial<QrCodePropsType>) => updateProperties(componentId, changes);
 
   return (
-    <div className="p-3 border-b border-gray-200">
-      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">QR Code</h3>
+    <div className="px-3 pb-3">
       <div className="space-y-2">
         <label>
           <span className="text-xs text-gray-500">Content</span>

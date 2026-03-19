@@ -28,8 +28,7 @@ export function EllipsePropertiesPanel({ componentId, props }: Props) {
   };
 
   return (
-    <div className="p-3 border-b border-gray-200">
-      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Ellipse</h3>
+    <div className="px-3 pb-3">
       <div className="space-y-2">
         <div>
           <span className="text-xs text-gray-500">Shape</span>

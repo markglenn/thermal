@@ -69,13 +69,16 @@ function EditorInner() {
       <div className="flex-1 flex overflow-hidden">
         {/* Left panel */}
         {leftCollapsed ? (
-          <div className="shrink-0 border-r border-gray-200 bg-white flex flex-col">
-            <div className="px-3 py-2 border-b border-gray-200">
-              <button onClick={() => setLeftCollapsed(false)} className="text-gray-400 hover:text-gray-600" title="Show components panel">
-                <PanelLeftOpen size={14} />
-              </button>
-            </div>
-          </div>
+          <button
+            onClick={() => setLeftCollapsed(false)}
+            className="shrink-0 w-7 border-r border-gray-200 bg-white flex flex-col items-center hover:bg-gray-50 transition-colors cursor-pointer"
+            title="Show components panel"
+          >
+            <PanelLeftOpen size={14} className="text-gray-400 mt-2 mb-3" />
+            <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest [writing-mode:vertical-lr] rotate-180">
+              Components
+            </span>
+          </button>
         ) : (
           <>
             <div style={{ width: leftWidth }} className="shrink-0 border-r border-gray-200 bg-white flex flex-col overflow-hidden">
@@ -134,13 +137,16 @@ function EditorInner() {
 
         {/* Right panel */}
         {rightCollapsed ? (
-          <div className="shrink-0 border-l border-gray-200 bg-white flex flex-col">
-            <div className="px-3 py-1.5 border-b border-gray-200">
-              <button onClick={() => setRightCollapsed(false)} className="text-gray-400 hover:text-gray-600" title="Show properties panel">
-                <PanelRightOpen size={14} />
-              </button>
-            </div>
-          </div>
+          <button
+            onClick={() => setRightCollapsed(false)}
+            className="shrink-0 w-7 border-l border-gray-200 bg-white flex flex-col items-center hover:bg-gray-50 transition-colors cursor-pointer"
+            title="Show properties panel"
+          >
+            <PanelRightOpen size={14} className="text-gray-400 mt-2 mb-3" />
+            <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest [writing-mode:vertical-lr]">
+              Properties
+            </span>
+          </button>
         ) : (
           <>
             <PanelResizeHandle direction="horizontal" size={rightWidth} onSizeChange={setRightWidth} min={200} max={450} invert onDoubleClick={() => setRightCollapsed(true)} />
