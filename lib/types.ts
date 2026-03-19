@@ -9,6 +9,8 @@ export interface ComponentLayout {
   height: number;
   horizontalAnchor: HorizontalAnchor;  // which edge x is measured from
   verticalAnchor: VerticalAnchor;      // which edge y is measured from
+  lockX?: boolean;     // when true, x cannot change during drag
+  lockY?: boolean;     // when true, y cannot change during drag
 }
 
 // Legacy Constraints type — kept temporarily for migration compatibility.

@@ -61,6 +61,7 @@ export interface EditorActions {
   setAnchor: (id: string, horizontal?: HorizontalAnchor, vertical?: VerticalAnchor) => void;
   reorderComponents: (fromIndex: number, toIndex: number) => void;
   updateFieldBinding: (id: string, binding: string | undefined) => void;
+  toggleLock: (id: string, axis: 'x' | 'y') => void;
 
   // Selection
   selectComponent: (id: string | null, opts?: { toggle?: boolean }) => void;
@@ -165,6 +166,8 @@ export function createEditorStore() {
             const cloned = structuredClone(current(original)) as LabelComponent;
             cloned.id = generateId();
             cloned.name = cloned.name + ' Copy';
+            delete cloned.layout.lockX;
+            delete cloned.layout.lockY;
             offsetForAnchor(cloned.layout, DUPLICATE_OFFSET);
             comps.splice(idx + 1, 0, cloned);
             state.selectedComponentIds = [cloned.id];
@@ -175,6 +178,8 @@ export function createEditorStore() {
           const clones = components.map((c) => {
             const cloned = structuredClone(c);
             cloned.id = generateId();
+            delete cloned.layout.lockX;
+            delete cloned.layout.lockY;
             offsetForAnchor(cloned.layout, DUPLICATE_OFFSET);
             return cloned;
           });
@@ -237,6 +242,15 @@ export function createEditorStore() {
                 delete comp.fieldBinding;
               }
             }
+          });
+        },
+
+        toggleLock: (id, axis) => {
+          set((state) => {
+            const comp = findComponent(state.document.components, id);
+            if (!comp) return;
+            const key = axis === 'x' ? 'lockX' : 'lockY';
+            comp.layout[key] = !comp.layout[key];
           });
         },
 

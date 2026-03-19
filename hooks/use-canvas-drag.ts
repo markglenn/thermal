@@ -101,8 +101,8 @@ function computeMove(
   const effectiveDx = startLayout.horizontalAnchor === 'right' ? -dx : dx;
   const effectiveDy = startLayout.verticalAnchor === 'bottom' ? -dy : dy;
 
-  let newX = Math.round(startLayout.x + effectiveDx);
-  let newY = Math.round(startLayout.y + effectiveDy);
+  let newX = startLayout.lockX ? startLayout.x : Math.round(startLayout.x + effectiveDx);
+  let newY = startLayout.lockY ? startLayout.y : Math.round(startLayout.y + effectiveDy);
 
   // Ensure the resolved top-left position never goes below 0,0.
   // Left-anchored: resolved x = layout.x → clamp layout.x >= 0

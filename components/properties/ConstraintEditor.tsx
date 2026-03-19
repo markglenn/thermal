@@ -35,9 +35,34 @@ const DOT_POSITIONS: Record<string, string> = {
   'bottom-right': 'bottom-0 right-0 translate-x-1/2 translate-y-1/2',
 };
 
+function LockButton({ locked, onClick }: { locked: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-4 h-4 flex items-center justify-center rounded transition-colors ${
+        locked
+          ? 'text-blue-600 hover:text-blue-700'
+          : 'text-gray-300 hover:text-gray-400'
+      }`}
+      title={locked ? 'Unlock position' : 'Lock position'}
+    >
+      {locked ? (
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M11 7V5a3 3 0 0 0-6 0v2H4a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-1Zm-4-2a1 1 0 1 1 2 0v2H7V5Z" />
+        </svg>
+      ) : (
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M11 4a3 3 0 0 0-5.97-.3l.94.31A2 2 0 0 1 10 5v2H4a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-1V4Z" />
+        </svg>
+      )}
+    </button>
+  );
+}
+
 export function ConstraintEditor({ component }: Props) {
   const updateLayout = useEditorStoreContext((s) => s.updateLayout);
   const setAnchor = useEditorStoreContext((s) => s.setAnchor);
+  const toggleLock = useEditorStoreContext((s) => s.toggleLock);
   const storeApi = useEditorStoreApi();
   const doc = useDocument();
 
@@ -89,13 +114,25 @@ export function ConstraintEditor({ component }: Props) {
       <div className="flex flex-col items-center gap-1.5 mb-4">
         {/* Top offset — only shown when top-anchored */}
         <div className="h-6 flex items-center">
-          {vAnchor === 'top' && offsetInput(layout.y, setY)}
+          {vAnchor === 'top' && (
+            <div className="relative flex items-center">
+              {offsetInput(layout.y, setY)}
+              <div className="absolute -right-5 top-1/2 -translate-y-1/2">
+                <LockButton locked={!!layout.lockY} onClick={() => toggleLock(component.id, 'y')} />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Middle row: left offset — rectangle — right offset */}
         <div className="flex items-center gap-1.5">
-          <div className="w-12 flex justify-end">
-            {hAnchor === 'left' && offsetInput(layout.x, setX)}
+          <div className="w-[68px] flex justify-end items-center gap-0.5">
+            {hAnchor === 'left' && (
+              <>
+                <LockButton locked={!!layout.lockX} onClick={() => toggleLock(component.id, 'x')} />
+                {offsetInput(layout.x, setX)}
+              </>
+            )}
           </div>
 
           {/* The label rectangle with anchor dots */}
@@ -129,14 +166,26 @@ export function ConstraintEditor({ component }: Props) {
             })}
           </div>
 
-          <div className="w-12">
-            {hAnchor === 'right' && offsetInput(layout.x, setX)}
+          <div className="w-[68px] flex items-center gap-0.5">
+            {hAnchor === 'right' && (
+              <>
+                {offsetInput(layout.x, setX)}
+                <LockButton locked={!!layout.lockX} onClick={() => toggleLock(component.id, 'x')} />
+              </>
+            )}
           </div>
         </div>
 
         {/* Bottom offset — only shown when bottom-anchored */}
         <div className="h-6 flex items-center">
-          {vAnchor === 'bottom' && offsetInput(layout.y, setY)}
+          {vAnchor === 'bottom' && (
+            <div className="relative flex items-center">
+              {offsetInput(layout.y, setY)}
+              <div className="absolute -right-5 top-1/2 -translate-y-1/2">
+                <LockButton locked={!!layout.lockY} onClick={() => toggleLock(component.id, 'y')} />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
