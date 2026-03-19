@@ -7,6 +7,7 @@ import { lineComponent } from './line';
 import { imageComponent } from './image';
 import { ellipseComponent } from './ellipse';
 import { datamatrixComponent } from './datamatrix';
+import { pdf417Component } from './pdf417';
 
 // Order here determines palette order
 [
@@ -14,6 +15,7 @@ import { datamatrixComponent } from './datamatrix';
   barcodeComponent,
   qrcodeComponent,
   datamatrixComponent,
+  pdf417Component,
   rectangleComponent,
   ellipseComponent,
   lineComponent,

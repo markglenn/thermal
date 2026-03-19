@@ -3,6 +3,7 @@ import { generateTextZpl } from './text/zpl';
 import { barcodeCommand } from './barcode/zpl';
 import { qrcodeCommand } from './qrcode/zpl';
 import { datamatrixZpl } from './datamatrix/zpl';
+import { pdf417Zpl } from './pdf417/zpl';
 import { rectangleZpl } from './rectangle/zpl';
 import { ellipseZpl } from './ellipse/zpl';
 import { lineZpl } from './line/zpl';
@@ -160,6 +161,28 @@ describe('datamatrixZpl', () => {
       bounds
     );
     expect(result).toContain('^BXN,3,200');
+  });
+});
+
+describe('pdf417Zpl', () => {
+  it('generates PDF417 with columns and security level', () => {
+    const result = pdf417Zpl(
+      { content: 'hello', columns: 3, securityLevel: 2, rowHeight: 5 },
+      bounds
+    );
+    expect(result).toEqual([
+      '^FO50,100',
+      '^B7N,5,2,3,0,N',
+      '^FDhello^FS',
+    ]);
+  });
+
+  it('generates PDF417 with different settings', () => {
+    const result = pdf417Zpl(
+      { content: 'test', columns: 5, securityLevel: 4, rowHeight: 8 },
+      bounds
+    );
+    expect(result).toContain('^B7N,8,4,5,0,N');
   });
 });
 

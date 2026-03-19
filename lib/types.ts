@@ -37,6 +37,7 @@ export type ComponentType =
   | 'barcode'
   | 'qrcode'
   | 'datamatrix'
+  | 'pdf417'
   | 'image'
   | 'line'
   | 'rectangle'
@@ -83,6 +84,13 @@ export interface DataMatrixProperties {
   moduleSize: number;
 }
 
+export interface Pdf417Properties {
+  content: string;
+  columns: number;
+  securityLevel: number;
+  rowHeight: number;
+}
+
 export type MonochromeMethod = 'threshold' | 'dither';
 export type ImageObjectFit = 'fit' | 'fill' | 'stretch';
 export type ImageObjectPosition = 'top-left' | 'top' | 'top-right' | 'left' | 'center' | 'right' | 'bottom-left' | 'bottom' | 'bottom-right';
@@ -126,6 +134,7 @@ export type ComponentProperties =
   | { type: 'barcode'; props: BarcodeProperties }
   | { type: 'qrcode'; props: QrCodeProperties }
   | { type: 'datamatrix'; props: DataMatrixProperties }
+  | { type: 'pdf417'; props: Pdf417Properties }
   | { type: 'image'; props: ImageProperties }
   | { type: 'line'; props: LineProperties }
   | { type: 'rectangle'; props: RectangleProperties }
