@@ -97,6 +97,7 @@ function computeMove(
 ): Partial<ComponentLayout> {
   // Invert delta for right/bottom anchors — dragging right should move
   // the component right (closer to the right edge = smaller x value)
+  // Center anchor behaves like left (positive dx = move right)
   const effectiveDx = startLayout.horizontalAnchor === 'right' ? -dx : dx;
   const effectiveDy = startLayout.verticalAnchor === 'bottom' ? -dy : dy;
 
@@ -106,7 +107,11 @@ function computeMove(
   // Ensure the resolved top-left position never goes below 0,0.
   // Left-anchored: resolved x = layout.x → clamp layout.x >= 0
   // Right-anchored: resolved x = labelW - layout.x - width → clamp layout.x <= labelW - width
-  if (startLayout.horizontalAnchor === 'left') {
+  // Center-anchored: resolved x = (labelW - width) / 2 + x → clamp x >= -(labelW - width) / 2
+  // Center anchor: x is always 0 — perfectly centered, no horizontal drag
+  if (startLayout.horizontalAnchor === 'center') {
+    newX = 0;
+  } else if (startLayout.horizontalAnchor === 'left') {
     newX = Math.max(0, newX);
   } else {
     newX = Math.min(newX, labelWidth - startLayout.width);

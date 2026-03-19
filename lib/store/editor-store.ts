@@ -23,6 +23,7 @@ import { migrateDocument } from '@/lib/constraints/migrate';
 function offsetForAnchor(layout: ComponentLayout, amount: number) {
   // For right/bottom anchored components, increasing x/y moves them toward
   // the anchor edge (visually left/up). Subtract to move visually down-right.
+  // Center anchor: positive x = right of center, same direction as left anchor.
   layout.x += layout.horizontalAnchor === 'right' ? -amount : amount;
   layout.y += layout.verticalAnchor === 'bottom' ? -amount : amount;
 }
@@ -260,6 +261,9 @@ export function createEditorStore() {
               // Recompute x to keep same visual position
               if (horizontal === 'right') {
                 comp.layout.x = Math.max(0, lw - bounds.x - bounds.width);
+              } else if (horizontal === 'center') {
+                // Center anchor locks x to 0 — always perfectly centered
+                comp.layout.x = 0;
               } else {
                 comp.layout.x = bounds.x;
               }

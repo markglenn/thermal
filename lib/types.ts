@@ -1,5 +1,5 @@
 // Layout system - all values in dots
-export type HorizontalAnchor = 'left' | 'right';
+export type HorizontalAnchor = 'left' | 'center' | 'right';
 export type VerticalAnchor = 'top' | 'bottom';
 
 export interface ComponentLayout {

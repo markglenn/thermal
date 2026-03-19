@@ -53,6 +53,18 @@ export function ConstraintGuides({ absoluteBoundsMap }: Props) {
           <text x={x + width + (labelW - x - width) / 2} y={y + height / 2 - 4} textAnchor="middle" fontSize={10} fill="#3b82f6" fontWeight="bold">{Math.round(comp.layout.x)}</text>
         </>
       )}
+      {horizontalAnchor === 'center' && (
+        <>
+          {/* Prominent red centerline */}
+          <line x1={labelW / 2} y1={0} x2={labelW / 2} y2={labelH} stroke="#ef4444" strokeWidth={1.5} opacity={0.5} />
+          {/* Dashed red guides from left edge to component, and component to right edge */}
+          <line x1={0} y1={y + height / 2} x2={x} y2={y + height / 2} stroke="#ef4444" strokeWidth={1} strokeDasharray="4 2" opacity={0.5} />
+          <line x1={x + width} y1={y + height / 2} x2={labelW} y2={y + height / 2} stroke="#ef4444" strokeWidth={1} strokeDasharray="4 2" opacity={0.5} />
+          {/* Left/right edge lines */}
+          <line x1={x} y1={0} x2={x} y2={labelH} stroke="#ef4444" strokeWidth={1} opacity={0.3} />
+          <line x1={x + width} y1={0} x2={x + width} y2={labelH} stroke="#ef4444" strokeWidth={1} opacity={0.3} />
+        </>
+      )}
 
       {/* Vertical anchor guide: show distance from anchored vertical edge */}
       {verticalAnchor === 'top' && (

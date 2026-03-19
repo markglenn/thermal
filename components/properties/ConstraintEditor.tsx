@@ -19,15 +19,19 @@ const ANCHOR_CORNERS: {
   position: string;
 }[] = [
   { horizontal: 'left', vertical: 'top', position: 'top-left' },
+  { horizontal: 'center', vertical: 'top', position: 'top-center' },
   { horizontal: 'right', vertical: 'top', position: 'top-right' },
   { horizontal: 'left', vertical: 'bottom', position: 'bottom-left' },
+  { horizontal: 'center', vertical: 'bottom', position: 'bottom-center' },
   { horizontal: 'right', vertical: 'bottom', position: 'bottom-right' },
 ];
 
 const DOT_POSITIONS: Record<string, string> = {
   'top-left': 'top-0 left-0 -translate-x-1/2 -translate-y-1/2',
+  'top-center': 'top-0 left-1/2 -translate-x-1/2 -translate-y-1/2',
   'top-right': 'top-0 right-0 translate-x-1/2 -translate-y-1/2',
   'bottom-left': 'bottom-0 left-0 -translate-x-1/2 translate-y-1/2',
+  'bottom-center': 'bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2',
   'bottom-right': 'bottom-0 right-0 translate-x-1/2 translate-y-1/2',
 };
 

@@ -50,6 +50,53 @@ describe('resolveLayout', () => {
       expect(result.x).toBe(350); // 400 - 0 - 50
       expect(result.width).toBe(50);
     });
+
+    it('center-anchored with x=0: component perfectly centered', () => {
+      const result = resolveLayout(
+        defaultLayout({ x: 0, width: 100, horizontalAnchor: 'center' }),
+        parentWidth,
+        parentHeight
+      );
+      expect(result.x).toBe(150); // (400 - 100) / 2 + 0
+      expect(result.width).toBe(100);
+    });
+
+    it('center-anchored with positive x: offset right of center', () => {
+      const result = resolveLayout(
+        defaultLayout({ x: 10, width: 100, horizontalAnchor: 'center' }),
+        parentWidth,
+        parentHeight
+      );
+      expect(result.x).toBe(160); // (400 - 100) / 2 + 10
+      expect(result.width).toBe(100);
+    });
+
+    it('center-anchored with negative x: offset left of center', () => {
+      const result = resolveLayout(
+        defaultLayout({ x: -20, width: 100, horizontalAnchor: 'center' }),
+        parentWidth,
+        parentHeight
+      );
+      expect(result.x).toBe(130); // (400 - 100) / 2 + (-20)
+      expect(result.width).toBe(100);
+    });
+
+    it('center-anchored: width change keeps centering', () => {
+      // Same x=0 but different widths should stay centered
+      const narrow = resolveLayout(
+        defaultLayout({ x: 0, width: 50, horizontalAnchor: 'center' }),
+        parentWidth,
+        parentHeight
+      );
+      const wide = resolveLayout(
+        defaultLayout({ x: 0, width: 200, horizontalAnchor: 'center' }),
+        parentWidth,
+        parentHeight
+      );
+      // Both should be centered: x + width/2 = parentWidth/2
+      expect(narrow.x + narrow.width / 2).toBe(200);
+      expect(wide.x + wide.width / 2).toBe(200);
+    });
   });
 
   describe('vertical resolution', () => {
@@ -142,6 +189,15 @@ describe('resolveComponentTree', () => {
     const result = resolveComponentTree(components, 400, 200);
     // x = 400 - 10 - 40 = 350
     expect(result.get('a')).toEqual({ x: 350, y: 5, width: 40, height: 20 });
+  });
+
+  it('resolves center-anchored component', () => {
+    const components = [
+      makeComponent('a', { x: 0, y: 5, width: 100, height: 20, horizontalAnchor: 'center' }),
+    ];
+    const result = resolveComponentTree(components, 400, 200);
+    // x = (400 - 100) / 2 + 0 = 150
+    expect(result.get('a')).toEqual({ x: 150, y: 5, width: 100, height: 20 });
   });
 
   it('returns empty map for empty components', () => {

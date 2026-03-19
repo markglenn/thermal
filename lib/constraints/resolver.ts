@@ -12,6 +12,8 @@ export function resolveLayout(
 ): ResolvedBounds {
   const x = layout.horizontalAnchor === 'right'
     ? parentWidth - layout.x - layout.width
+    : layout.horizontalAnchor === 'center'
+    ? Math.round((parentWidth - layout.width) / 2) + layout.x
     : layout.x;
 
   const y = layout.verticalAnchor === 'bottom'

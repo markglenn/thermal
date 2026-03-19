@@ -21,17 +21,20 @@ export function useCanvasResize() {
       const labelH = labelHeightDots(state.document.label);
 
       const update: Partial<ComponentLayout> = {};
+      const isCenter = sl.horizontalAnchor === 'center';
       const anchorIsLeft = sl.horizontalAnchor === 'left';
       const anchorIsTop = sl.verticalAnchor === 'top';
 
       // Clamping: the visual top-left must never go past 0,0.
       // Only left/top handles can move the visual top-left edge.
       // Right/bottom handles never affect it — they grow away from the origin.
+      // Center anchor: both handles just change width — the centering formula
+      // repositions symmetrically, so x doesn't need adjusting.
 
       if (handle.includes('right')) {
         update.width = Math.round(Math.max(MIN_RESIZE_SIZE, sl.width + dx));
         // Right-anchored: right handle is anchor side, adjust x (no clamp needed)
-        if (!anchorIsLeft) {
+        if (!anchorIsLeft && !isCenter) {
           update.x = Math.round(sl.x + sl.width - update.width);
         }
       }
@@ -39,13 +42,22 @@ export function useCanvasResize() {
       if (handle.includes('left')) {
         let newWidth = Math.round(Math.max(MIN_RESIZE_SIZE, sl.width - dx));
         // Left handle moves visual left edge — clamp so it doesn't go past 0
-        // Left-anchored: visual left = x = sl.x + sl.width - newWidth → max = sl.x + sl.width
+        // Left-anchored: visual left = newX → max width = sl.x + sl.width
+        // Center-anchored: visual left = (labelW - newW) / 2 + x → max = labelW + 2*sl.x
         // Right-anchored: visual left = labelW - sl.x - newWidth → max = labelW - sl.x
-        const maxW = anchorIsLeft ? sl.x + sl.width : labelW - sl.x;
+        let maxW: number;
+        if (isCenter) {
+          maxW = labelW + 2 * sl.x;
+        } else if (anchorIsLeft) {
+          maxW = sl.x + sl.width;
+        } else {
+          maxW = labelW - sl.x;
+        }
         newWidth = Math.min(newWidth, maxW);
         if (anchorIsLeft) {
           update.x = Math.round(sl.x + sl.width - newWidth);
         }
+        // Center: don't adjust x — centering formula handles repositioning
         update.width = newWidth;
       }
 
