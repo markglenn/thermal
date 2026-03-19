@@ -13,7 +13,7 @@ export const imageComponent: ComponentDefinition<ImageProperties> = {
   traits: {
     autoSized: false,
     rotatable: false,
-    bindable: false,
+    bindable: true,
   },
   defaultLayout: { x: 0, y: 0, width: 100, height: 100, horizontalAnchor: 'left', verticalAnchor: 'top' },
   defaultProps: {

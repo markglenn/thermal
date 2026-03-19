@@ -24,23 +24,57 @@ export function ImageUploadModal({ initialProps, onConfirm, onCancel }: Props) {
   const [preview, setPreview] = useState<string>('');
   const [isDragOver, setIsDragOver] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [urlInput, setUrlInput] = useState('');
+  const [urlError, setUrlError] = useState('');
+  const [urlLoading, setUrlLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const loadBase64 = useCallback((base64: string) => {
+    const img = new Image();
+    img.onload = () => {
+      setData(base64);
+      setOriginalWidth(img.naturalWidth);
+      setOriginalHeight(img.naturalHeight);
+    };
+    img.src = base64;
+  }, []);
 
   const loadImageFile = useCallback((file: File) => {
     if (!file.type.startsWith('image/')) return;
     const reader = new FileReader();
     reader.onload = (e) => {
-      const base64 = e.target?.result as string;
-      const img = new Image();
-      img.onload = () => {
-        setData(base64);
-        setOriginalWidth(img.naturalWidth);
-        setOriginalHeight(img.naturalHeight);
-      };
-      img.src = base64;
+      loadBase64(e.target?.result as string);
     };
     reader.readAsDataURL(file);
-  }, []);
+  }, [loadBase64]);
+
+  const loadImageUrl = useCallback(async (url: string) => {
+    setUrlError('');
+    setUrlLoading(true);
+    try {
+      const proxyUrl = `/api/fetch-image?url=${encodeURIComponent(url)}`;
+      const response = await fetch(proxyUrl);
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.error ?? `HTTP ${response.status}`);
+      }
+      const blob = await response.blob();
+      if (!blob.type.startsWith('image/')) throw new Error('Not an image');
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        loadBase64(e.target?.result as string);
+        setUrlLoading(false);
+      };
+      reader.onerror = () => {
+        setUrlError('Failed to read image');
+        setUrlLoading(false);
+      };
+      reader.readAsDataURL(blob);
+    } catch (err) {
+      setUrlError(err instanceof Error ? err.message : 'Failed to fetch');
+      setUrlLoading(false);
+    }
+  }, [loadBase64]);
 
   // Generate monochrome preview when settings change
   useEffect(() => {
@@ -122,34 +156,66 @@ export function ImageUploadModal({ initialProps, onConfirm, onCancel }: Props) {
         <div className="p-4 overflow-y-auto flex-1 space-y-4">
           {/* Drop zone / preview */}
           {!data ? (
-            <div
-              onDragOver={(e) => {
-                e.preventDefault();
-                setIsDragOver(true);
-              }}
-              onDragLeave={() => setIsDragOver(false)}
-              onDrop={handleDrop}
-              className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-                isDragOver
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-300 hover:border-gray-400'
-              }`}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <div className="text-gray-500 text-sm">
-                <p className="font-medium mb-1">Drop an image here</p>
-                <p className="text-xs text-gray-400">or click to choose a file</p>
-              </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) loadImageFile(file);
+            <div className="space-y-3">
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragOver(true);
                 }}
-              />
+                onDragLeave={() => setIsDragOver(false)}
+                onDrop={handleDrop}
+                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                  isDragOver
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <div className="text-gray-500 text-sm">
+                  <p className="font-medium mb-1">Drop an image here</p>
+                  <p className="text-xs text-gray-400">or click to choose a file</p>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) loadImageFile(file);
+                  }}
+                />
+              </div>
+              <div className="flex items-center gap-2 text-xs text-gray-400">
+                <div className="flex-1 h-px bg-gray-200" />
+                <span>or enter a URL</span>
+                <div className="flex-1 h-px bg-gray-200" />
+              </div>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (urlInput.trim()) loadImageUrl(urlInput.trim());
+                }}
+                className="flex gap-1.5"
+              >
+                <input
+                  type="url"
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                  placeholder="https://example.com/image.png"
+                  className="flex-1 px-2 py-1.5 border border-gray-300 rounded text-sm"
+                />
+                <button
+                  type="submit"
+                  disabled={!urlInput.trim() || urlLoading}
+                  className="px-3 py-1.5 text-sm text-blue-600 border border-blue-300 rounded hover:bg-blue-50 disabled:opacity-50"
+                >
+                  {urlLoading ? 'Loading...' : 'Fetch'}
+                </button>
+              </form>
+              {urlError && (
+                <p className="text-xs text-red-500">{urlError}</p>
+              )}
             </div>
           ) : (
             <div className="space-y-3">

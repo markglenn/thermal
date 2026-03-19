@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { eq, desc } from 'drizzle-orm';
 import { getDatabase } from '@/lib/db';
-import { generateZplMerge } from '@/lib/zpl/generator';
+import { generateZplMerge } from '@/lib/zpl/generator-merge';
 import type { LabelDocument } from '@/lib/types';
 
 export async function POST(
@@ -61,8 +61,10 @@ export async function POST(
     const doc = versions[0].document as LabelDocument;
 
     // Generate merged ZPL for each data entry
-    const zplBlocks = (data as Record<string, string>[]).map((fields) =>
-      generateZplMerge(doc, fields)
+    const zplBlocks = await Promise.all(
+      (data as Record<string, string>[]).map((fields) =>
+        generateZplMerge(doc, fields)
+      )
     );
 
     return new NextResponse(zplBlocks.join('\n'), {

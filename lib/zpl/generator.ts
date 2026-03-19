@@ -48,6 +48,9 @@ function replaceFD(lines: string[], replacement: string): string[] {
 /**
  * Generate a ^DF stored format with ^FN placeholders for bound fields.
  * Static components render normally; bound components get ^FN instead of ^FD.
+ * Note: Image bindings are included as static fallbacks — ZPL's ^FN mechanism
+ * only works with ^FD fields, not ^GFA images. Use generateZplMerge for
+ * image field substitution.
  */
 export function generateZplTemplate(document: LabelDocument, formatName: string = 'R:THERMAL.ZPL'): string {
   const boundsMap = resolveDocument(document);
@@ -69,40 +72,8 @@ export function generateZplTemplate(document: LabelDocument, formatName: string 
     let compLines = [...def.generateZpl(comp.typeData.props, bounds)];
 
     const fn = fieldMap.byComponentId.get(comp.id);
-    if (fn !== undefined && comp.fieldBinding) {
+    if (fn !== undefined && comp.fieldBinding && comp.typeData.type !== 'image') {
       compLines = replaceFD(compLines, `^FN${fn}"${comp.fieldBinding}"^FS`);
-    }
-
-    lines.push(...compLines);
-  }
-  lines.push('^XZ');
-  return lines.join('\n');
-}
-
-/**
- * Generate ready-to-print ZPL with field data substituted into bound components.
- * Missing fields fall back to the component's default content.
- */
-export function generateZplMerge(document: LabelDocument, fieldData: Record<string, string>): string {
-  const boundsMap = resolveDocument(document);
-  const widthDots = labelWidthDots(document.label);
-  const heightDots = labelHeightDots(document.label);
-
-  const lines: string[] = [];
-  lines.push('^XA');
-  lines.push(`^PW${widthDots}`);
-  lines.push(`^LL${heightDots}`);
-
-  for (const comp of document.components) {
-    const bounds = boundsMap.get(comp.id);
-    if (!bounds) continue;
-
-    const def = getDefinition(comp.typeData.type);
-    let compLines = [...def.generateZpl(comp.typeData.props, bounds)];
-
-    if (comp.fieldBinding && comp.fieldBinding in fieldData) {
-      const value = fieldData[comp.fieldBinding];
-      compLines = replaceFD(compLines, `^FD${value}^FS`);
     }
 
     lines.push(...compLines);
