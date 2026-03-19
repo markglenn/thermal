@@ -105,6 +105,8 @@ export function ImageUploadModal({ initialProps, onConfirm, onCancel }: Props) {
       data,
       originalWidth,
       originalHeight,
+      objectFit: initialProps?.objectFit ?? 'fit',
+      objectPosition: initialProps?.objectPosition ?? 'center',
       threshold,
       invert,
       monochromeMethod: method,

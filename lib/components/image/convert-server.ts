@@ -21,7 +21,7 @@ export async function convertImageUrlToMonochrome(
 
   const buffer = Buffer.from(await response.arrayBuffer());
   const { data, info } = await sharp(buffer)
-    .resize(width, height)
+    .resize(width, height, { fit: 'fill' })
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });

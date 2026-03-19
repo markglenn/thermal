@@ -1,17 +1,30 @@
 'use client';
 
 import { useState } from 'react';
-import type { ImageProperties as ImagePropsType, MonochromeMethod } from '@/lib/types';
+import type { ImageProperties as ImagePropsType, MonochromeMethod, ImageObjectFit, ImageObjectPosition } from '@/lib/types';
 import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
 import { findComponent } from '@/lib/utils';
 import { ImageUploadModal } from '@/components/image-upload/ImageUploadModal';
 import { Upload, Replace, Trash2 } from 'lucide-react';
 import { convertImageToMonochrome, generateMonochromePreview } from './convert';
+import { resolveImageLayout } from './fit';
 
 interface Props {
   componentId: string;
   props: ImagePropsType;
 }
+
+const POSITION_DOTS: { position: ImageObjectPosition; className: string }[] = [
+  { position: 'top-left',     className: 'top-0 left-0 -translate-x-1/2 -translate-y-1/2' },
+  { position: 'top',          className: 'top-0 left-1/2 -translate-x-1/2 -translate-y-1/2' },
+  { position: 'top-right',    className: 'top-0 right-0 translate-x-1/2 -translate-y-1/2' },
+  { position: 'left',         className: 'top-1/2 left-0 -translate-x-1/2 -translate-y-1/2' },
+  { position: 'center',       className: 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2' },
+  { position: 'right',        className: 'top-1/2 right-0 translate-x-1/2 -translate-y-1/2' },
+  { position: 'bottom-left',  className: 'bottom-0 left-0 -translate-x-1/2 translate-y-1/2' },
+  { position: 'bottom',       className: 'bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2' },
+  { position: 'bottom-right', className: 'bottom-0 right-0 translate-x-1/2 translate-y-1/2' },
+];
 
 export function ImagePropertiesPanel({ componentId, props }: Props) {
   const updateProperties = useEditorStoreContext((s) => s.updateProperties);
@@ -21,53 +34,41 @@ export function ImagePropertiesPanel({ componentId, props }: Props) {
 
   const hasImage = !!props.data;
 
-  const updateMonochrome = async (changes: Partial<Pick<ImagePropsType, 'threshold' | 'invert' | 'monochromeMethod'>>) => {
-    const newThreshold = changes.threshold ?? props.threshold;
-    const newInvert = changes.invert ?? props.invert;
-    const newMethod = changes.monochromeMethod ?? props.monochromeMethod;
+  const getConversionDims = (overrides: Partial<ImagePropsType> = {}) => {
+    const comp = findComponent(storeApi.getState().document.components, componentId);
+    const boxWidth = comp?.layout.width ?? props.originalWidth;
+    const boxHeight = comp?.layout.height ?? props.originalHeight;
+    const fit = overrides.objectFit ?? props.objectFit;
+    const pos = overrides.objectPosition ?? props.objectPosition;
+    return resolveImageLayout(boxWidth, boxHeight, props.originalWidth, props.originalHeight, fit, pos);
+  };
 
-    updateProperties(componentId, { ...changes });
+  const reconvert = async (overrides: Partial<ImagePropsType> = {}) => {
+    if (!props.data) return;
 
-    if (props.data) {
-      const comp = findComponent(storeApi.getState().document.components, componentId);
-      const zplWidth = comp?.layout.width ?? props.originalWidth;
-      const zplHeight = comp?.layout.height ?? props.originalHeight;
+    const newThreshold = overrides.threshold ?? props.threshold;
+    const newInvert = overrides.invert ?? props.invert;
+    const newMethod = overrides.monochromeMethod ?? props.monochromeMethod;
+    const layout = getConversionDims(overrides);
 
-      const [result, preview, previewFull] = await Promise.all([
-        convertImageToMonochrome(
-          props.data,
-          zplWidth,
-          zplHeight,
-          newThreshold,
-          newInvert,
-          newMethod
-        ),
-        generateMonochromePreview(
-          props.data,
-          zplWidth,
-          zplHeight,
-          newThreshold,
-          newInvert,
-          newMethod
-        ),
-        generateMonochromePreview(
-          props.data,
-          props.originalWidth,
-          props.originalHeight,
-          newThreshold,
-          newInvert,
-          newMethod
-        ),
-      ]);
-      updateProperties(componentId, {
-        monochromePreview: preview,
-        monochromePreviewFull: previewFull,
-        zplHex: result.hex,
-        zplBytesPerRow: result.bytesPerRow,
-        zplWidth: result.width,
-        zplHeight: result.height,
-      });
-    }
+    const [result, preview, previewFull] = await Promise.all([
+      convertImageToMonochrome(props.data, layout.width, layout.height, newThreshold, newInvert, newMethod),
+      generateMonochromePreview(props.data, layout.width, layout.height, newThreshold, newInvert, newMethod),
+      generateMonochromePreview(props.data, props.originalWidth, props.originalHeight, newThreshold, newInvert, newMethod),
+    ]);
+    updateProperties(componentId, {
+      monochromePreview: preview,
+      monochromePreviewFull: previewFull,
+      zplHex: result.hex,
+      zplBytesPerRow: result.bytesPerRow,
+      zplWidth: result.width,
+      zplHeight: result.height,
+    });
+  };
+
+  const updateAndReconvert = async (changes: Partial<ImagePropsType>) => {
+    updateProperties(componentId, changes);
+    await reconvert(changes);
   };
 
   return (
@@ -78,7 +79,7 @@ export function ImagePropertiesPanel({ componentId, props }: Props) {
           <span className="text-xs text-gray-400">{props.originalWidth} &times; {props.originalHeight}</span>
         )}
       </div>
-      <div className="space-y-2">
+      <div className="space-y-3">
         {hasImage && (
           <div className="border border-gray-200 rounded p-1 bg-[repeating-conic-gradient(#e5e7eb_0%_25%,transparent_0%_50%)_0_0/12px_12px]">
             <img
@@ -105,6 +106,8 @@ export function ImagePropertiesPanel({ componentId, props }: Props) {
                   data: '',
                   originalWidth: 100,
                   originalHeight: 100,
+                  objectFit: 'fit',
+                  objectPosition: 'center',
                   monochromePreview: '',
                   monochromePreviewFull: '',
                   zplHex: '',
@@ -132,11 +135,61 @@ export function ImagePropertiesPanel({ componentId, props }: Props) {
 
         {hasImage && (
           <>
+            {/* Object Fit */}
+            <label>
+              <span className="text-xs text-gray-500">Sizing</span>
+              <select
+                value={props.objectFit ?? 'fit'}
+                onChange={(e) => updateAndReconvert({ objectFit: e.target.value as ImageObjectFit })}
+                className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm"
+              >
+                <option value="fit">Fit (original size)</option>
+                <option value="fill">Fill (proportional)</option>
+                <option value="stretch">Stretch (distort)</option>
+              </select>
+            </label>
+
+            {/* Object Position — dot picker, only for fit mode */}
+            {(props.objectFit ?? 'fit') !== 'stretch' && (
+              <div>
+                <span className="text-xs text-gray-500">Image Position</span>
+                <div className="flex justify-center mt-1">
+                <div className="relative w-20 h-14 border-2 border-gray-300 rounded bg-gray-50">
+                  {/* Crosshair lines */}
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full h-px bg-gray-200" />
+                  </div>
+                  <div className="absolute inset-0 flex justify-center">
+                    <div className="h-full w-px bg-gray-200" />
+                  </div>
+                  {/* Position dots */}
+                  {POSITION_DOTS.map((dot) => {
+                    const currentPos = props.objectPosition ?? 'center';
+                    const isActive = dot.position === currentPos;
+                    return (
+                      <button
+                        key={dot.position}
+                        onClick={() => updateAndReconvert({ objectPosition: dot.position })}
+                        className={`absolute ${dot.className} w-3 h-3 rounded-full border-2 transition-all z-10 ${
+                          isActive
+                            ? 'bg-blue-500 border-blue-600 scale-110'
+                            : 'bg-white border-gray-300 hover:border-blue-400 hover:bg-blue-50'
+                        }`}
+                        title={dot.position}
+                      />
+                    );
+                  })}
+                </div>
+                </div>
+              </div>
+            )}
+
+            {/* Monochrome Method */}
             <label>
               <span className="text-xs text-gray-500">Monochrome Method</span>
               <select
                 value={props.monochromeMethod}
-                onChange={(e) => updateMonochrome({ monochromeMethod: e.target.value as MonochromeMethod })}
+                onChange={(e) => updateAndReconvert({ monochromeMethod: e.target.value as MonochromeMethod })}
                 className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm"
               >
                 <option value="threshold">Closest Color</option>
@@ -152,7 +205,7 @@ export function ImagePropertiesPanel({ componentId, props }: Props) {
                   min={0}
                   max={255}
                   value={props.threshold}
-                  onChange={(e) => updateMonochrome({ threshold: parseInt(e.target.value) })}
+                  onChange={(e) => updateAndReconvert({ threshold: parseInt(e.target.value) })}
                   className="w-full mt-0.5"
                 />
               </label>
@@ -162,11 +215,10 @@ export function ImagePropertiesPanel({ componentId, props }: Props) {
               <input
                 type="checkbox"
                 checked={props.invert}
-                onChange={(e) => updateMonochrome({ invert: e.target.checked })}
+                onChange={(e) => updateAndReconvert({ invert: e.target.checked })}
               />
               <span className="text-xs text-gray-500">Invert</span>
             </label>
-
           </>
         )}
       </div>
@@ -179,7 +231,7 @@ export function ImagePropertiesPanel({ componentId, props }: Props) {
             const comp = findComponent(storeApi.getState().document.components, componentId);
             const currentWidth = comp?.layout.width;
             const currentHeight = comp?.layout.height;
-            // If component is still at default 200x200 (no prior image), resize to image dimensions
+            // If component is still at default 100x100 (no prior image), resize to image dimensions
             if (currentWidth === 100 && currentHeight === 100 && !props.data) {
               updateLayout(componentId, {
                 width: result.originalWidth,

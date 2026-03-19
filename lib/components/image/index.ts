@@ -4,7 +4,6 @@ import type { ComponentDefinition } from '../definition';
 import { ImageElement } from './element';
 import { ImagePropertiesPanel } from './properties';
 import { imageZpl } from './zpl';
-import { constrainImageSize } from './constrain-size';
 
 export const imageComponent: ComponentDefinition<ImageProperties> = {
   type: 'image',
@@ -20,6 +19,8 @@ export const imageComponent: ComponentDefinition<ImageProperties> = {
     data: '',
     originalWidth: 100,
     originalHeight: 100,
+    objectFit: 'fit',
+    objectPosition: 'center',
     threshold: 128,
     invert: false,
     monochromeMethod: 'threshold',
@@ -33,5 +34,4 @@ export const imageComponent: ComponentDefinition<ImageProperties> = {
   Element: ImageElement,
   PropertiesPanel: ImagePropertiesPanel,
   generateZpl: imageZpl,
-  constrainSize: constrainImageSize,
 };

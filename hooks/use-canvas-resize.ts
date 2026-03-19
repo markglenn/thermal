@@ -1,8 +1,7 @@
 import { useCallback } from 'react';
 import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
-import { findComponent } from '@/lib/utils';
-import { MIN_RESIZE_SIZE } from '@/lib/constants';
-import type { ComponentLayout, ImageProperties } from '@/lib/types';
+import { MIN_RESIZE_SIZE, labelWidthDots, labelHeightDots } from '@/lib/constants';
+import type { ComponentLayout } from '@/lib/types';
 
 export function useCanvasResize() {
   const resizeState = useEditorStoreContext((s) => s.resizeState);
@@ -18,97 +17,57 @@ export function useCanvasResize() {
       const dy = (e.clientY - resizeState.startY) / zoom;
       const sl = resizeState.startLayout;
       const handle = resizeState.handle;
-
-      const comp = findComponent(state.document.components, resizeState.componentId);
-      const isImage = comp?.typeData.type === 'image';
-
-      // Handle names (left/right/top/bottom) are visual — "right" means the
-      // right side of the component on screen, regardless of anchor direction.
-      //
-      // Resize rules:
-      // - Dragging the right handle right → width increases (+dx)
-      // - Dragging the left handle left → width increases (-dx)
-      // - Dragging the bottom handle down → height increases (+dy)
-      // - Dragging the top handle up → height increases (-dy)
-      //
-      // Position (x/y) adjustment:
-      // - For left-anchored: dragging the LEFT handle changes x (anchor side moves)
-      // - For right-anchored: dragging the RIGHT handle changes x (anchor side moves)
-      // - Same for vertical axis with top/bottom
+      const labelW = labelWidthDots(state.document.label);
+      const labelH = labelHeightDots(state.document.label);
 
       const update: Partial<ComponentLayout> = {};
+      const anchorIsLeft = sl.horizontalAnchor === 'left';
+      const anchorIsTop = sl.verticalAnchor === 'top';
 
-      if (isImage && comp) {
-        const props = comp.typeData.props as ImageProperties;
-        const aspectRatio = props.originalWidth / props.originalHeight;
-        const maxW = props.originalWidth;
-        const maxH = props.originalHeight;
+      // Clamping: the visual top-left must never go past 0,0.
+      // Only left/top handles can move the visual top-left edge.
+      // Right/bottom handles never affect it — they grow away from the origin.
 
-        let newWidth: number;
-        if (handle.includes('right')) {
-          newWidth = sl.width + dx;
-        } else if (handle.includes('left')) {
-          newWidth = sl.width - dx;
-        } else {
-          newWidth = sl.width;
+      if (handle.includes('right')) {
+        update.width = Math.round(Math.max(MIN_RESIZE_SIZE, sl.width + dx));
+        // Right-anchored: right handle is anchor side, adjust x (no clamp needed)
+        if (!anchorIsLeft) {
+          update.x = Math.round(sl.x + sl.width - update.width);
         }
+      }
 
-        newWidth = Math.round(Math.max(MIN_RESIZE_SIZE, Math.min(newWidth, maxW)));
-        let newHeight = Math.round(Math.max(MIN_RESIZE_SIZE, Math.min(newWidth / aspectRatio, maxH)));
-        newWidth = Math.round(newHeight * aspectRatio);
-
+      if (handle.includes('left')) {
+        let newWidth = Math.round(Math.max(MIN_RESIZE_SIZE, sl.width - dx));
+        // Left handle moves visual left edge — clamp so it doesn't go past 0
+        // Left-anchored: visual left = x = sl.x + sl.width - newWidth → max = sl.x + sl.width
+        // Right-anchored: visual left = labelW - sl.x - newWidth → max = labelW - sl.x
+        const maxW = anchorIsLeft ? sl.x + sl.width : labelW - sl.x;
+        newWidth = Math.min(newWidth, maxW);
+        if (anchorIsLeft) {
+          update.x = Math.round(sl.x + sl.width - newWidth);
+        }
         update.width = newWidth;
+      }
+
+      if (handle.includes('bottom')) {
+        update.height = Math.round(Math.max(MIN_RESIZE_SIZE, sl.height + dy));
+        // Bottom-anchored: bottom handle is anchor side, adjust y (no clamp needed)
+        if (!anchorIsTop) {
+          update.y = Math.round(sl.y + sl.height - update.height);
+        }
+      }
+
+      if (handle.startsWith('top')) {
+        let newHeight = Math.round(Math.max(MIN_RESIZE_SIZE, sl.height - dy));
+        // Top handle moves visual top edge — clamp so it doesn't go past 0
+        // Top-anchored: visual top = y = sl.y + sl.height - newHeight → max = sl.y + sl.height
+        // Bottom-anchored: visual top = labelH - sl.y - newHeight → max = labelH - sl.y
+        const maxH = anchorIsTop ? sl.y + sl.height : labelH - sl.y;
+        newHeight = Math.min(newHeight, maxH);
+        if (anchorIsTop) {
+          update.y = Math.round(sl.y + sl.height - newHeight);
+        }
         update.height = newHeight;
-
-        // Adjust x when resizing from the anchor side
-        const anchorIsLeft = sl.horizontalAnchor === 'left';
-        if (handle.includes('left') && anchorIsLeft) {
-          update.x = Math.round(sl.x + sl.width - newWidth);
-        }
-        if (handle.includes('right') && !anchorIsLeft) {
-          update.x = Math.round(sl.x + sl.width - newWidth);
-        }
-
-        const anchorIsTop = sl.verticalAnchor === 'top';
-        if (handle.startsWith('top') && anchorIsTop) {
-          update.y = Math.round(sl.y + sl.height - newHeight);
-        }
-        if (handle.includes('bottom') && !anchorIsTop) {
-          update.y = Math.round(sl.y + sl.height - newHeight);
-        }
-      } else {
-        const anchorIsLeft = sl.horizontalAnchor === 'left';
-        const anchorIsTop = sl.verticalAnchor === 'top';
-
-        if (handle.includes('right')) {
-          update.width = Math.round(Math.max(MIN_RESIZE_SIZE, sl.width + dx));
-          // Right-anchored: right handle is the anchor side, adjust x
-          if (!anchorIsLeft) {
-            update.x = Math.round(sl.x + sl.width - update.width);
-          }
-        }
-        if (handle.includes('left')) {
-          const newWidth = Math.round(Math.max(MIN_RESIZE_SIZE, sl.width - dx));
-          update.width = newWidth;
-          // Left-anchored: left handle is the anchor side, adjust x
-          if (anchorIsLeft) {
-            update.x = Math.round(sl.x + sl.width - newWidth);
-          }
-        }
-
-        if (handle.includes('bottom')) {
-          update.height = Math.round(Math.max(MIN_RESIZE_SIZE, sl.height + dy));
-          if (!anchorIsTop) {
-            update.y = Math.round(sl.y + sl.height - update.height);
-          }
-        }
-        if (handle.startsWith('top')) {
-          const newHeight = Math.round(Math.max(MIN_RESIZE_SIZE, sl.height - dy));
-          update.height = newHeight;
-          if (anchorIsTop) {
-            update.y = Math.round(sl.y + sl.height - newHeight);
-          }
-        }
       }
 
       state.updateLayout(resizeState.componentId, update);

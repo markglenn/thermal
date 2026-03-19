@@ -200,6 +200,8 @@ describe('imageZpl', () => {
         data: '',
         originalWidth: 100,
         originalHeight: 100,
+        objectFit: 'fit',
+        objectPosition: 'center',
         threshold: 128,
         invert: false,
         monochromeMethod: 'threshold',
@@ -215,12 +217,14 @@ describe('imageZpl', () => {
     expect(result).toEqual([]);
   });
 
-  it('generates ^GFA command when image data is present', () => {
+  it('generates ^GFA command with fit positioning', () => {
     const result = imageZpl(
       {
         data: 'data:image/png;base64,abc',
         originalWidth: 8,
         originalHeight: 2,
+        objectFit: 'fit',
+        objectPosition: 'center',
         threshold: 128,
         invert: false,
         monochromeMethod: 'threshold',
@@ -233,6 +237,31 @@ describe('imageZpl', () => {
       },
       bounds
     );
+    // 8x2 image in 200x80 box → 8x2 (capped at original), centered: offset 96,39
+    expect(result).toEqual(['^FO146,139', '^GFA,2,2,1,FF00', '^FS']);
+  });
+
+  it('generates ^GFA command with stretch positioning', () => {
+    const result = imageZpl(
+      {
+        data: 'data:image/png;base64,abc',
+        originalWidth: 8,
+        originalHeight: 2,
+        objectFit: 'stretch',
+        objectPosition: 'center',
+        threshold: 128,
+        invert: false,
+        monochromeMethod: 'threshold',
+        monochromePreview: '',
+        monochromePreviewFull: '',
+        zplHex: 'FF00',
+        zplBytesPerRow: 1,
+        zplWidth: 8,
+        zplHeight: 2,
+      },
+      bounds
+    );
+    // stretch: no offset, fills entire box
     expect(result).toEqual(['^FO50,100', '^GFA,2,2,1,FF00', '^FS']);
   });
 });

@@ -75,11 +75,15 @@ export interface QrCodeProperties {
 }
 
 export type MonochromeMethod = 'threshold' | 'dither';
+export type ImageObjectFit = 'fit' | 'fill' | 'stretch';
+export type ImageObjectPosition = 'top-left' | 'top' | 'top-right' | 'left' | 'center' | 'right' | 'bottom-left' | 'bottom' | 'bottom-right';
 
 export interface ImageProperties {
   data: string; // base64 data URI
   originalWidth: number;
   originalHeight: number;
+  objectFit: ImageObjectFit;
+  objectPosition: ImageObjectPosition;
   threshold: number; // 0-255
   invert: boolean;
   monochromeMethod: MonochromeMethod;

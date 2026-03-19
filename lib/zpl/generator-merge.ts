@@ -4,6 +4,7 @@ import { resolveDocument } from '../constraints/resolver';
 import { getDefinition } from '../components';
 import { fieldOrigin } from './commands';
 import { convertImageUrlToMonochrome } from '@/lib/components/image/convert-server';
+import { resolveImageLayout } from '@/lib/components/image/fit';
 
 /**
  * Replace the ^FD...^FS line with new content.
@@ -40,17 +41,22 @@ export async function generateZplMerge(document: LabelDocument, fieldData: Recor
       if (comp.typeData.type === 'image') {
         const imageUrl = fieldData[comp.fieldBinding];
         const imageProps = comp.typeData.props as ImageProperties;
+        const imgLayout = resolveImageLayout(
+          bounds.width, bounds.height,
+          imageProps.originalWidth, imageProps.originalHeight,
+          imageProps.objectFit, imageProps.objectPosition,
+        );
         const result = await convertImageUrlToMonochrome(
           imageUrl,
-          bounds.width,
-          bounds.height,
+          imgLayout.width,
+          imgLayout.height,
           imageProps.threshold,
           imageProps.invert,
           imageProps.monochromeMethod
         );
         const totalBytes = result.bytesPerRow * result.height;
         compLines = [
-          fieldOrigin(bounds.x, bounds.y),
+          fieldOrigin(bounds.x + imgLayout.offsetX, bounds.y + imgLayout.offsetY),
           `^GFA,${totalBytes},${totalBytes},${result.bytesPerRow},${result.hex}`,
           '^FS',
         ];

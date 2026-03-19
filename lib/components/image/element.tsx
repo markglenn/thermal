@@ -1,7 +1,19 @@
 'use client';
 
-import type { ImageProperties } from '@/lib/types';
+import type { ImageProperties, ImageObjectPosition } from '@/lib/types';
 import { useEditorStoreContext } from '@/lib/store/editor-context';
+
+const CSS_OBJECT_POSITION: Record<ImageObjectPosition, string> = {
+  'top-left': 'left top',
+  'top': 'center top',
+  'top-right': 'right top',
+  'left': 'left center',
+  'center': 'center center',
+  'right': 'right center',
+  'bottom-left': 'left bottom',
+  'bottom': 'center bottom',
+  'bottom-right': 'right bottom',
+};
 
 interface Props {
   props: ImageProperties;
@@ -19,17 +31,22 @@ export function ImageElement({ props }: Props) {
     );
   }
 
-  // During resize: show full-res monochrome, let CSS scale it smoothly
-  // When idle: show monochrome rendered at constraint dimensions for accurate dithering
   const src = isResizing
     ? (props.monochromePreviewFull || props.data)
     : (props.monochromePreview || props.data);
+
+  const fit = props.objectFit ?? 'fit';
+  const position = props.objectPosition ?? 'center';
 
   return (
     <img
       src={src}
       alt=""
-      className="w-full h-full object-fill"
+      className="w-full h-full"
+      style={{
+        objectFit: fit === 'stretch' ? 'fill' : fit === 'fill' ? 'contain' : 'scale-down',
+        objectPosition: CSS_OBJECT_POSITION[position],
+      }}
       draggable={false}
     />
   );
