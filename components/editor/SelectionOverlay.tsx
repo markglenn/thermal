@@ -26,6 +26,8 @@ const allHandles: { position: ResizeHandle; style: React.CSSProperties }[] = [
 
 // Handles that affect height
 const HEIGHT_HANDLES = new Set<ResizeHandle>(['top', 'bottom', 'top-left', 'top-right', 'bottom-left', 'bottom-right']);
+// Handles that affect width
+const WIDTH_HANDLES = new Set<ResizeHandle>(['left', 'right', 'top-left', 'top-right', 'bottom-left', 'bottom-right']);
 
 export function SelectionOverlay({ bounds, componentId, showHandles = true }: Props) {
   const setResizeState = useEditorStoreContext((s) => s.setResizeState);
@@ -36,6 +38,8 @@ export function SelectionOverlay({ bounds, componentId, showHandles = true }: Pr
   if (!selectedComponent) return null;
 
   const sizing = getSizingMode(selectedComponent);
+  const isHorizontalLine = selectedComponent.typeData.type === 'line' && selectedComponent.typeData.props.orientation === 'horizontal';
+  const isVerticalLine = selectedComponent.typeData.type === 'line' && selectedComponent.typeData.props.orientation === 'vertical';
 
   return (
     <div
@@ -53,6 +57,9 @@ export function SelectionOverlay({ bounds, componentId, showHandles = true }: Pr
         // Sizing mode restrictions
         if (sizing === 'auto') return null;
         if (sizing === 'width-only' && HEIGHT_HANDLES.has(h.position)) return null;
+        // Lines: only show handles along the line's axis
+        if (isHorizontalLine && HEIGHT_HANDLES.has(h.position)) return null;
+        if (isVerticalLine && WIDTH_HANDLES.has(h.position)) return null;
 
         return (
           <div

@@ -10,7 +10,7 @@ interface Props {
 export function LineElement({ props }: Props) {
   const isHorizontal = props.orientation === 'horizontal';
   return (
-    <div className="w-full h-full flex items-center justify-center">
+    <div className="w-full h-full">
       <div
         className="bg-black"
         style={{

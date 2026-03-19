@@ -32,7 +32,13 @@ export function useCanvasResize() {
       // repositions symmetrically, so x doesn't need adjusting.
 
       if (handle.includes('right')) {
-        update.width = Math.round(Math.max(MIN_RESIZE_SIZE, sl.width + dx));
+        let newWidth = Math.round(Math.max(MIN_RESIZE_SIZE, sl.width + dx));
+        // Center-anchored: growing right also pushes visual left — clamp so it stays >= 0
+        // visual left = (labelW - width) / 2 + x → max width = labelW + 2*sl.x
+        if (isCenter) {
+          newWidth = Math.min(newWidth, labelW + 2 * sl.x);
+        }
+        update.width = newWidth;
         // Right-anchored: right handle is anchor side, adjust x (no clamp needed)
         if (!anchorIsLeft && !isCenter) {
           update.x = Math.round(sl.x + sl.width - update.width);
