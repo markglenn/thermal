@@ -8,6 +8,31 @@ export function useCanvasDrag() {
   const dragState = useEditorStoreContext((s) => s.dragState);
   const storeApi = useEditorStoreApi();
 
+  const startDrag = useCallback(
+    (e: React.PointerEvent, componentId: string, selectedIds: string[]) => {
+      const state = storeApi.getState();
+      const comp = findComponent(state.document.components, componentId);
+      if (!comp) return;
+
+      const others = selectedIds
+        .filter((id) => id !== componentId)
+        .map((id) => {
+          const c = findComponent(state.document.components, id);
+          return c ? { componentId: id, startLayout: { ...c.layout } } : null;
+        })
+        .filter((x): x is { componentId: string; startLayout: ComponentLayout } => x !== null);
+
+      state.setDragState({
+        componentId,
+        startX: e.clientX,
+        startY: e.clientY,
+        startLayout: { ...comp.layout },
+        others: others.length > 0 ? others : undefined,
+      });
+    },
+    [storeApi]
+  );
+
   const handleComponentPointerDown = useCallback(
     (e: React.PointerEvent, componentId: string) => {
       if (e.button !== 0) return;
@@ -33,30 +58,8 @@ export function useCanvasDrag() {
       const selectedIds = alreadySelected ? store.selectedComponentIds : [componentId];
       startDrag(e, componentId, selectedIds);
     },
-    []
+    [storeApi, startDrag]
   );
-
-  function startDrag(e: React.PointerEvent, componentId: string, selectedIds: string[]) {
-    const state = storeApi.getState();
-    const comp = findComponent(state.document.components, componentId);
-    if (!comp) return;
-
-    const others = selectedIds
-      .filter((id) => id !== componentId)
-      .map((id) => {
-        const c = findComponent(state.document.components, id);
-        return c ? { componentId: id, startLayout: { ...c.layout } } : null;
-      })
-      .filter((x): x is { componentId: string; startLayout: ComponentLayout } => x !== null);
-
-    state.setDragState({
-      componentId,
-      startX: e.clientX,
-      startY: e.clientY,
-      startLayout: { ...comp.layout },
-      others: others.length > 0 ? others : undefined,
-    });
-  }
 
   const handleDragMove = useCallback(
     (e: React.PointerEvent) => {
@@ -82,7 +85,7 @@ export function useCanvasDrag() {
 
       storeApi.getState().updateMultipleLayouts(updates);
     },
-    []
+    [storeApi]
   );
 
   return { handleComponentPointerDown, handleDragMove, dragState };

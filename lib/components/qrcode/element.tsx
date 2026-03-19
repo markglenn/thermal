@@ -13,7 +13,7 @@ interface Props {
 // measured across magnifications 1–10 and DPI 203/300/600 via Labelary).
 const ZPL_QR_TOP_GAP = 10;
 
-export function QrCodeElement({ props, isSelected }: Props) {
+export function QrCodeElement({ props, isSelected: _isSelected }: Props) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [moduleCount, setModuleCount] = useState(21);
 

@@ -74,7 +74,7 @@ export function useMarqueeSelect(
       window.addEventListener('pointermove', onMove);
       window.addEventListener('pointerup', onUp);
     },
-    [labelRef, absoluteBoundsMap]
+    [storeApi, labelRef, absoluteBoundsMap]
   );
 
   const handleLabelPointerDown = useCallback(

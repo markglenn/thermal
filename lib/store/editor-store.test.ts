@@ -159,7 +159,7 @@ describe('editor store', () => {
     });
 
     it('does not mutate the source components', () => {
-      const original = { ...useEditorStore.getState().addComponent('text') };
+      useEditorStore.getState().addComponent('text');
       const comp = useEditorStore.getState().document.components[0];
       const snapshot = structuredClone(comp);
       useEditorStore.getState().pasteComponents([comp]);

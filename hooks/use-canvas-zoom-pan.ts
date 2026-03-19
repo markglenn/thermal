@@ -6,7 +6,7 @@ import type { LabelConfig } from '@/lib/types';
 export function useCanvasZoomPan(
   canvasRef: React.RefObject<HTMLDivElement | null>,
   label: LabelConfig,
-  labelRef?: React.RefObject<HTMLDivElement | null>
+  _labelRef?: React.RefObject<HTMLDivElement | null>
 ) {
   const [isPanning, setIsPanning] = useState(false);
   const [isSpaceHeld, setIsSpaceHeld] = useState(false);
@@ -23,7 +23,7 @@ export function useCanvasZoomPan(
   const heightDots = labelHeightDots(label);
 
   // Clamp pan via ref so wheel handler always uses latest values
-  const clampPanRef = useRef((panX: number, panY: number, zoom: number) => ({ panX, panY }));
+  const clampPanRef = useRef((panX: number, panY: number, _zoom: number) => ({ panX, panY }));
   useEffect(() => {
     clampPanRef.current = (panX: number, panY: number, zoom: number) => {
       if (!canvasRef.current) return { panX, panY };
@@ -74,7 +74,7 @@ export function useCanvasZoomPan(
     const scaleY = (rect.height - padding * 2) / heightDots;
     const fitZoom = Math.max(MIN_ZOOM, Math.min(scaleX, scaleY, 1));
     storeApi.getState().setViewport(fitZoom, 0, 0);
-  }, [canvasRef, widthDots, heightDots]);
+  }, [storeApi, canvasRef, widthDots, heightDots]);
 
   // Fit label on mount
   useEffect(() => {
@@ -111,7 +111,7 @@ export function useCanvasZoomPan(
 
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
-  }, [canvasRef]);
+  }, [canvasRef, storeApi]);
 
   // Shared pan-drag logic for middle-mouse and space+drag
   const startPan = useCallback(
@@ -140,7 +140,7 @@ export function useCanvasZoomPan(
       window.addEventListener('pointerup', onUp);
       cleanupRef.current = onUp;
     },
-    []
+    [storeApi]
   );
 
   // Middle-mouse pan + left-click-on-background deselect

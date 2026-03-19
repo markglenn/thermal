@@ -133,12 +133,17 @@ Text rendering accounts for:
 - Letter spacing tuning (`-0.027em` for Font 0)
 - Rotation (90/180/270) with position-preserving CSS transforms
 
-## Testing
+## Testing & Linting
 
 - **Always create unit tests** whenever possible for new or changed logic
 - **Verify tests pass** (`npm test`) before committing
 - Tests use **Vitest** — test files live alongside source as `*.test.ts` or in a `__tests__/` directory
 - Run `npm test` for a single pass, `npm run test:watch` during development
+- **Always run `npm run lint`** on changed files before committing — this catches React Compiler violations (via `eslint-plugin-react-compiler` included in `eslint-config-next`) that `npm run build` and `tsc` will not catch
+- React Compiler lint rules to watch for:
+  - **No `setState` synchronously in effects** — use `useRef<T | null>(null)` with `if (ref.current === null)` for one-time initialization instead of `useEffect`
+  - **No ref access during render** — only `ref.current === null` checks are allowed (for init); use `useEffect` or event handlers for other ref reads
+  - **Manual memoization must match inferred deps** — if `useCallback`/`useMemo` deps don't match what the compiler infers, it will error
 
 ## Code Conventions
 
@@ -147,7 +152,7 @@ Text rendering accounts for:
 - **ZPL helpers** in `lib/zpl/commands.ts` (just `fieldOrigin`) and `lib/zpl/fonts.ts`
 - **Number inputs** use `NumberInput` component with live-update-on-valid, commit-on-blur pattern
 - **Callbacks in hooks** read from `useEditorStore.getState()` instead of closing over render variables (React Compiler compatibility)
-- **No `useRef.current` writes during render** — use `useEffect` to update refs
+- **No `useRef.current` access during render** — exception: `if (ref.current === null)` for one-time init is allowed by the React Compiler
 
 ## Important ZPL Behaviors
 

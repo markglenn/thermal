@@ -13,7 +13,6 @@ interface Props {
 const DRAG_THRESHOLD = 5;
 
 export function PaletteItem({ type, label, icon: Icon }: Props) {
-  const setPaletteDropState = useEditorStoreContext((s) => s.setPaletteDropState);
   const addComponent = useEditorStoreContext((s) => s.addComponent);
   const storeApi = useEditorStoreApi();
 
@@ -61,7 +60,7 @@ export function PaletteItem({ type, label, icon: Icon }: Props) {
       window.addEventListener('pointermove', onMove);
       window.addEventListener('pointerup', onUp);
     },
-    [type, setPaletteDropState, addComponent, storeApi]
+    [type, addComponent, storeApi]
   );
 
   return (

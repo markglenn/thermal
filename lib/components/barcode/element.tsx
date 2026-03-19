@@ -17,7 +17,7 @@ interface Props {
   isSelected?: boolean;
 }
 
-export function BarcodeElement({ props, isSelected }: Props) {
+export function BarcodeElement({ props, isSelected: _isSelected }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 

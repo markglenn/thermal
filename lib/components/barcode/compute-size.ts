@@ -36,8 +36,8 @@ export function computeBarcodeSize(props: BarcodeProperties): { width: number; h
   }
 
   const totalModules = computeTotalModules(encoding, content.length);
-  let w = totalModules * MODULE_WIDTH;
-  let h = height + (showText ? TEXT_HEIGHT : 0);
+  const w = totalModules * MODULE_WIDTH;
+  const h = height + (showText ? TEXT_HEIGHT : 0);
 
   if (rotation === 90 || rotation === 270) {
     return { width: h, height: w };

@@ -15,7 +15,7 @@ const JUSTIFICATION_MAP: Record<string, React.CSSProperties['textAlign']> = {
   J: 'justify',
 };
 
-export function TextElement({ props, isSelected }: Props) {
+export function TextElement({ props, isSelected: _isSelected }: Props) {
   const font = props.font;
   const fb = props.fieldBlock;
   const isScalable = font === '0';

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Plus, Settings } from 'lucide-react';
 import { useEditorStoreContext } from '@/lib/store/editor-context';
 import { useLabelConfig } from '@/lib/store/editor-context';
@@ -28,7 +28,11 @@ function useLabelSizes() {
     } catch { /* ignore */ }
   }, []);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  const initialized = useRef<boolean | null>(null);
+  if (initialized.current === null) {
+    initialized.current = true;
+    refresh();
+  }
 
   return { sizes, refresh };
 }

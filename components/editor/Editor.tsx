@@ -16,7 +16,7 @@ import { PanelResizeHandle } from './PanelResizeHandle';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { DragGhost } from './DragGhost';
 import { LabelBrowserModal } from '../documents/LabelBrowserModal';
-import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, PanelBottomClose, PanelBottomOpen, FilePlus, FolderOpen, Flame } from 'lucide-react';
+import { PanelLeftOpen, PanelRightOpen, PanelBottomClose, PanelBottomOpen, FilePlus, FolderOpen, Flame } from 'lucide-react';
 import type { LabelDocument } from '@/lib/types';
 
 export function Editor() {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2, Pencil, Check, X } from 'lucide-react';
 import { DPI_VALUES } from '@/lib/constants';
@@ -108,7 +108,6 @@ export function ManageLabelSizesModal({ onClose, onChanged }: Props) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchSizes = useCallback(async () => {
-    setLoading(true);
     try {
       const res = await fetch('/api/label-sizes');
       if (res.ok) setSizes(await res.json());
@@ -116,7 +115,11 @@ export function ManageLabelSizesModal({ onClose, onChanged }: Props) {
     setLoading(false);
   }, []);
 
-  useEffect(() => { fetchSizes(); }, [fetchSizes]);
+  const initialized = useRef<boolean | null>(null);
+  if (initialized.current === null) {
+    initialized.current = true;
+    fetchSizes();
+  }
 
   const handleSave = async (updated: LabelSize) => {
     const res = await fetch('/api/label-sizes', {
@@ -164,7 +167,7 @@ export function ManageLabelSizesModal({ onClose, onChanged }: Props) {
       onKeyDown={handleKeyDown}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-white rounded-lg shadow-xl w-[560px] max-h-[80vh] flex flex-col overflow-hidden">
+      <div className="bg-white rounded-lg shadow-xl w-140 max-h-[80vh] flex flex-col overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
           <h2 className="text-sm font-semibold">Manage Label Sizes</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg leading-none">

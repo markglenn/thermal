@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { usePauseTracking, useResumeTracking } from '@/lib/store/editor-context';
 
 interface Props {
@@ -13,19 +13,18 @@ interface Props {
 }
 
 export function NumberInput({ value, onChange, min, max, fallback = 0, className }: Props) {
-  const [text, setText] = useState(String(value));
-  const [focused, setFocused] = useState(false);
+  const [draft, setDraft] = useState({ text: String(value), syncedValue: value });
   const pauseTracking = usePauseTracking();
   const resumeTracking = useResumeTracking();
 
-  useEffect(() => {
-    if (!focused) {
-      setText(String(value));
-    }
-  }, [value, focused]);
+  // Sync external value → text when not focused.
+  // React allows setState during render when the value is derived from changed props.
+  if (draft.syncedValue !== value) {
+    setDraft({ text: String(value), syncedValue: value });
+  }
 
   const handleChange = (raw: string) => {
-    setText(raw);
+    setDraft({ text: raw, syncedValue: value });
     if (raw === '-' || raw === '') return;
     const parsed = parseInt(raw);
     if (!isNaN(parsed)) {
@@ -34,17 +33,11 @@ export function NumberInput({ value, onChange, min, max, fallback = 0, className
     }
   };
 
-  const handleFocus = () => {
-    setFocused(true);
-    pauseTracking();
-  };
-
   const handleBlur = () => {
-    setFocused(false);
-    const parsed = parseInt(text);
+    const parsed = parseInt(draft.text);
     if (isNaN(parsed)) {
       onChange(fallback);
-      setText(String(fallback));
+      setDraft({ text: String(fallback), syncedValue: fallback });
     }
     resumeTracking();
   };
@@ -53,8 +46,8 @@ export function NumberInput({ value, onChange, min, max, fallback = 0, className
     <input
       type="text"
       inputMode="numeric"
-      value={text}
-      onFocus={handleFocus}
+      value={draft.text}
+      onFocus={pauseTracking}
       onChange={(e) => handleChange(e.target.value)}
       onBlur={handleBlur}
       className={className ?? 'w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm'}

@@ -15,8 +15,7 @@ describe('resolveVariables', () => {
     const vars: LabelVariable[] = [
       { name: 'printDate', type: 'date', defaultValue: '', format: 'YYYY-MM-DD' },
     ];
-    const now = new Date(2026, 2, 19); // March 19, 2026
-    const result = resolveVariables(vars, 0, now);
+    const result = resolveVariables(vars, 0, new Date(2026, 2, 19));
     expect(result).toEqual({ printDate: '2026-03-19' });
   });
 
@@ -80,7 +79,6 @@ describe('mergeFieldData', () => {
       { name: 'lot', type: 'text', defaultValue: 'LOT-001' },
       { name: 'date', type: 'date', defaultValue: '', format: 'YYYY-MM-DD' },
     ];
-    const now = new Date(2026, 2, 19);
     const result = mergeFieldData(vars, { lot: 'CUSTOM-LOT' }, 0);
     expect(result.lot).toBe('CUSTOM-LOT');
     // date should still be resolved since not overridden

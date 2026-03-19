@@ -108,7 +108,7 @@ export function VariablesPanel() {
             >
               <span className="text-xs font-mono flex-1 truncate">{v.name}</span>
               <span className="text-[10px] text-gray-400">{v.type}</span>
-              <span className="text-[10px] text-gray-400 font-mono truncate max-w-[80px]">{resolved[v.name]}</span>
+              <span className="text-[10px] text-gray-400 font-mono truncate max-w-20">{resolved[v.name]}</span>
             </button>
 
             {expanded === v.name && (

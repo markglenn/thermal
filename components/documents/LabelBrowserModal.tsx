@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2, Search } from 'lucide-react';
 
@@ -61,10 +61,8 @@ export function LabelBrowserModal({ onSelect, onCancel }: Props) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [cacheBust] = useState(() => Date.now());
-  const searchRef = useRef<HTMLInputElement>(null);
 
   const fetchLabels = useCallback(async () => {
-    setLoading(true);
     const res = await fetch('/api/labels');
     if (res.ok) {
       setLabels(await res.json());
@@ -72,14 +70,12 @@ export function LabelBrowserModal({ onSelect, onCancel }: Props) {
     setLoading(false);
   }, []);
 
-  useEffect(() => {
+  // Kick off initial fetch + focus without triggering synchronous setState in effect
+  const initialized = useRef<boolean | null>(null);
+  if (initialized.current === null) {
+    initialized.current = true;
     fetchLabels();
-  }, [fetchLabels]);
-
-  // Auto-focus search on open
-  useEffect(() => {
-    searchRef.current?.focus();
-  }, []);
+  }
 
   const filteredLabels = useMemo(() => {
     if (!search.trim()) return labels;
@@ -144,8 +140,8 @@ export function LabelBrowserModal({ onSelect, onCancel }: Props) {
           <div className="relative">
             <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
-              ref={searchRef}
               value={search}
+              autoFocus
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search labels..."
               className="w-full pl-8 pr-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-400"
@@ -172,7 +168,7 @@ export function LabelBrowserModal({ onSelect, onCancel }: Props) {
                   className="border border-gray-200 rounded-lg p-3 hover:border-blue-400 hover:bg-blue-50/50 cursor-pointer transition-colors group relative"
                   onClick={() => onSelect(label.id)}
                 >
-                  <div className="aspect-[4/3] bg-gray-50 rounded mb-2 flex items-center justify-center overflow-hidden">
+                  <div className="aspect-4/3 bg-gray-50 rounded mb-2 flex items-center justify-center overflow-hidden">
                     {label.hasThumbnail ? (
                       <img
                         src={`/api/labels/${label.id}/thumbnail?t=${cacheBust}`}

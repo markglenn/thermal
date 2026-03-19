@@ -23,8 +23,7 @@ const sampleDocumentWithText: LabelDocument = {
     {
       id: 'comp_1',
       name: 'Text',
-      constraints: { left: 10, top: 20 },
-      pins: [],
+      layout: { x: 10, y: 20, width: 100, height: 30, horizontalAnchor: 'left', verticalAnchor: 'top' },
       typeData: {
         type: 'text',
         props: {

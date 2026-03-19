@@ -126,7 +126,7 @@ export function ConstraintEditor({ component }: Props) {
 
         {/* Middle row: left offset — rectangle — right offset */}
         <div className="flex items-center gap-1.5">
-          <div className="w-[68px] flex justify-end items-center gap-0.5">
+          <div className="w-17 flex justify-end items-center gap-0.5">
             {hAnchor === 'left' && (
               <>
                 <LockButton locked={!!layout.lockX} onClick={() => toggleLock(component.id, 'x')} />
@@ -166,7 +166,7 @@ export function ConstraintEditor({ component }: Props) {
             })}
           </div>
 
-          <div className="w-[68px] flex items-center gap-0.5">
+          <div className="w-17 flex items-center gap-0.5">
             {hAnchor === 'right' && (
               <>
                 {offsetInput(layout.x, setX)}

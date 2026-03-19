@@ -15,7 +15,7 @@ export function usePaletteDrop(labelRef: React.RefObject<HTMLDivElement | null>)
       const y = Math.round((clientY - labelRect.top) / zoom);
       return { x, y };
     },
-    [labelRef]
+    [storeApi, labelRef]
   );
 
   const handleDrop = useCallback(
@@ -29,7 +29,7 @@ export function usePaletteDrop(labelRef: React.RefObject<HTMLDivElement | null>)
       }
       setPaletteDropState(null);
     },
-    [screenToDots, addComponent, setPaletteDropState]
+    [storeApi, screenToDots, addComponent, setPaletteDropState]
   );
 
   return { handleDrop };

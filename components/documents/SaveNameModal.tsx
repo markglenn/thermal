@@ -33,7 +33,7 @@ export function SaveNameModal({ initialName, onConfirm, onCancel }: Props) {
       }}
     >
       <div
-        className="bg-white rounded-lg shadow-xl w-[360px] flex flex-col overflow-hidden"
+        className="bg-white rounded-lg shadow-xl w-90 flex flex-col overflow-hidden"
         onKeyDown={handleKeyDown}
       >
         <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">

@@ -9,15 +9,6 @@ import { resolveImageLayout } from '@/lib/components/image/fit';
 import { mergeFieldData } from '../variables/resolve';
 
 /**
- * Replace the ^FD...^FS line with new content.
- */
-function replaceFD(lines: string[], replacement: string): string[] {
-  return lines.map((line) =>
-    line.match(/\^FD.*\^FS$/) ? replacement : line
-  );
-}
-
-/**
  * Deep-clone a document and substitute field data into bound component props.
  * Recomputes content sizes so layout reflects the substituted data.
  * Image bindings are left as-is (they need async server-side conversion).

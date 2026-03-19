@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { eq, desc, sql } from 'drizzle-orm';
+import { desc, sql } from 'drizzle-orm';
 import { getDatabase, parseThumbnail } from '@/lib/db';
 import { validateDocument } from '@/lib/documents/validate';
 
