@@ -8,6 +8,13 @@
       "when": 1773708500362,
       "tag": "0000_strange_mockingbird",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1773953247470,
+      "tag": "0001_aspiring_malice",
+      "breakpoints": true
     }
   ]
 }

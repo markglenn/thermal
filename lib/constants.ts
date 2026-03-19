@@ -42,13 +42,6 @@ export const ZOOM_SENSITIVITY = 0.005; // wheel delta multiplier for zoom
 // Undo throttle — collapses rapid state changes into one history entry
 export const UNDO_THROTTLE_MS = 500;
 
-export const LABEL_PRESETS: Record<string, LabelConfig> = {
-  '4x6': { widthInches: 4, heightInches: 6, dpi: 203 },
-  '4x4': { widthInches: 4, heightInches: 4, dpi: 203 },
-  '2x1': { widthInches: 2, heightInches: 1, dpi: 203 },
-  '3x2': { widthInches: 3, heightInches: 2, dpi: 203 },
-};
-
 // ZPL font size mapping (native bitmap dimensions in dots: height x width)
 export const ZPL_FONT_SIZES: Record<string, { width: number; height: number }> = {
   A: { width: 5, height: 9 },
