@@ -1,5 +1,5 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
-import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
+import { useEditorStoreApi } from '@/lib/store/editor-context';
 import { MIN_ZOOM, MAX_ZOOM, PAN_CLAMP_MARGIN, FIT_PADDING, ZOOM_SENSITIVITY, labelWidthDots, labelHeightDots } from '@/lib/constants';
 import type { LabelConfig } from '@/lib/types';
 
@@ -9,8 +9,10 @@ export function useCanvasZoomPan(
   labelRef?: React.RefObject<HTMLDivElement | null>
 ) {
   const [isPanning, setIsPanning] = useState(false);
+  const [isSpaceHeld, setIsSpaceHeld] = useState(false);
   const hasInitialized = useRef(false);
   const cleanupRef = useRef<(() => void) | null>(null);
+  const spaceRef = useRef(false);
   const storeApi = useEditorStoreApi();
 
   // Clean up window listeners if component unmounts mid-pan
@@ -19,7 +21,6 @@ export function useCanvasZoomPan(
   }, []);
   const widthDots = labelWidthDots(label);
   const heightDots = labelHeightDots(label);
-  const selectComponent = useEditorStoreContext((s) => s.selectComponent);
 
   // Clamp pan via ref so wheel handler always uses latest values
   const clampPanRef = useRef((panX: number, panY: number, zoom: number) => ({ panX, panY }));
@@ -39,6 +40,42 @@ export function useCanvasZoomPan(
     };
   }, [canvasRef, widthDots, heightDots]);
 
+  // Track spacebar for hand-tool panning
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && !e.repeat) {
+        const tag = (e.target as HTMLElement).tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+        e.preventDefault();
+        spaceRef.current = true;
+        setIsSpaceHeld(true);
+      }
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        spaceRef.current = false;
+        setIsSpaceHeld(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+    };
+  }, []);
+
+  const fitToView = useCallback(() => {
+    if (!canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+    const padding = FIT_PADDING;
+    const scaleX = (rect.width - padding * 2) / widthDots;
+    const scaleY = (rect.height - padding * 2) / heightDots;
+    const fitZoom = Math.max(MIN_ZOOM, Math.min(scaleX, scaleY, 1));
+    storeApi.getState().setViewport(fitZoom, 0, 0);
+  }, [canvasRef, widthDots, heightDots]);
+
   // Fit label on mount
   useEffect(() => {
     if (hasInitialized.current) return;
@@ -47,14 +84,10 @@ export function useCanvasZoomPan(
       const rect = canvasRef.current.getBoundingClientRect();
       if (rect.width === 0 || rect.height === 0) return;
       hasInitialized.current = true;
-      const padding = FIT_PADDING;
-      const scaleX = (rect.width - padding * 2) / widthDots;
-      const scaleY = (rect.height - padding * 2) / heightDots;
-      const fitZoom = Math.max(MIN_ZOOM, Math.min(scaleX, scaleY, 1));
-      storeApi.getState().setViewport(fitZoom, 0, 0);
+      fitToView();
     });
     return () => cancelAnimationFrame(frame);
-  }, [canvasRef, widthDots, heightDots]);
+  }, [canvasRef, fitToView]);
 
   // Non-passive wheel handler
   useEffect(() => {
@@ -80,69 +113,60 @@ export function useCanvasZoomPan(
     return () => el.removeEventListener('wheel', onWheel);
   }, [canvasRef]);
 
-  // Middle-mouse pan + left-click deselect
+  // Shared pan-drag logic for middle-mouse and space+drag
+  const startPan = useCallback(
+    (e: React.PointerEvent) => {
+      e.preventDefault();
+      setIsPanning(true);
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const { panX: startPanX, panY: startPanY, zoom } = storeApi.getState().viewport;
+
+      const onMove = (me: PointerEvent) => {
+        const clamped = clampPanRef.current(
+          startPanX + (me.clientX - startX),
+          startPanY + (me.clientY - startY),
+          zoom
+        );
+        storeApi.getState().setViewport(zoom, clamped.panX, clamped.panY);
+      };
+      const onUp = () => {
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+        cleanupRef.current = null;
+        setIsPanning(false);
+      };
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+      cleanupRef.current = onUp;
+    },
+    []
+  );
+
+  // Middle-mouse pan + left-click-on-background deselect
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
       if (e.button === 1) {
-        e.preventDefault();
-        setIsPanning(true);
-        const startX = e.clientX;
-        const startY = e.clientY;
-        const { panX: startPanX, panY: startPanY, zoom } = storeApi.getState().viewport;
-
-        const onMove = (me: PointerEvent) => {
-          const clamped = clampPanRef.current(
-            startPanX + (me.clientX - startX),
-            startPanY + (me.clientY - startY),
-            zoom
-          );
-          storeApi.getState().setViewport(zoom, clamped.panX, clamped.panY);
-        };
-        const onUp = () => {
-          window.removeEventListener('pointermove', onMove);
-          window.removeEventListener('pointerup', onUp);
-          cleanupRef.current = null;
-          setIsPanning(false);
-        };
-        window.addEventListener('pointermove', onMove);
-        window.addEventListener('pointerup', onUp);
-        cleanupRef.current = onUp;
+        startPan(e);
         return;
       }
 
-      if (e.button === 0) {
-        // If click is inside the label surface, let the marquee handler deal with it
-        if (labelRef?.current?.contains(e.target as Node)) return;
-
-        selectComponent(null);
-
-        // Left-click drag to pan (only from gray background)
-        const startX = e.clientX;
-        const startY = e.clientY;
-        const { panX: startPanX, panY: startPanY, zoom } = storeApi.getState().viewport;
-
-        const onMove = (me: PointerEvent) => {
-          setIsPanning(true);
-          const clamped = clampPanRef.current(
-            startPanX + (me.clientX - startX),
-            startPanY + (me.clientY - startY),
-            zoom
-          );
-          storeApi.getState().setViewport(zoom, clamped.panX, clamped.panY);
-        };
-        const onUp = () => {
-          window.removeEventListener('pointermove', onMove);
-          window.removeEventListener('pointerup', onUp);
-          cleanupRef.current = null;
-          setIsPanning(false);
-        };
-        window.addEventListener('pointermove', onMove);
-        window.addEventListener('pointerup', onUp);
-        cleanupRef.current = onUp;
-      }
+      // Left-click on background: deselect + marquee handled by Canvas
     },
-    [selectComponent]
+    [startPan]
   );
 
-  return { handlePointerDown, isPanning };
+  // Space+left-click pan — called from capture phase to intercept before
+  // marquee/component handlers
+  const handleSpacePanCapture = useCallback(
+    (e: React.PointerEvent) => {
+      if (e.button === 0 && spaceRef.current) {
+        e.stopPropagation();
+        startPan(e);
+      }
+    },
+    [startPan]
+  );
+
+  return { handlePointerDown, handleSpacePanCapture, isPanning, isSpaceHeld, fitToView };
 }

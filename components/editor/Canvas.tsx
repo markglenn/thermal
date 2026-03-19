@@ -30,12 +30,12 @@ export function Canvas() {
   const widthDots = labelWidthDots(document.label);
   const heightDots = labelHeightDots(document.label);
 
-  const { handlePointerDown, isPanning } = useCanvasZoomPan(canvasRef, document.label, labelRef);
+  const { handlePointerDown, handleSpacePanCapture, isPanning, isSpaceHeld, fitToView } = useCanvasZoomPan(canvasRef, document.label, labelRef);
   const { handleComponentPointerDown, handleDragMove, dragState } = useCanvasDrag();
   const { handleResizeMove, resizeState } = useCanvasResize();
   const { handleDrop } = usePaletteDrop(labelRef);
   const { boundsMap, absoluteBoundsMap, handleMeasure } = useAbsoluteBounds();
-  const { marquee, handleLabelPointerDown } = useMarqueeSelect(labelRef, absoluteBoundsMap);
+  const { marquee, handleLabelPointerDown, startMarquee } = useMarqueeSelect(labelRef, absoluteBoundsMap);
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
@@ -63,8 +63,12 @@ export function Canvas() {
     (e: React.PointerEvent) => {
       canvasRef.current?.focus();
       handlePointerDown(e);
+      // Left-click on canvas background (outside label): start marquee
+      if (e.button === 0 && !labelRef.current?.contains(e.target as Node)) {
+        startMarquee(e);
+      }
     },
-    [handlePointerDown]
+    [handlePointerDown, startMarquee]
   );
 
   // For single selection, show resize handles. For multi-select, show outlines only.
@@ -75,7 +79,8 @@ export function Canvas() {
       ref={canvasRef}
       tabIndex={0}
       className="flex-1 overflow-hidden bg-gray-100 relative outline-none"
-      style={{ cursor: dragState ? 'grabbing' : (isPanning ? 'grabbing' : 'grab') }}
+      style={{ cursor: dragState ? 'grabbing' : isPanning ? 'grabbing' : isSpaceHeld ? 'grab' : 'default' }}
+      onPointerDownCapture={handleSpacePanCapture}
       onPointerDown={handleCanvasPointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
@@ -93,7 +98,7 @@ export function Canvas() {
         <div
           ref={labelRef}
           className="bg-white shadow-lg relative"
-          style={{ width: widthDots, height: heightDots, cursor: 'default' }}
+          style={{ width: widthDots, height: heightDots, cursor: isSpaceHeld ? undefined : 'default' }}
           onPointerDown={handleLabelPointerDown}
         >
           {showGrid && <GridOverlay width={widthDots} height={heightDots} gridSize={gridSize} />}
@@ -138,10 +143,15 @@ export function Canvas() {
         </div>
       </div>
 
-      {/* Zoom indicator */}
-      <div className="absolute bottom-4 right-4 bg-white/80 rounded px-2 py-1 text-sm text-gray-600 font-mono">
+      {/* Zoom indicator — click to fit */}
+      <button
+        type="button"
+        className="absolute bottom-4 right-4 bg-white/80 hover:bg-blue-500 hover:text-white rounded px-2 py-1 text-sm text-gray-600 font-mono cursor-pointer transition-colors"
+        title="Fit to view"
+        onClick={fitToView}
+      >
         {Math.round(viewport.zoom * 100)}%
-      </div>
+      </button>
     </div>
   );
 }

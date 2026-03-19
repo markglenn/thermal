@@ -17,10 +17,8 @@ export function useMarqueeSelect(
   const startRef = useRef<{ x: number; y: number } | null>(null);
   const storeApi = useEditorStoreApi();
 
-  const handleLabelPointerDown = useCallback(
+  const startMarquee = useCallback(
     (e: React.PointerEvent) => {
-      // Only start marquee on direct clicks on the label surface (not on components)
-      if (e.target !== e.currentTarget) return;
       if (e.button !== 0) return;
 
       e.preventDefault();
@@ -79,7 +77,16 @@ export function useMarqueeSelect(
     [labelRef, absoluteBoundsMap]
   );
 
-  return { marquee, handleLabelPointerDown };
+  const handleLabelPointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      // Only start marquee on direct clicks on the label surface (not on components)
+      if (e.target !== e.currentTarget) return;
+      startMarquee(e);
+    },
+    [startMarquee]
+  );
+
+  return { marquee, handleLabelPointerDown, startMarquee };
 }
 
 function rectsIntersect(a: MarqueeRect, b: ResolvedBounds): boolean {
