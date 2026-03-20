@@ -126,7 +126,7 @@ export function LabelBrowserModal({ onSelect, onCancel }: Props) {
         if (e.target === e.currentTarget) onCancel();
       }}
     >
-      <div className="bg-white rounded-lg shadow-xl w-[600px] max-h-[80vh] flex flex-col overflow-hidden">
+      <div className="bg-white rounded-lg shadow-xl w-150 max-h-[80vh] flex flex-col overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-200 space-y-2">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold">Open Label</h2>
@@ -170,6 +170,7 @@ export function LabelBrowserModal({ onSelect, onCancel }: Props) {
                 >
                   <div className="aspect-4/3 bg-gray-50 rounded mb-2 flex items-center justify-center overflow-hidden">
                     {label.hasThumbnail ? (
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={`/api/labels/${label.id}/thumbnail?t=${cacheBust}`}
                         alt={label.name}

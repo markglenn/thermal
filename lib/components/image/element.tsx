@@ -39,6 +39,7 @@ export function ImageElement({ props }: Props) {
   const position = props.objectPosition ?? 'center';
 
   return (
+    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={src}
       alt=""

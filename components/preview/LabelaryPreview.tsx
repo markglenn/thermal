@@ -50,6 +50,7 @@ export function LabelaryPreview() {
   return (
     <div className="h-full p-3 flex items-center justify-center bg-gray-50 overflow-auto">
       {imageUrl && !error && (
+        // eslint-disable-next-line @next/next/no-img-element
         <img
           src={imageUrl}
           alt="Label preview"

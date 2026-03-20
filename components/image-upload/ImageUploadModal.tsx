@@ -226,6 +226,7 @@ export function ImageUploadModal({ initialProps, onConfirm, onCancel }: Props) {
                 <div>
                   <span className="text-xs text-gray-500 block mb-1">Original</span>
                   <div className="border border-gray-200 rounded bg-[repeating-conic-gradient(#e5e7eb_0%_25%,transparent_0%_50%)_0_0/16px_16px] flex items-center justify-center p-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={data}
                       alt="Original"
@@ -237,6 +238,7 @@ export function ImageUploadModal({ initialProps, onConfirm, onCancel }: Props) {
                   <span className="text-xs text-gray-500 block mb-1">Monochrome</span>
                   <div className="border border-gray-200 rounded bg-white flex items-center justify-center p-2">
                     {preview ? (
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={preview}
                         alt="Monochrome preview"

@@ -81,6 +81,7 @@ export function ImagePropertiesPanel({ componentId, props }: Props) {
       <div className="space-y-3">
         {hasImage && (
           <div className="border border-gray-200 rounded p-1 bg-[repeating-conic-gradient(#e5e7eb_0%_25%,transparent_0%_50%)_0_0/12px_12px]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={props.monochromePreviewFull || props.data}
               alt="Component image"
