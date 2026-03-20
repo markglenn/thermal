@@ -114,18 +114,19 @@ type StoreGet = () => EditorStore;
 export function createEditorStore() {
   // Per-instance throttle cancel and store ref (closure-scoped, not module-level)
   let cancelThrottledHandleSet: (() => void) | null = null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let storeRef: any = null;
+  let storeRef: EditorStoreApi | null = null;
 
   function getTemporalState() {
+    if (!storeRef) throw new Error('Store not initialized — temporal accessed before createEditorStore completed');
     return storeRef.temporal.getState();
   }
 
   function enterUndoBatch(set: ImmerSet, get: StoreGet) {
-    set((state) => {
-      state._undoBatchSnapshot = { document: structuredClone(get().document) };
-    });
     getTemporalState().pause();
+    // Immer produces immutable snapshots — safe to store by reference
+    set((state) => {
+      state._undoBatchSnapshot = { document: get().document };
+    });
   }
 
   function exitUndoBatch(set: ImmerSet, get: StoreGet) {
@@ -136,7 +137,7 @@ export function createEditorStore() {
     getTemporalState().resume();
     if (snapshot) {
       const { pastStates } = getTemporalState();
-      storeRef.temporal.setState({ pastStates: [...pastStates, snapshot] });
+      storeRef!.temporal.setState({ pastStates: [...pastStates, snapshot] });
     }
   }
 
@@ -447,8 +448,7 @@ export function createEditorStore() {
       })),
       {
         partialize: (state) => ({ document: state.document }),
-        equality: (past, current) =>
-          JSON.stringify(past.document) === JSON.stringify(current.document),
+        equality: (past, current) => past.document === current.document,
         handleSet: (handleSet) => {
           let timer: ReturnType<typeof setTimeout> | null = null;
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -482,16 +482,3 @@ export function createEditorStore() {
   return store;
 }
 
-// Default singleton — used during migration and in tests.
-// Components should prefer the context-based hooks from editor-context.tsx.
-export const useEditorStore = createEditorStore();
-
-/** Pause undo tracking on a store instance */
-export function pauseTracking(store?: EditorStoreApi) {
-  (store ?? useEditorStore).temporal.getState().pause();
-}
-
-/** Resume undo tracking on a store instance */
-export function resumeTracking(store?: EditorStoreApi) {
-  (store ?? useEditorStore).temporal.getState().resume();
-}

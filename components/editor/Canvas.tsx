@@ -30,7 +30,7 @@ export function Canvas() {
   const widthDots = labelWidthDots(document.label);
   const heightDots = labelHeightDots(document.label);
 
-  const { handlePointerDown, handleSpacePanCapture, isPanning, isSpaceHeld, fitToView } = useCanvasZoomPan(canvasRef, document.label, labelRef);
+  const { handlePointerDown, handleSpacePanCapture, isPanning, isSpaceHeld, fitToView } = useCanvasZoomPan(canvasRef, document.label);
   const { handleComponentPointerDown, handleDragMove, dragState } = useCanvasDrag();
   const { handleResizeMove, resizeState } = useCanvasResize();
   const { handleDrop } = usePaletteDrop(labelRef);

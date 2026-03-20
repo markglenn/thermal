@@ -1,10 +1,8 @@
 import type { LabelComponent, ComponentType, ComponentProperties, ComponentLayout } from '../types';
 import { getDefinition } from '../components';
 
-let nextId = 1;
-
 export function generateId(): string {
-  return `comp_${nextId++}_${Date.now().toString(36)}`;
+  return crypto.randomUUID();
 }
 
 export function createComponent(

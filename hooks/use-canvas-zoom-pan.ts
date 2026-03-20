@@ -6,7 +6,6 @@ import type { LabelConfig } from '@/lib/types';
 export function useCanvasZoomPan(
   canvasRef: React.RefObject<HTMLDivElement | null>,
   label: LabelConfig,
-  _labelRef?: React.RefObject<HTMLDivElement | null>
 ) {
   const [isPanning, setIsPanning] = useState(false);
   const [isSpaceHeld, setIsSpaceHeld] = useState(false);

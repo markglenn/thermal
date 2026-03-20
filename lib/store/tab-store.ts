@@ -8,6 +8,10 @@ export interface TabInfo {
   name: string;
   store: EditorStoreApi;
   dirty: boolean;
+  /** Reference to the document object at last save/load — compared by identity for dirty detection */
+  cleanDocumentRef: LabelDocument;
+  /** Unsubscribe from the editor store's document-change listener */
+  unsubscribe: () => void;
 }
 
 interface TabManagerState {
@@ -32,30 +36,33 @@ function makeTabId(): string {
   return `tab_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 }
 
-// Snapshot of the document at last save/load — used to detect dirty state
-const cleanSnapshots = new Map<string, string>();
-
 function createTab(name: string = 'Untitled', labelId: string | null = null): TabInfo {
   const id = makeTabId();
   const store = createEditorStore();
 
-  // Capture the initial document as "clean"
-  cleanSnapshots.set(id, JSON.stringify(store.getState().document));
+  const tab: TabInfo = {
+    id,
+    labelId,
+    name,
+    store,
+    dirty: false,
+    cleanDocumentRef: store.getState().document,
+    unsubscribe: () => {},
+  };
 
-  // Subscribe to document changes and update dirty flag
-  store.subscribe((state, prevState) => {
+  // Subscribe to document changes and update dirty flag via reference identity
+  tab.unsubscribe = store.subscribe((state, prevState) => {
     if (state.document !== prevState.document) {
-      const clean = cleanSnapshots.get(id);
-      const current = JSON.stringify(state.document);
-      const isDirty = current !== clean;
-      const tab = useTabStore.getState().tabs.find((t) => t.id === id);
-      if (tab && tab.dirty !== isDirty) {
+      const currentTab = useTabStore.getState().tabs.find((t) => t.id === id);
+      if (!currentTab) return;
+      const isDirty = state.document !== currentTab.cleanDocumentRef;
+      if (currentTab.dirty !== isDirty) {
         useTabStore.getState().markDirty(id, isDirty);
       }
     }
   });
 
-  return { id, labelId, name, store, dirty: false };
+  return tab;
 }
 
 // Create the initial tab
@@ -91,10 +98,10 @@ export const useTabStore = create<TabStore>()((set, get) => ({
       if (editorState.document.components.length === 0) {
         activeTab.store.getState().loadDocument(doc);
         activeTab.store.getState().setLabelMeta(labelId, name);
-        cleanSnapshots.set(activeTab.id, JSON.stringify(doc));
+        const cleanRef = activeTab.store.getState().document;
         set((s) => ({
           tabs: s.tabs.map((t) =>
-            t.id === activeTab.id ? { ...t, labelId, name, dirty: false } : t
+            t.id === activeTab.id ? { ...t, labelId, name, dirty: false, cleanDocumentRef: cleanRef } : t
           ),
         }));
         return activeTab.id;
@@ -105,7 +112,7 @@ export const useTabStore = create<TabStore>()((set, get) => ({
     const tab = createTab(name, labelId);
     tab.store.getState().loadDocument(doc);
     tab.store.getState().setLabelMeta(labelId, name);
-    cleanSnapshots.set(tab.id, JSON.stringify(doc));
+    tab.cleanDocumentRef = tab.store.getState().document;
     set((s) => ({
       tabs: [...s.tabs, tab],
       activeTabId: tab.id,
@@ -114,8 +121,9 @@ export const useTabStore = create<TabStore>()((set, get) => ({
   },
 
   closeTab: (tabId) => {
-    cleanSnapshots.delete(tabId);
     const state = get();
+    const closingTab = state.tabs.find((t) => t.id === tabId);
+    closingTab?.unsubscribe();
     const remaining = state.tabs.filter((t) => t.id !== tabId);
 
     if (remaining.length === 0) {
@@ -145,13 +153,12 @@ export const useTabStore = create<TabStore>()((set, get) => ({
   },
 
   markClean: (tabId) => {
-    // Update the clean snapshot so future comparisons know what "saved" looks like
     const tab = get().tabs.find((t) => t.id === tabId);
-    if (tab) {
-      cleanSnapshots.set(tabId, JSON.stringify(tab.store.getState().document));
-    }
+    const cleanRef = tab?.store.getState().document;
     set((state) => ({
-      tabs: state.tabs.map((t) => (t.id === tabId ? { ...t, dirty: false } : t)),
+      tabs: state.tabs.map((t) =>
+        t.id === tabId ? { ...t, dirty: false, cleanDocumentRef: cleanRef ?? t.cleanDocumentRef } : t
+      ),
     }));
   },
 

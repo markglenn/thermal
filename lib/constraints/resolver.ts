@@ -49,6 +49,3 @@ export function resolveDocument(doc: { label: LabelConfig; components: LabelComp
     labelHeightDots(doc.label)
   );
 }
-
-// Legacy exports for backward compatibility during migration
-export { resolveLayout as resolveConstraints };

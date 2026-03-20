@@ -1,13 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { useEditorStore } from './editor-store';
+import { createEditorStore, type EditorStoreApi } from './editor-store';
 import type { LabelDocument, ComponentLayout } from '../types';
 
 // Register all components so createComponent can look them up
 import '../components';
 
-function resetStore() {
-  useEditorStore.getState().resetDocument();
-}
+let useEditorStore: EditorStoreApi;
 
 function defaultLayout(overrides: Partial<ComponentLayout> = {}): ComponentLayout {
   return {
@@ -23,7 +21,7 @@ function defaultLayout(overrides: Partial<ComponentLayout> = {}): ComponentLayou
 
 describe('editor store', () => {
   beforeEach(() => {
-    resetStore();
+    useEditorStore = createEditorStore();
   });
 
   describe('addComponent', () => {
