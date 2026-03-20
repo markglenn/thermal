@@ -1,75 +1,66 @@
 # Thermal
 
-A WYSIWYG label editor for Zebra thermal printers. Design labels visually, generate ZPL code, and preview the output — all in the browser.
+A visual label editor for Zebra thermal printers. Design your labels by dragging and dropping components onto a canvas, and Thermal generates the ZPL code your printer needs — no manual coding required.
+
+![Thermal editor showing a shipping label with barcode and text](docs/screenshot.png)
+
+## What it does
+
+Thermal lets you build labels the way you'd expect — visually. Add text, barcodes, QR codes, shapes, and images to a canvas, arrange them where you want, and get printer-ready ZPL output instantly. A live preview shows you exactly what the printed label will look like before you waste a single sticker.
 
 ## Features
 
-- **Visual canvas** with zoom, pan, and grid overlay
-- **Drag-and-drop** components from palette onto the label
-- **Constraint-based layout** — pin components to edges so labels reflow when resized
-- **Live ZPL generation** — see the ZPL output update in real time
-- **Labelary preview** — rendered label image via the Labelary API
-- **Component types**: text, barcodes (Code 128, Code 39, EAN-13, UPC-A, ITF), QR codes, rectangles, lines, containers
-- **Text features**: independent height/width, rotation, multi-line field blocks with word wrap and justification
-- **Font approximation**: Roboto Condensed for ZPL Font 0, Source Code Pro for bitmap fonts A-H
-- **Layer management** with drag-to-reorder
-- **Label presets**: 4x6, 4x4, 2x1, 3x2 at 203/300/600 DPI
+- **Visual drag-and-drop editor** — place and resize components directly on the label canvas
+- **Live preview** — see the actual printed output as you design, powered by the [Labelary](http://labelary.com) rendering engine
+- **Real-time ZPL generation** — the printer code updates as you edit, ready to copy or send
+- **Barcodes and QR codes** — Code 128, Code 39, EAN-13, UPC-A, ITF, QR, Data Matrix, PDF417
+- **Text with full control** — font size, width, rotation, multi-line wrapping, and justification
+- **Anchor-based positioning** — pin components to edges or center them so layouts adapt when you change label sizes
+- **Multiple label sizes** — common presets (4x6, 2x1, 3x2, etc.) at 203, 300, or 600 DPI, plus custom sizes
+- **Image support** — import images with automatic monochrome conversion for thermal printing
+- **Tabs** — work on multiple labels at once
+- **Field variables** — define text, date, and counter variables for dynamic content at print time
+- **Undo/redo** — full history for every change
+- **Save and load** — persist your labels to a local database
 
-## Getting Started
+## Getting started
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) — you'll be redirected to the editor.
+Open [http://localhost:3000](http://localhost:3000) and start designing.
 
-## How It Works
+## How it works
 
-Labels are composed of components positioned using a constraint system inspired by Xcode's Auto Layout. Each component can be pinned to parent edges, given fixed dimensions, or left to auto-size based on content. The constraint resolver computes absolute positions in dots (printer pixels), which map directly to ZPL field origins.
+You build labels by adding components from the palette on the left — text, barcodes, shapes, images — and positioning them on the canvas. Each component can be anchored to the label edges (left, right, center, top, bottom) so that switching between label sizes keeps everything in the right place.
 
-The editor generates ZPL in real time. A proxy route sends the ZPL to the [Labelary API](http://labelary.com) for a rendered PNG preview, so you can compare the canvas approximation against the actual printer output.
+The editor generates ZPL (Zebra Programming Language) in real time. The bottom panel shows three views:
 
-## Adding Components
+- **ZPL** — the raw printer code, ready to copy
+- **Preview** — a canvas-rendered approximation
+- **Labelary Preview** — the actual printed output rendered by Labelary's API
 
-The editor uses a plugin architecture. Each component type is self-contained in `lib/components/<type>/`:
+All measurements are in dots (printer pixels). A 2" x 1" label at 203 DPI is 406 x 203 dots.
+
+## Adding new component types
+
+Thermal uses a plugin system. Each component type lives in its own folder:
 
 ```
 lib/components/text/
-  index.ts          # Component definition (traits, defaults)
-  element.tsx       # Canvas rendering
-  properties.tsx    # Properties panel
-  zpl.ts            # ZPL generation
+  index.ts          # Definition (type name, defaults, traits)
+  element.tsx       # How it looks on the canvas
+  properties.tsx    # The properties panel UI
+  zpl.ts            # How it converts to ZPL
 ```
 
-To add a new component type:
-1. Create the directory with those files
-2. Export a `ComponentDefinition` from `index.ts`
-3. Add one import line to `lib/components/index.ts`
+Create a new folder, export a `ComponentDefinition`, and add one import to `lib/components/index.ts`. The palette, canvas, properties panel, and ZPL generator all pick it up automatically.
 
-The palette, canvas, properties panel, and ZPL generator all pick it up automatically.
+## Tech stack
 
-## Project Structure
-
-```
-app/
-  editor/page.tsx              # Editor page
-  api/labelary/route.ts        # Labelary API proxy
-lib/
-  components/                  # Component plugins (text, barcode, qrcode, etc.)
-  store/                       # Zustand store (editor state, actions)
-  constraints/resolver.ts      # Constraint solver
-  zpl/                         # ZPL generation (generator, fonts, shared utils)
-  types.ts                     # TypeScript types
-  constants.ts                 # DPI values, font mappings, label presets
-components/
-  editor/                      # Canvas, selection overlay, constraint guides
-  palette/                     # Component palette, layer hierarchy
-  properties/                  # Constraint editor, number input
-  preview/                     # ZPL output, Labelary preview
-  toolbar/                     # Toolbar, label settings
-hooks/                         # Canvas interaction hooks (zoom, drag, resize, etc.)
-```
+Next.js 16, React 19, Zustand, Tailwind CSS 4, TypeScript
 
 ## License
 

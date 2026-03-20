@@ -36,8 +36,7 @@ function makeTabId(): string {
   return `tab_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 }
 
-function createTab(name: string = 'Untitled', labelId: string | null = null): TabInfo {
-  const id = makeTabId();
+function createTab(name: string = 'Untitled', labelId: string | null = null, id: string = makeTabId()): TabInfo {
   const store = createEditorStore();
 
   const tab: TabInfo = {
@@ -65,8 +64,8 @@ function createTab(name: string = 'Untitled', labelId: string | null = null): Ta
   return tab;
 }
 
-// Create the initial tab
-const firstTab = createTab();
+// Use a stable ID for the initial tab to avoid SSR/client hydration mismatch
+const firstTab = createTab('Untitled', null, 'tab_initial');
 
 export const useTabStore = create<TabStore>()((set, get) => ({
   tabs: [firstTab],
