@@ -99,7 +99,7 @@ export function Toolbar() {
 
   return (
     <>
-      <div className="h-10 border-b border-gray-200 bg-white flex items-center px-3 gap-2 text-sm">
+      <div className="h-10 border-b border-gray-200 bg-white flex items-center px-3 gap-2 text-sm" data-testid="toolbar">
         <div className="flex items-center gap-1.5">
           <Flame size={18} className="text-orange-500" />
           <span className="font-bold text-base tracking-tight text-gray-900">Thermal</span>

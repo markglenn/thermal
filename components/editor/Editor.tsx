@@ -109,6 +109,7 @@ function EditorInner() {
                   {(['zpl', 'preview', 'labelary'] as const).map((tab) => (
                     <button
                       key={tab}
+                      data-testid={`preview-tab-${tab}`}
                       onClick={() => setPreviewTab(tab)}
                       className={`px-4 py-1.5 text-xs font-medium ${
                         previewTab === tab

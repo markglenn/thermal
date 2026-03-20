@@ -20,7 +20,7 @@ export function TabBar() {
   };
 
   return (
-    <div className="h-8 bg-gray-50 border-b border-gray-200 flex items-stretch text-xs overflow-x-auto">
+    <div className="h-8 bg-gray-50 border-b border-gray-200 flex items-stretch text-xs overflow-x-auto" data-testid="tab-bar">
       {tabs.map((tab) => (
         <Tab
           key={tab.id}
@@ -32,6 +32,7 @@ export function TabBar() {
       ))}
       <button
         onClick={createTab}
+        data-testid="new-tab-button"
         className="px-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 shrink-0"
         title="New label"
       >
@@ -55,6 +56,7 @@ function Tab({
   return (
     <div
       onClick={onClick}
+      data-testid={`editor-tab-${tab.id}`}
       className={`flex items-center gap-1.5 px-3 border-r border-gray-200 cursor-pointer shrink-0 max-w-45 ${
         isActive
           ? 'bg-white text-gray-900 border-b-2 border-b-blue-500'

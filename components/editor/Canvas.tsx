@@ -78,6 +78,7 @@ export function Canvas() {
     <div
       ref={canvasRef}
       tabIndex={0}
+      data-testid="canvas"
       className="flex-1 overflow-hidden bg-gray-100 relative outline-none"
       style={{ cursor: dragState ? 'grabbing' : isPanning ? 'grabbing' : isSpaceHeld ? 'grab' : 'default' }}
       onPointerDownCapture={handleSpacePanCapture}
@@ -97,6 +98,7 @@ export function Canvas() {
         {/* Label surface */}
         <div
           ref={labelRef}
+          data-testid="label-surface"
           className="bg-white shadow-lg relative"
           style={{ width: widthDots, height: heightDots, cursor: isSpaceHeld ? undefined : 'default' }}
           onPointerDown={handleLabelPointerDown}
@@ -146,6 +148,7 @@ export function Canvas() {
       {/* Zoom indicator — click to fit */}
       <button
         type="button"
+        data-testid="zoom-indicator"
         className="absolute bottom-4 right-4 bg-white/80 hover:bg-blue-500 hover:text-white rounded px-2 py-1 text-sm text-gray-600 font-mono cursor-pointer transition-colors"
         title="Fit to view"
         onClick={fitToView}

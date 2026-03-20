@@ -146,7 +146,7 @@ export function ConstraintEditor({ component }: Props) {
             </div>
             {/* Size display in center */}
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-[9px] text-gray-400 font-mono">{w}×{h}</span>
+              <span data-testid="size-display" className="text-[9px] text-gray-400 font-mono">{w}×{h}</span>
             </div>
             {/* Corner dots */}
             {ANCHOR_CORNERS.map((corner) => {
@@ -155,6 +155,8 @@ export function ConstraintEditor({ component }: Props) {
                 <button
                   key={corner.position}
                   onClick={() => setAnchor(component.id, corner.horizontal, corner.vertical)}
+                  data-testid={`anchor-${corner.position}`}
+                  data-active={isActive}
                   className={`absolute ${DOT_POSITIONS[corner.position]} w-3 h-3 rounded-full border-2 transition-all z-10 ${
                     isActive
                       ? 'bg-blue-500 border-blue-600 scale-110'
@@ -194,11 +196,11 @@ export function ConstraintEditor({ component }: Props) {
         <>
           <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Size</h3>
           <div className="grid grid-cols-4 gap-1">
-            <label className="flex items-center gap-1 col-span-2">
+            <label data-testid="size-width" className="flex items-center gap-1 col-span-2">
               <span className="text-xs text-gray-500 shrink-0">W</span>
               <NumberInput value={w} onChange={setW} fallback={100} min={1} className="w-full px-1.5 py-0.5 border border-gray-300 rounded text-xs" />
             </label>
-            <label className="flex items-center gap-1 col-span-2">
+            <label data-testid="size-height" className="flex items-center gap-1 col-span-2">
               <span className="text-xs text-gray-500 shrink-0">H</span>
               {isWidthOnly ? (
                 <span className="w-full px-1.5 py-0.5 border border-gray-200 rounded text-xs text-gray-400 bg-gray-50">

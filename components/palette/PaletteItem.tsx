@@ -66,6 +66,7 @@ export function PaletteItem({ type, label, icon: Icon }: Props) {
   return (
     <div
       onPointerDown={handlePointerDown}
+      data-testid={`palette-item-${type}`}
       className="flex items-center gap-2 w-full px-3 py-2 text-left text-sm rounded hover:bg-gray-100 active:bg-gray-200 transition-colors cursor-grab select-none"
     >
       <span className="w-6 text-center flex items-center justify-center"><Icon size={18} className="text-gray-600" /></span>

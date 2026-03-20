@@ -15,7 +15,7 @@ interface Props {
 function MultiSelectOrEmptyMessage() {
   const count = useEditorStoreContext((s) => s.selectedComponentIds.length);
   return (
-    <div className="p-3 text-sm text-gray-400 text-center mt-8">
+    <div className="p-3 text-sm text-gray-400 text-center mt-8" data-testid="properties-empty">
       {count > 1
         ? `${count} components selected`
         : 'Select a component to edit its properties'}
@@ -30,7 +30,7 @@ export function PropertiesPanel({ onCollapse }: Props) {
   const Panel = def?.PropertiesPanel;
 
   return (
-    <div className="flex-1 flex flex-col overflow-y-auto">
+    <div className="flex-1 flex flex-col overflow-y-auto" data-testid="properties-panel">
       {onCollapse && (
         <div className="px-3 py-1.5 border-b border-gray-200 flex justify-start shrink-0">
           <button onClick={onCollapse} className="text-gray-400 hover:text-gray-600" title="Collapse panel">

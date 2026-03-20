@@ -44,6 +44,7 @@ export function SelectionOverlay({ bounds, componentId, showHandles = true }: Pr
   return (
     <div
       className="pointer-events-none"
+      data-testid={`selection-overlay-${componentId}`}
       style={{
         position: 'absolute',
         left: bounds.x,

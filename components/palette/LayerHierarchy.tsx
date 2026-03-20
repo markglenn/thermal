@@ -74,6 +74,8 @@ function SortableLayerItem({ component, depth }: { component: LabelComponent; de
       <div
         ref={setNodeRef}
         style={{ ...style, paddingLeft: 8 + depth * 12 }}
+        data-testid={`layer-item-${component.id}`}
+        data-component-type={component.typeData.type}
         className={`flex items-center gap-1.5 px-2 py-1 text-xs rounded cursor-pointer select-none group ${
           isSelected ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-50 text-gray-700'
         }`}
@@ -150,13 +152,13 @@ export function LayerHierarchy() {
   const ids = document.components.map((c) => c.id);
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col" data-testid="layer-hierarchy">
       <div className="px-3 py-2 border-b border-gray-200">
         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Layers</h2>
       </div>
       <div className="p-1 flex flex-col gap-px overflow-y-auto">
         {document.components.length === 0 ? (
-          <div className="px-3 py-3 text-xs text-gray-400 text-center">No components</div>
+          <div className="px-3 py-3 text-xs text-gray-400 text-center" data-testid="layers-empty">No components</div>
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd} modifiers={[restrictToVerticalAxis, restrictToParentElement]}>
             <SortableContext items={ids} strategy={verticalListSortingStrategy}>

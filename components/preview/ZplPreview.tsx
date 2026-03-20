@@ -19,7 +19,7 @@ export function ZplPreview() {
           Copy
         </button>
       </div>
-      <pre className="flex-1 p-3 text-xs font-mono overflow-auto bg-gray-50 whitespace-pre-wrap break-all">
+      <pre data-testid="zpl-output" className="flex-1 p-3 text-xs font-mono overflow-auto bg-gray-50 whitespace-pre-wrap break-all">
         {zpl}
       </pre>
     </div>

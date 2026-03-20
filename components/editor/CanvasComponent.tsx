@@ -62,6 +62,8 @@ export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: P
     <div
       ref={ref}
       style={style}
+      data-testid={`canvas-component-${component.id}`}
+      data-component-type={component.typeData.type}
       onPointerDown={(e) => {
         if (onDragStart) onDragStart(e, component.id);
       }}
