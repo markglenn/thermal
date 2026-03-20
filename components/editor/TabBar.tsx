@@ -55,7 +55,7 @@ function Tab({
   return (
     <div
       onClick={onClick}
-      className={`flex items-center gap-1.5 px-3 border-r border-gray-200 cursor-pointer shrink-0 max-w-[180px] ${
+      className={`flex items-center gap-1.5 px-3 border-r border-gray-200 cursor-pointer shrink-0 max-w-45 ${
         isActive
           ? 'bg-white text-gray-900 border-b-2 border-b-blue-500'
           : 'text-gray-500 hover:bg-gray-100'

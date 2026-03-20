@@ -144,7 +144,7 @@ export function ImageUploadModal({ initialProps, onConfirm, onCancel }: Props) {
         if (e.target === e.currentTarget) onCancel();
       }}
     >
-      <div className="bg-white rounded-lg shadow-xl w-[520px] max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="bg-white rounded-lg shadow-xl w-130 max-h-[90vh] flex flex-col overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
           <h2 className="text-sm font-semibold">Upload Image</h2>
           <button
