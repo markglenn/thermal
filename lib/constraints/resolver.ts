@@ -20,7 +20,9 @@ export function resolveLayout(
     ? parentHeight - layout.y - layout.height
     : layout.y;
 
-  return { x, y, width: layout.width, height: layout.height };
+  // Clamp to non-negative — ZPL ^FO coordinates are clamped to 0 by the
+  // printer firmware, so the canvas should match the actual printed result.
+  return { x: Math.max(0, x), y: Math.max(0, y), width: layout.width, height: layout.height };
 }
 
 /**

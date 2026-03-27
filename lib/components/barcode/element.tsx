@@ -24,11 +24,13 @@ export function BarcodeElement({ props, isSelected: _isSelected }: Props) {
   useEffect(() => {
     if (!svgRef.current || !props.content) return;
     try {
+      const displayText = props.encoding === 'code39' ? `*${props.content}*` : undefined;
       JsBarcode(svgRef.current, props.content, {
         format: JSBARCODE_FORMAT[props.encoding],
         width: 2,
         height: props.height,
         displayValue: props.showText,
+        text: displayText,
         font: 'Source Code Pro, monospace',
         fontSize: 22,
         fontOptions: '',
