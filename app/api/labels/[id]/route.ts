@@ -100,9 +100,9 @@ export async function PUT(
     const latest = versions[0];
     const labelName = name || labelRows[0].name;
 
-    if (latest && latest.status === 'production') {
+    if (latest && latest.status === 'published') {
       return NextResponse.json(
-        { error: 'Latest version is in production. Create a new version first.' },
+        { error: 'Latest version is published. Create a new version first.' },
         { status: 409 }
       );
     }
@@ -145,24 +145,77 @@ export async function PUT(
   }
 }
 
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
+
+  const { name } = body as { name?: string };
+  if (!name || !name.trim()) {
+    return NextResponse.json({ error: 'name is required' }, { status: 400 });
+  }
+
+  try {
+    const { id } = await params;
+    const { db, tables } = await getDatabase();
+
+    const labelRows = await db
+      .select()
+      .from(tables.labels)
+      .where(eq(tables.labels.id, id))
+      .limit(1);
+
+    if (labelRows.length === 0) {
+      return NextResponse.json({ error: 'Label not found' }, { status: 404 });
+    }
+
+    await db.update(tables.labels)
+      .set({ name: name.trim(), updatedAt: new Date() })
+      .where(eq(tables.labels.id, id));
+
+    return NextResponse.json({ id, name: name.trim() });
+  } catch (e) {
+    console.error('PATCH /api/labels/[id] failed:', e);
+    return NextResponse.json({ error: 'Failed to rename label' }, { status: 500 });
+  }
+}
+
+/** Archive or unarchive a label (soft delete). */
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
     const { db, tables } = await getDatabase();
 
-    await db.transaction(async (tx) => {
-      await tx.delete(tables.labelVersions)
-        .where(eq(tables.labelVersions.labelId, id));
-      await tx.delete(tables.labels)
-        .where(eq(tables.labels.id, id));
-    });
+    const labelRows = await db
+      .select()
+      .from(tables.labels)
+      .where(eq(tables.labels.id, id))
+      .limit(1);
 
-    return NextResponse.json({ ok: true });
+    if (labelRows.length === 0) {
+      return NextResponse.json({ error: 'Label not found' }, { status: 404 });
+    }
+
+    // If already archived, unarchive; otherwise archive
+    const unarchive = request.nextUrl.searchParams.get('unarchive') === 'true';
+    const now = new Date();
+
+    await db.update(tables.labels)
+      .set({ archivedAt: unarchive ? null : now, updatedAt: now })
+      .where(eq(tables.labels.id, id));
+
+    return NextResponse.json({ ok: true, archived: !unarchive });
   } catch (e) {
     console.error('DELETE /api/labels/[id] failed:', e);
-    return NextResponse.json({ error: 'Failed to delete label' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to archive label' }, { status: 500 });
   }
 }

@@ -1,9 +1,10 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 import type { LabelComponent, ResolvedBounds } from '@/lib/types';
 import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
 import { getDefinition, getSizingMode } from '@/lib/components';
+import { showComponentContextMenu } from '../shared/component-context-menu';
 
 interface Props {
   component: LabelComponent;
@@ -62,6 +63,10 @@ export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: P
   }
   // auto: no explicit width/height — content determines size
 
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    showComponentContextMenu(e, component, storeApi);
+  }, [component, storeApi]);
+
   return (
     <div
       ref={ref}
@@ -71,6 +76,7 @@ export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: P
       onPointerDown={(e) => {
         if (onDragStart) onDragStart(e, component.id);
       }}
+      onContextMenu={handleContextMenu}
     >
       <Element props={component.typeData.props} isSelected={isSelected} />
     </div>

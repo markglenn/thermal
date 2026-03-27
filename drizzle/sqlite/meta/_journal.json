@@ -29,6 +29,20 @@
       "when": 1774643015207,
       "tag": "0003_fat_zaladane",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1774645048514,
+      "tag": "0004_sad_eternity",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1774648800000,
+      "tag": "0005_rename_production_to_published",
+      "breakpoints": true
     }
   ]
 }

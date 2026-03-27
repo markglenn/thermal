@@ -20,6 +20,7 @@ export const labels = sqliteTable('labels', {
   updatedAt: integer('updated_at', { mode: 'timestamp' })
     .notNull()
     .$defaultFn(() => new Date()),
+  archivedAt: integer('archived_at', { mode: 'timestamp' }),
 });
 
 export const labelVersions = sqliteTable(

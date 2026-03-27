@@ -56,9 +56,9 @@ export async function GET(
 }
 
 /**
- * PATCH — update a version's production flag or archive status.
+ * PATCH — update a version's published flag or archive status.
  * Body can include:
- *   { production: true/false } — set or unset the production flag
+ *   { production: true/false } — publish or unpublish the version
  *   { archived: true/false } — archive or unarchive the version
  */
 export async function PATCH(
@@ -112,7 +112,7 @@ export async function PATCH(
             .where(eq(tables.labelVersions.labelId, id));
           // Set this version as production
           await tx.update(tables.labelVersions)
-            .set({ status: 'production' })
+            .set({ status: 'published' })
             .where(eq(tables.labelVersions.id, target[0].id));
         } else {
           await tx.update(tables.labelVersions)
@@ -124,9 +124,9 @@ export async function PATCH(
       if (archived !== undefined) {
         // Cannot archive a production version
         const currentStatus = production !== undefined
-          ? (production ? 'production' : null)
+          ? (production ? 'published' : null)
           : target[0].status;
-        if (archived && currentStatus === 'production') {
+        if (archived && currentStatus === 'published') {
           throw new Error('CANNOT_ARCHIVE_PRODUCTION');
         }
         await tx.update(tables.labelVersions)
@@ -141,12 +141,12 @@ export async function PATCH(
 
     return NextResponse.json({
       version: target[0].version,
-      status: production !== undefined ? (production ? 'production' : null) : target[0].status,
+      status: production !== undefined ? (production ? 'published' : null) : target[0].status,
       archivedAt: archived ? now.toISOString() : archived === false ? null : (target[0].archivedAt?.toISOString() ?? null),
     });
   } catch (e) {
     if (e instanceof Error && e.message === 'CANNOT_ARCHIVE_PRODUCTION') {
-      return NextResponse.json({ error: 'Cannot archive a published version' }, { status: 400 });
+      return NextResponse.json({ error: 'Cannot archive a published version.' }, { status: 400 });
     }
     console.error('PATCH /api/labels/[id]/versions/[version] failed:', e);
     return NextResponse.json({ error: 'Failed to update version' }, { status: 500 });

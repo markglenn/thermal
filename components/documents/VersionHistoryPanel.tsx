@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { ShieldCheck, ShieldOff, Archive, ArchiveRestore, Clock } from 'lucide-react';
+import { ConfirmButton } from '../ui/ConfirmButton';
 import { useTabStore } from '@/lib/store/tab-store';
 import type { LabelDocument, VersionStatus } from '@/lib/types';
 
@@ -94,14 +95,15 @@ export function VersionHistoryPanel({ labelId, onClose }: Props) {
         data.name,
         data.document as LabelDocument,
         version,
-        latestVersion
+        latestVersion,
+        data.status
       );
     }
 
     onClose();
   };
 
-  const handleSetProduction = async (version: number, production: boolean) => {
+  const handleSetPublished = async (version: number, production: boolean) => {
     setBusy(true);
     try {
       const res = await fetch(`/api/labels/${labelId}/versions/${version}`, {
@@ -120,7 +122,7 @@ export function VersionHistoryPanel({ labelId, onClose }: Props) {
             const latestData = await latestRes.json();
             tabState.updateTabVersionMeta(activeTabId, latestData.version, latestData.status);
             if (viewingVersion === null) {
-              tab.store.getState().setReadOnly(latestData.status === 'production');
+              tab.store.getState().setReadOnly(latestData.status === 'published');
             }
           }
         }
@@ -203,7 +205,7 @@ export function VersionHistoryPanel({ labelId, onClose }: Props) {
             <div className="text-center text-sm text-gray-400 py-8">No versions saved yet</div>
           ) : (
             <div className="flex flex-col gap-3">
-              {!versions.some((v) => v.status === 'production') && (
+              {!versions.some((v) => v.status === 'published') && (
                 <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 text-center">
                   No version has been published
                 </div>
@@ -212,7 +214,7 @@ export function VersionHistoryPanel({ labelId, onClose }: Props) {
                 const isLatest = v.version === latestVersion;
                 const isViewing = v.version === viewingVersion;
                 const isCurrent = isLatest && viewingVersion === null && v.version === tabLatestVersion;
-                const isProduction = v.status === 'production';
+                const isPublished = v.status === 'published';
                 const isArchived = v.archivedAt !== null;
                 const canClick = !isCurrent;
 
@@ -220,23 +222,23 @@ export function VersionHistoryPanel({ labelId, onClose }: Props) {
                   <div
                     key={v.id}
                     className={`rounded-lg border p-3 transition-colors group relative ${
-                      isArchived ? 'opacity-50' : ''
-                    } ${
-                      isViewing || isCurrent
-                        ? 'border-blue-400 bg-blue-50/50'
-                        : 'border-gray-200 hover:border-blue-400 hover:bg-blue-50/50 cursor-pointer'
+                      isArchived
+                        ? 'border-amber-300 bg-amber-50/60 opacity-70'
+                        : isViewing || isCurrent
+                          ? 'border-blue-400 bg-blue-50/50'
+                          : 'border-gray-200 hover:border-blue-400 hover:bg-blue-50/50 cursor-pointer'
                     }`}
                     onClick={() => {
-                      if (canClick) handleClickVersion(v.version, isLatest);
+                      if (canClick && !isArchived) handleClickVersion(v.version, isLatest);
                     }}
                   >
                     {/* Header */}
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-1.5">
                         <span className="text-sm font-medium">v{v.version}</span>
-                        {isProduction && (
+                        {isPublished && (
                           <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700">
-                            Production
+                            Published
                           </span>
                         )}
                         {isArchived && (
@@ -269,9 +271,9 @@ export function VersionHistoryPanel({ labelId, onClose }: Props) {
                     {/* Hover actions */}
                     <div className="flex items-center gap-1.5 min-h-6">
                       {/* Publish */}
-                      {!isProduction && !isArchived && (
+                      {!isPublished && !isArchived && (
                         <button
-                          onClick={(e) => { e.stopPropagation(); handleSetProduction(v.version, true); }}
+                          onClick={(e) => { e.stopPropagation(); handleSetPublished(v.version, true); }}
                           disabled={busy}
                           className="flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-50 opacity-0 group-hover:opacity-100 transition-opacity"
                         >
@@ -281,9 +283,9 @@ export function VersionHistoryPanel({ labelId, onClose }: Props) {
                       )}
 
                       {/* Unpublish — only if single version */}
-                      {isProduction && versions.length === 1 && (
+                      {isPublished && versions.length === 1 && (
                         <button
-                          onClick={(e) => { e.stopPropagation(); handleSetProduction(v.version, false); }}
+                          onClick={(e) => { e.stopPropagation(); handleSetPublished(v.version, false); }}
                           disabled={busy}
                           className="flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium bg-amber-50 text-amber-700 hover:bg-amber-100 disabled:opacity-50 opacity-0 group-hover:opacity-100 transition-opacity"
                         >
@@ -292,16 +294,14 @@ export function VersionHistoryPanel({ labelId, onClose }: Props) {
                         </button>
                       )}
 
-                      {/* Archive — non-production versions only */}
-                      {!isProduction && !isArchived && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleSetArchived(v.version, true); }}
+                      {/* Archive — non-published versions only */}
+                      {!isPublished && !isArchived && (
+                        <ConfirmButton
+                          label="Archive"
+                          icon={<Archive size={12} />}
+                          onConfirm={() => handleSetArchived(v.version, true)}
                           disabled={busy}
-                          className="flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium text-gray-500 hover:bg-gray-100 disabled:opacity-50 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <Archive size={12} />
-                          Archive
-                        </button>
+                        />
                       )}
 
                       {/* Unarchive */}

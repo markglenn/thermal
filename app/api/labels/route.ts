@@ -1,17 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { desc, sql } from 'drizzle-orm';
+import { desc, isNull, sql } from 'drizzle-orm';
 import { getDatabase, parseThumbnail } from '@/lib/db';
 import { validateDocument } from '@/lib/documents/validate';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const { db, tables } = await getDatabase();
+    const includeArchived = request.nextUrl.searchParams.get('archived') === 'true';
 
     // Two queries instead of N+1: all labels + latest version per label
-    const allLabels = await db
-      .select()
-      .from(tables.labels)
-      .orderBy(desc(tables.labels.updatedAt));
+    const allLabels = includeArchived
+      ? await db
+          .select()
+          .from(tables.labels)
+          .orderBy(desc(tables.labels.updatedAt))
+      : await db
+          .select()
+          .from(tables.labels)
+          .where(isNull(tables.labels.archivedAt))
+          .orderBy(desc(tables.labels.updatedAt));
 
     // Get latest version metadata (no document/thumbnail blob) in a single query
     const latestVersions = allLabels.length > 0
@@ -47,6 +54,7 @@ export async function GET() {
         hasThumbnail: !!latest?.hasThumbnail,
         latestVersion: latest?.version ?? 0,
         latestStatus: latest?.status ?? null,
+        archivedAt: label.archivedAt?.toISOString() ?? null,
         updatedAt: label.updatedAt.toISOString(),
       };
     });

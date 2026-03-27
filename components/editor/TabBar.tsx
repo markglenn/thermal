@@ -57,7 +57,7 @@ function Tab({
     <div
       onClick={onClick}
       data-testid={`editor-tab-${tab.id}`}
-      className={`flex items-center gap-1.5 px-3 border-r border-gray-200 cursor-pointer shrink-0 max-w-45 ${
+      className={`flex items-center gap-1.5 px-3 border-r border-gray-200 cursor-pointer shrink-0 max-w-64 ${
         isActive
           ? 'bg-white text-gray-900 border-b-2 border-b-blue-500'
           : 'text-gray-500 hover:bg-gray-100'
@@ -71,8 +71,11 @@ function Tab({
             v{tab.viewingVersion ?? tab.latestVersion}
           </span>
         )}
-        {tab.latestStatus === 'production' && tab.viewingVersion === null && (
-          <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 ml-1 align-middle" title="Published" />
+        {((tab.viewingVersion === null && tab.latestStatus === 'published') ||
+          (tab.viewingVersion !== null && tab.viewingVersionStatus === 'published')) && (
+          <span className="ml-1 inline-block px-1 py-0.5 rounded text-[9px] font-medium bg-green-100 text-green-700 align-middle leading-none">
+            Published
+          </span>
         )}
       </span>
       <button

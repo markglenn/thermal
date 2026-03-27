@@ -32,8 +32,8 @@ export interface ResolvedBounds {
   height: number;
 }
 
-/** A version is either 'production' (the live/printable version) or null (a regular saved version). */
-export type VersionStatus = 'production' | null;
+/** A version is either 'published' (live) or null (a regular saved version). */
+export type VersionStatus = 'published' | null;
 
 export type ComponentType =
   | 'text'

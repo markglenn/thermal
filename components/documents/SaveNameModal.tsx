@@ -5,11 +5,13 @@ import { createPortal } from 'react-dom';
 
 interface Props {
   initialName: string;
+  title?: string;
+  confirmLabel?: string;
   onConfirm: (name: string) => void;
   onCancel: () => void;
 }
 
-export function SaveNameModal({ initialName, onConfirm, onCancel }: Props) {
+export function SaveNameModal({ initialName, title = 'Save Label', confirmLabel = 'Save', onConfirm, onCancel }: Props) {
   const [name, setName] = useState(initialName);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -37,7 +39,7 @@ export function SaveNameModal({ initialName, onConfirm, onCancel }: Props) {
         onKeyDown={handleKeyDown}
       >
         <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Save Label</h2>
+          <h2 className="text-sm font-semibold">{title}</h2>
           <button
             onClick={onCancel}
             className="text-gray-400 hover:text-gray-600 text-lg leading-none"
@@ -72,7 +74,7 @@ export function SaveNameModal({ initialName, onConfirm, onCancel }: Props) {
             disabled={!name.trim()}
             className="px-3 py-1.5 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded disabled:opacity-50"
           >
-            Save
+            {confirmLabel}
           </button>
         </div>
       </div>

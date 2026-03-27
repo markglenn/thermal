@@ -109,7 +109,7 @@ export async function POST(
 
     const latestActive = activeVersions[0];
 
-    if (latestActive && latestActive.status !== 'production') {
+    if (latestActive && latestActive.status !== 'published') {
       return NextResponse.json(
         { error: 'Latest version is already editable. Save to it instead.' },
         { status: 409 }

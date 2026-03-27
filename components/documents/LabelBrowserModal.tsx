@@ -2,14 +2,16 @@
 
 import { useState, useCallback, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Trash2, Search } from 'lucide-react';
+import { Archive, ArchiveRestore, Search } from 'lucide-react';
+import { ConfirmButton } from '../ui/ConfirmButton';
 
 interface LabelListItem {
   id: string;
   name: string;
   hasThumbnail: boolean;
   latestVersion: number;
-  latestStatus: 'production' | null;
+  latestStatus: 'published' | null;
+  archivedAt: string | null;
   updatedAt: string;
 }
 
@@ -58,27 +60,35 @@ function fuzzyMatch(query: string, target: string): { match: boolean; score: num
 export function LabelBrowserModal({ onSelect, onCancel }: Props) {
   const [labels, setLabels] = useState<LabelListItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
   const [cacheBust] = useState(() => Date.now());
 
-  const fetchLabels = useCallback(async () => {
-    const res = await fetch('/api/labels');
+  const fetchLabels = useCallback(async (includeArchived: boolean) => {
+    const url = `/api/labels${includeArchived ? '?archived=true' : ''}`;
+    const res = await fetch(url);
     if (res.ok) {
       setLabels(await res.json());
     }
     setLoading(false);
   }, []);
 
-  // Kick off initial fetch + focus without triggering synchronous setState in effect
+  // Kick off initial fetch without triggering synchronous setState in effect
   const initialized = useRef<boolean | null>(null);
   if (initialized.current === null) {
     initialized.current = true;
-    fetchLabels();
+    fetchLabels(false);
   }
 
+  const handleToggleArchived = (checked: boolean) => {
+    setShowArchived(checked);
+    fetchLabels(checked);
+  };
+
   const filteredLabels = useMemo(() => {
-    if (!search.trim()) return labels;
+    if (!search.trim()) {
+      return [...labels].sort((a, b) => a.name.localeCompare(b.name));
+    }
     return labels
       .map((label) => ({ label, ...fuzzyMatch(search, label.name) }))
       .filter((r) => r.match)
@@ -86,36 +96,34 @@ export function LabelBrowserModal({ onSelect, onCancel }: Props) {
       .map((r) => r.label);
   }, [labels, search]);
 
-  const handleDelete = async (id: string) => {
-    if (deletingId === id) {
-      // Confirmed — optimistically remove, then delete
-      setLabels((prev) => prev.filter((l) => l.id !== id));
-      setDeletingId(null);
-      try {
-        const res = await fetch(`/api/labels/${id}`, { method: 'DELETE' });
-        if (!res.ok) {
-          // Restore on failure
-          fetchLabels();
-        }
-      } catch {
-        fetchLabels();
+  const handleArchive = async (id: string) => {
+    setLabels((prev) => prev.filter((l) => l.id !== id));
+    try {
+      const res = await fetch(`/api/labels/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        fetchLabels(showArchived);
       }
-    } else {
-      setDeletingId(id);
+    } catch {
+      fetchLabels(showArchived);
+    }
+  };
+
+  const handleUnarchive = async (id: string) => {
+    try {
+      const res = await fetch(`/api/labels/${id}?unarchive=true`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchLabels(showArchived);
+      }
+    } catch {
+      fetchLabels(showArchived);
     }
   };
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (deletingId) {
-          setDeletingId(null);
-        } else {
-          onCancel();
-        }
-      }
+      if (e.key === 'Escape') onCancel();
     },
-    [onCancel, deletingId]
+    [onCancel]
   );
 
   return createPortal(
@@ -162,59 +170,87 @@ export function LabelBrowserModal({ onSelect, onCancel }: Props) {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3">
-              {filteredLabels.map((label) => (
-                <div
-                  key={label.id}
-                  className="border border-gray-200 rounded-lg p-3 hover:border-blue-400 hover:bg-blue-50/50 cursor-pointer transition-colors group relative"
-                  onClick={() => onSelect(label.id)}
-                >
-                  <div className="aspect-4/3 bg-gray-50 rounded mb-2 flex items-center justify-center overflow-hidden">
-                    {label.hasThumbnail ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={`/api/labels/${label.id}/thumbnail?t=${cacheBust}`}
-                        alt={label.name}
-                        loading="lazy"
-                        className="max-w-full max-h-full object-contain"
-                      />
-                    ) : (
-                      <span className="text-xs text-gray-300">No preview</span>
-                    )}
-                  </div>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium text-gray-700 truncate">
-                        {label.name}
-                      </div>
-                      <div className="text-xs text-gray-400 flex items-center gap-1.5">
-                        {label.latestStatus === 'production' && (
-                          <span className="inline-block px-1 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700">
-                            Prod
+              {filteredLabels.map((label) => {
+                const isArchived = label.archivedAt !== null;
+
+                return (
+                  <div
+                    key={label.id}
+                    className={`border rounded-lg p-3 transition-colors group relative ${
+                      isArchived
+                        ? 'border-amber-300 bg-amber-50/60 opacity-70'
+                        : 'border-gray-200 hover:border-blue-400 hover:bg-blue-50/50 cursor-pointer'
+                    }`}
+                    onClick={() => { if (!isArchived) onSelect(label.id); }}
+                  >
+                    {/* Header */}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-sm font-medium text-gray-700 truncate">{label.name}</span>
+                        {isArchived && (
+                          <span className="inline-block px-1 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-500 shrink-0">
+                            Archived
                           </span>
                         )}
-                        <span className="text-gray-500">v{label.latestVersion}</span>
-                        <span>{relativeTime(label.updatedAt)}</span>
                       </div>
+                      <span className="text-xs text-gray-400 shrink-0 ml-2">{relativeTime(label.updatedAt)}</span>
                     </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(label.id);
-                      }}
-                      className={`p-1 rounded transition-colors ${
-                        deletingId === label.id
-                          ? 'bg-red-100 text-red-600'
-                          : 'text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100'
-                      }`}
-                      title={deletingId === label.id ? 'Click again to confirm' : 'Delete'}
-                    >
-                      <Trash2 size={14} />
-                    </button>
+
+                    {/* Thumbnail */}
+                    <div className="aspect-4/3 bg-gray-50 rounded mb-2 flex items-center justify-center overflow-hidden">
+                      {label.hasThumbnail ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={`/api/labels/${label.id}/thumbnail?t=${cacheBust}`}
+                          alt={label.name}
+                          loading="lazy"
+                          className="max-w-full max-h-full object-contain"
+                        />
+                      ) : (
+                        <span className="text-xs text-gray-300">No preview</span>
+                      )}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center justify-end min-h-6">
+                      {isArchived ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleUnarchive(label.id);
+                          }}
+                          className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium text-gray-400 hover:text-blue-600 hover:bg-blue-50 opacity-0 group-hover:opacity-100 transition-all"
+                        >
+                          <ArchiveRestore size={12} />
+                          Restore
+                        </button>
+                      ) : (
+                        <ConfirmButton
+                          label="Archive"
+                          icon={<Archive size={12} />}
+                          onConfirm={() => handleArchive(label.id)}
+                          className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium text-gray-400 hover:text-amber-600 hover:bg-amber-50 opacity-0 group-hover:opacity-100 transition-all"
+                        />
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
+        </div>
+
+        {/* Footer with archived toggle */}
+        <div className="px-4 py-2.5 border-t border-gray-200">
+          <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showArchived}
+              onChange={(e) => handleToggleArchived(e.target.checked)}
+              className="rounded border-gray-300"
+            />
+            Include archived labels
+          </label>
         </div>
       </div>
     </div>,

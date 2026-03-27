@@ -66,20 +66,20 @@ export async function POST(
         )
         .limit(1);
     } else {
-      // Default: production version, falling back to latest
+      // Default: published version, falling back to latest
       versionRows = await db
         .select({ document: tables.labelVersions.document })
         .from(tables.labelVersions)
         .where(
           and(
             eq(tables.labelVersions.labelId, id),
-            eq(tables.labelVersions.status, 'production')
+            eq(tables.labelVersions.status, 'published')
           )
         )
         .orderBy(desc(tables.labelVersions.version))
         .limit(1);
 
-      // No production version — fall back to latest non-archived
+      // No published version — fall back to latest non-archived
       if (versionRows.length === 0) {
         versionRows = await db
           .select({ document: tables.labelVersions.document })

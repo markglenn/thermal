@@ -235,7 +235,7 @@ describe('labels database operations', () => {
         .where(eq(schema.labelVersions.labelId, labelId));
 
       await db.update(schema.labelVersions)
-        .set({ status: 'production' })
+        .set({ status: 'published' })
         .where(eq(schema.labelVersions.id, versions[0].id));
 
       // Now "save" should create version 2
@@ -259,7 +259,7 @@ describe('labels database operations', () => {
       expect(allVersions[0].version).toBe(2);
       expect(allVersions[0].status).toBeNull();
       expect(allVersions[1].version).toBe(1);
-      expect(allVersions[1].status).toBe('production');
+      expect(allVersions[1].status).toBe('published');
     });
 
     it('updates label name and updatedAt on save', async () => {

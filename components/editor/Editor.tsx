@@ -15,6 +15,7 @@ import { LabelaryApiPreview } from '../preview/LabelaryApiPreview';
 import { PanelResizeHandle } from './PanelResizeHandle';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { DragGhost } from './DragGhost';
+import { ContextMenuProvider } from '../ui/ContextMenu';
 import { ReadOnlyBanner } from './ReadOnlyBanner';
 import { LabelBrowserModal } from '../documents/LabelBrowserModal';
 import { PanelLeftOpen, PanelRightOpen, PanelBottomClose, PanelBottomOpen, FilePlus, FolderOpen, Flame } from 'lucide-react';
@@ -44,7 +45,9 @@ export function Editor() {
 
   return (
     <EditorStoreProvider key={activeTabId} store={activeStore}>
-      <EditorInner />
+      <ContextMenuProvider>
+        <EditorInner />
+      </ContextMenuProvider>
     </EditorStoreProvider>
   );
 }
@@ -63,7 +66,7 @@ function EditorInner() {
   const [bottomCollapsed, setBottomCollapsed] = useState(false);
 
   return (
-    <div className="h-screen flex flex-col bg-white text-gray-900">
+    <div className="h-screen flex flex-col bg-white text-gray-900" onContextMenu={(e) => e.preventDefault()}>
       <DragGhost />
       <Toolbar />
       <TabBar />
@@ -98,7 +101,8 @@ function EditorInner() {
 
           {/* Bottom preview panel */}
           {bottomCollapsed ? (
-            <div className="shrink-0 border-t border-gray-200 flex items-center justify-end px-2 py-1">
+            <div className="shrink-0 border-t border-gray-200 flex items-center justify-between px-3 py-1">
+              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Preview</span>
               <button onClick={() => setBottomCollapsed(false)} className="text-gray-400 hover:text-gray-600" title="Show preview panel">
                 <PanelBottomOpen size={14} />
               </button>

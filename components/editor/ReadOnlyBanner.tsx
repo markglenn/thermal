@@ -26,7 +26,7 @@ export function ReadOnlyBanner() {
   if (!readOnly) return null;
 
   const isViewingOldVersion = viewingVersion !== null;
-  const isLatestPublished = latestStatus === 'production' && !isViewingOldVersion;
+  const isLatestPublished = latestStatus === 'published' && !isViewingOldVersion;
 
   const handleReturnToLatest = async () => {
     if (!labelId) return;

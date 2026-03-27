@@ -14,6 +14,8 @@ export interface TabInfo {
   unsubscribe: () => void;
   /** Which version is currently being viewed (null = latest) */
   viewingVersion: number | null;
+  /** Status of the version being viewed */
+  viewingVersionStatus: VersionStatus | null;
   /** The latest version number for this label */
   latestVersion: number | null;
   /** Status of the latest version */
@@ -28,7 +30,7 @@ interface TabManagerState {
 interface TabManagerActions {
   createTab: () => string;
   openLabel: (labelId: string, name: string, doc: LabelDocument, version?: number, status?: VersionStatus) => string;
-  openLabelVersion: (labelId: string, name: string, doc: LabelDocument, version: number, latestVersion: number) => void;
+  openLabelVersion: (labelId: string, name: string, doc: LabelDocument, version: number, latestVersion: number, versionStatus: VersionStatus) => void;
   returnToLatest: (tabId: string, doc: LabelDocument, latestVersion: number, latestStatus: VersionStatus) => void;
   closeTab: (tabId: string) => void;
   setActiveTab: (tabId: string) => void;
@@ -57,6 +59,7 @@ function createTab(name: string = 'Untitled', labelId: string | null = null, id:
     cleanDocumentRef: store.getState().document,
     unsubscribe: () => {},
     viewingVersion: null,
+    viewingVersionStatus: null,
     latestVersion: null,
     latestStatus: null,
   };
@@ -109,7 +112,7 @@ export const useTabStore = create<TabStore>()((set, get) => ({
       if (editorState.document.components.length === 0) {
         activeTab.store.getState().loadDocument(doc);
         activeTab.store.getState().setLabelMeta(labelId, name);
-        activeTab.store.getState().setReadOnly(status === 'production');
+        activeTab.store.getState().setReadOnly(status === 'published');
         const cleanRef = activeTab.store.getState().document;
         set((s) => ({
           tabs: s.tabs.map((t) =>
@@ -133,7 +136,7 @@ export const useTabStore = create<TabStore>()((set, get) => ({
     const tab = createTab(name, labelId);
     tab.store.getState().loadDocument(doc);
     tab.store.getState().setLabelMeta(labelId, name);
-    tab.store.getState().setReadOnly(status === 'production');
+    tab.store.getState().setReadOnly(status === 'published');
     tab.cleanDocumentRef = tab.store.getState().document;
     tab.latestVersion = version ?? null;
     tab.latestStatus = status ?? null;
@@ -144,7 +147,7 @@ export const useTabStore = create<TabStore>()((set, get) => ({
     return tab.id;
   },
 
-  openLabelVersion: (labelId, name, doc, version, latestVersion) => {
+  openLabelVersion: (labelId, name, doc, version, latestVersion, versionStatus) => {
     const state = get();
     const tab = state.tabs.find((t) => t.labelId === labelId);
     if (!tab) return;
@@ -155,7 +158,7 @@ export const useTabStore = create<TabStore>()((set, get) => ({
     set((s) => ({
       activeTabId: tab.id,
       tabs: s.tabs.map((t) =>
-        t.id === tab.id ? { ...t, viewingVersion: version, latestVersion, dirty: false, cleanDocumentRef: cleanRef } : t
+        t.id === tab.id ? { ...t, viewingVersion: version, viewingVersionStatus: versionStatus, latestVersion, dirty: false, cleanDocumentRef: cleanRef } : t
       ),
     }));
   },
@@ -165,13 +168,14 @@ export const useTabStore = create<TabStore>()((set, get) => ({
     if (!tab) return;
 
     tab.store.getState().loadDocument(doc);
-    tab.store.getState().setReadOnly(latestStatus === 'production');
+    tab.store.getState().setReadOnly(latestStatus === 'published');
     const cleanRef = tab.store.getState().document;
     set((s) => ({
       tabs: s.tabs.map((t) =>
         t.id === tabId ? {
           ...t,
           viewingVersion: null,
+          viewingVersionStatus: null,
           latestVersion,
           latestStatus,
           dirty: false,

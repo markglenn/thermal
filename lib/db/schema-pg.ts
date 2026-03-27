@@ -14,6 +14,7 @@ export const labels = pgTable('labels', {
   name: text('name').notNull(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  archivedAt: timestamp('archived_at'),
 });
 
 export const labelVersions = pgTable(

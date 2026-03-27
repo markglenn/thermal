@@ -69,13 +69,14 @@ export type LabelRow = {
   name: string;
   createdAt: Date;
   updatedAt: Date;
+  archivedAt: Date | null;
 };
 
 export type LabelVersionRow = {
   id: string;
   labelId: string;
   version: number;
-  status: 'production' | null;
+  status: 'published' | null;
   document: LabelDocument;
   thumbnail: ArrayBuffer | string | null;
   archivedAt: Date | null;

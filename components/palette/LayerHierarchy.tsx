@@ -5,6 +5,7 @@ import type { LabelComponent } from '@/lib/types';
 import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
 import { useDocument } from '@/lib/store/editor-context';
 import { getDefinition } from '@/lib/components';
+import { showComponentContextMenu } from '../shared/component-context-menu';
 import {
   DndContext,
   closestCenter,
@@ -30,6 +31,7 @@ function SortableLayerItem({ component, depth }: { component: LabelComponent; de
   const selectComponent = useEditorStoreContext((s) => s.selectComponent);
   const removeComponent = useEditorStoreContext((s) => s.removeComponent);
   const renameComponent = useEditorStoreContext((s) => s.renameComponent);
+  const storeApi = useEditorStoreApi();
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(component.name);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -69,6 +71,13 @@ function SortableLayerItem({ component, depth }: { component: LabelComponent; de
     component.typeData.type.charAt(0).toUpperCase() + component.typeData.type.slice(1);
   const displayName = hasCustomName ? component.name : defaultLabel(component);
 
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    showComponentContextMenu(e, component, storeApi, () => {
+      setEditText(displayName);
+      setEditing(true);
+    });
+  }, [component, displayName, storeApi]);
+
   return (
     <>
       <div
@@ -80,6 +89,7 @@ function SortableLayerItem({ component, depth }: { component: LabelComponent; de
           isSelected ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-50 text-gray-700'
         }`}
         onClick={(e) => selectComponent(component.id, { toggle: e.shiftKey || e.metaKey || e.ctrlKey })}
+        onContextMenu={handleContextMenu}
         onDoubleClick={() => {
           setEditText(displayName);
           setEditing(true);

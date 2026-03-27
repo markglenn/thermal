@@ -100,6 +100,7 @@ export function Canvas() {
       onPointerDown={handleCanvasPointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
+      onContextMenu={(e) => e.preventDefault()}
     >
       {/* Transform wrapper */}
       <div

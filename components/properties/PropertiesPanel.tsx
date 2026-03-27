@@ -33,7 +33,8 @@ export function PropertiesPanel({ onCollapse }: Props) {
   return (
     <div className="flex-1 flex flex-col overflow-y-auto" data-testid="properties-panel">
       {onCollapse && (
-        <div className="px-3 py-1.5 border-b border-gray-200 flex justify-start shrink-0">
+        <div className="px-3 py-1.5 border-b border-gray-200 flex items-center justify-between shrink-0">
+          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Properties</h2>
           <button onClick={onCollapse} className="text-gray-400 hover:text-gray-600" title="Collapse panel">
             <PanelRightClose size={14} />
           </button>
