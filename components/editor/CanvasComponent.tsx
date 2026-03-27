@@ -25,7 +25,11 @@ export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: P
 
   useEffect(() => {
     if (needsMeasure && ref.current && onMeasure) {
-      const rect = ref.current.getBoundingClientRect();
+      // Measure the first child (the actual rendered element) rather than the
+      // wrapper div, because CSS transforms (scaleX/scaleY) on the child affect
+      // its visual bounds but don't expand the parent's layout box.
+      const target = ref.current.firstElementChild ?? ref.current;
+      const rect = target.getBoundingClientRect();
       const zoom = storeApi.getState().viewport.zoom;
       let w = rect.width / zoom;
       let h = rect.height / zoom;

@@ -42,37 +42,69 @@ export const ZOOM_SENSITIVITY = 0.005; // wheel delta multiplier for zoom
 // Undo throttle — collapses rapid state changes into one history entry
 export const UNDO_THROTTLE_MS = 500;
 
-// ZPL font size mapping (native bitmap dimensions in dots: height x width)
-export const ZPL_FONT_SIZES: Record<string, { width: number; height: number }> = {
-  A: { width: 5, height: 9 },
-  B: { width: 7, height: 11 },
-  C: { width: 10, height: 18 },
-  D: { width: 10, height: 18 },
-  E: { width: 15, height: 28 },
-  F: { width: 13, height: 26 },
-  G: { width: 40, height: 60 },
-  H: { width: 13, height: 21 },
-  '0': { width: 12, height: 15 },
+// ZPL font definitions — consolidates native sizes, CSS mapping, and rendering
+// parameters for each ZPL font into a single registry.
+interface ZplFontDef {
+  /** Native bitmap dimensions in dots (height x width). */
+  nativeSize: { width: number; height: number };
+  /** CSS font-family value. */
+  fontFamily: string;
+  /** CSS font-weight value. */
+  fontWeight: number;
+  /** Whether the font is freely scalable (vs bitmap with fixed native grid). */
+  scalable: boolean;
+  /** Multiplier for scaleX to compensate for CSS vs FreeType glyph widths. */
+  widthToHeightRatio: number;
+  /** Multiplier for scaleY to compensate for CSS em-square vs FreeType visible height. */
+  heightScale: number;
+  /** CSS text-transform value (e.g. Font B renders uppercase). */
+  textTransform?: 'uppercase';
+}
+
+const FONT_SCALABLE = 'var(--font-zpl-0), Arial Narrow, sans-serif';
+const FONT_BITMAP = 'var(--font-zpl-bitmap), monospace';
+
+export const ZPL_FONTS: Record<string, ZplFontDef> = {
+  '0': { nativeSize: { width: 12, height: 15 }, fontFamily: FONT_SCALABLE, fontWeight: 700, scalable: true,  widthToHeightRatio: 0.97,  heightScale: 1.0  },
+  A:   { nativeSize: { width: 5,  height: 9  }, fontFamily: FONT_BITMAP,   fontWeight: 400, scalable: false, widthToHeightRatio: 2.0, heightScale: 1.25 },
+  B:   { nativeSize: { width: 7,  height: 11 }, fontFamily: FONT_BITMAP,   fontWeight: 700, scalable: false, widthToHeightRatio: 2.11, heightScale: 1.25, textTransform: 'uppercase' },
+  C:   { nativeSize: { width: 10, height: 18 }, fontFamily: FONT_BITMAP,   fontWeight: 400, scalable: false, widthToHeightRatio: 2.0, heightScale: 1.25 },
+  D:   { nativeSize: { width: 10, height: 18 }, fontFamily: FONT_BITMAP,   fontWeight: 400, scalable: false, widthToHeightRatio: 2.0, heightScale: 1.25 },
+  E:   { nativeSize: { width: 15, height: 28 }, fontFamily: FONT_BITMAP,   fontWeight: 400, scalable: false, widthToHeightRatio: 2.0, heightScale: 1.25 },
+  F:   { nativeSize: { width: 13, height: 26 }, fontFamily: FONT_BITMAP,   fontWeight: 400, scalable: false, widthToHeightRatio: 2.0, heightScale: 1.25 },
+  G:   { nativeSize: { width: 40, height: 60 }, fontFamily: FONT_BITMAP,   fontWeight: 400, scalable: false, widthToHeightRatio: 2.0, heightScale: 1.25 },
+  H:   { nativeSize: { width: 13, height: 21 }, fontFamily: FONT_BITMAP,   fontWeight: 400, scalable: false, widthToHeightRatio: 2.0, heightScale: 1.25 },
 };
 
-// CSS font-family mapping: ZPL font letter → closest screen substitute
-export const ZPL_FONT_FAMILY: Record<string, string> = {
-  '0': 'var(--font-zpl-0), Arial Narrow, sans-serif',
-  A: 'var(--font-zpl-bitmap), monospace',
-  B: 'var(--font-zpl-bitmap), monospace',
-  C: 'var(--font-zpl-bitmap), monospace',
-  D: 'var(--font-zpl-bitmap), monospace',
-  E: 'var(--font-zpl-bitmap), monospace',
-  F: 'var(--font-zpl-bitmap), monospace',
-  G: 'var(--font-zpl-bitmap), monospace',
-  H: 'var(--font-zpl-bitmap), monospace',
-};
+const DEFAULT_FONT = ZPL_FONTS['0'];
 
-// Font weight mapping
-export const ZPL_FONT_WEIGHT: Record<string, number> = {
-  '0': 700,
-  A: 700, B: 700, C: 700, D: 700, E: 700, F: 700, G: 700, H: 700,
-};
+/**
+ * Compute the CSS rendering parameters for a ZPL font at a given size.
+ * Handles bitmap size snapping, scaleX/scaleY compensation, and all
+ * font-specific styling.
+ */
+export function getZplFontStyle(font: string, fontSize: number, fontWidth: number) {
+  const def = ZPL_FONTS[font] ?? DEFAULT_FONT;
+
+  // Bitmap fonts snap to multiples of their native size (matching zebrash's
+  // WithAdjustedSizes). Scalable fonts use values as-is.
+  let adjustedHeight = fontSize;
+  let adjustedWidth = fontWidth;
+  if (!def.scalable) {
+    const ns = def.nativeSize;
+    adjustedHeight = ns.height * Math.max(Math.round(fontSize / ns.height), 1);
+    adjustedWidth = ns.width * Math.max(Math.round(fontWidth / ns.width), 1);
+  }
+
+  return {
+    fontSize: adjustedHeight,
+    fontFamily: def.fontFamily,
+    fontWeight: def.fontWeight,
+    textTransform: def.textTransform,
+    scaleX: def.widthToHeightRatio * adjustedWidth / adjustedHeight,
+    scaleY: def.heightScale,
+  };
+}
 
 export const LABELARY_BASE_URL = 'http://api.labelary.com/v1/printers';
 export const LABELARY_DEBOUNCE_MS = 300;

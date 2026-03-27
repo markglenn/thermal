@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Roboto_Condensed, Source_Code_Pro } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -12,16 +13,18 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const robotoCondensed = Roboto_Condensed({
+const helveticaBoldCondensed = localFont({
+  src: "../fonts/HelveticaBoldCondensedCustom.ttf",
   variable: "--font-zpl-0",
-  weight: ["400", "700"],
-  subsets: ["latin"],
+  weight: "400 700",
 });
 
-const sourceCodePro = Source_Code_Pro({
+const dejaVuSansMono = localFont({
+  src: [
+    { path: "../fonts/DejaVuSansMono.ttf", weight: "400" },
+    { path: "../fonts/DejaVuSansMonoBold.ttf", weight: "700" },
+  ],
   variable: "--font-zpl-bitmap",
-  weight: ["400", "700"],
-  subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
@@ -37,7 +40,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${robotoCondensed.variable} ${sourceCodePro.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${helveticaBoldCondensed.variable} ${dejaVuSansMono.variable} antialiased`}
       >
         {children}
       </body>
