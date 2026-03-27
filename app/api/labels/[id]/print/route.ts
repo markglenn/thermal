@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { eq, and, desc, isNull } from 'drizzle-orm';
 import { getDatabase } from '@/lib/db';
 import { generateZplMerge } from '@/lib/zpl/generator-merge';
+import { publishPrintJob } from '@/lib/print/sqs';
 import type { LabelDocument } from '@/lib/types';
 
 export async function POST(
@@ -15,7 +16,11 @@ export async function POST(
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { data } = body as { data?: unknown };
+  const { data, printer, copies } = body as {
+    data?: unknown;
+    printer?: string;
+    copies?: number;
+  };
 
   if (!Array.isArray(data) || data.length === 0) {
     return NextResponse.json({ error: 'data must be a non-empty array' }, { status: 400 });
@@ -32,6 +37,12 @@ export async function POST(
       }
     }
   }
+
+  if (printer !== undefined && typeof printer !== 'string') {
+    return NextResponse.json({ error: 'printer must be a string' }, { status: 400 });
+  }
+
+  const copyCount = typeof copies === 'number' && copies >= 1 ? Math.floor(copies) : 1;
 
   try {
     const { id } = await params;
@@ -56,7 +67,10 @@ export async function POST(
         return NextResponse.json({ error: 'Invalid version number' }, { status: 400 });
       }
       versionRows = await db
-        .select({ document: tables.labelVersions.document })
+        .select({
+          version: tables.labelVersions.version,
+          document: tables.labelVersions.document,
+        })
         .from(tables.labelVersions)
         .where(
           and(
@@ -66,9 +80,12 @@ export async function POST(
         )
         .limit(1);
     } else {
-      // Default: published version, falling back to latest
+      // Default: published version, falling back to latest non-archived
       versionRows = await db
-        .select({ document: tables.labelVersions.document })
+        .select({
+          version: tables.labelVersions.version,
+          document: tables.labelVersions.document,
+        })
         .from(tables.labelVersions)
         .where(
           and(
@@ -82,7 +99,10 @@ export async function POST(
       // No published version — fall back to latest non-archived
       if (versionRows.length === 0) {
         versionRows = await db
-          .select({ document: tables.labelVersions.document })
+          .select({
+            version: tables.labelVersions.version,
+            document: tables.labelVersions.document,
+          })
           .from(tables.labelVersions)
           .where(and(eq(tables.labelVersions.labelId, id), isNull(tables.labelVersions.archivedAt)))
           .orderBy(desc(tables.labelVersions.version))
@@ -97,7 +117,8 @@ export async function POST(
       return NextResponse.json({ error: msg }, { status: 404 });
     }
 
-    const doc = versionRows[0].document as LabelDocument;
+    const { version: labelVersion, document: rawDoc } = versionRows[0];
+    const doc = rawDoc as LabelDocument;
 
     // Generate merged ZPL for each data entry, passing index for counter variables
     const zplBlocks = await Promise.all(
@@ -106,9 +127,39 @@ export async function POST(
       )
     );
 
-    return new NextResponse(zplBlocks.join('\n'), {
-      headers: { 'Content-Type': 'text/plain' },
+    // If no printer specified, return raw ZPL (backward compatible)
+    if (!printer) {
+      return new NextResponse(zplBlocks.join('\n'), {
+        headers: { 'Content-Type': 'text/plain' },
+      });
+    }
+
+    // Queue to SQS for remote printing
+    const jobId = crypto.randomUUID();
+    const totalChunks = await publishPrintJob(jobId, zplBlocks, printer, copyCount, {
+      labelId: id,
+      labelVersion,
+      labelName: labelRows[0].name,
     });
+
+    // Record the job
+    await db.insert(tables.printJobs).values({
+      id: jobId,
+      labelId: id,
+      labelVersion,
+      printer,
+      status: 'queued',
+      copies: copyCount,
+      totalChunks,
+      createdAt: new Date(),
+    });
+
+    return NextResponse.json({
+      jobId,
+      status: 'queued',
+      printer,
+      chunks: totalChunks,
+    }, { status: 202 });
   } catch (e) {
     console.error('POST /api/labels/[id]/print failed:', e);
     return NextResponse.json({ error: 'Failed to generate print data' }, { status: 500 });

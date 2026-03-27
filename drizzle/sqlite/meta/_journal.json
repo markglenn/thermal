@@ -43,6 +43,13 @@
       "when": 1774648800000,
       "tag": "0005_rename_production_to_published",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1774653619368,
+      "tag": "0006_brief_ghost_rider",
+      "breakpoints": true
     }
   ]
 }

@@ -33,3 +33,16 @@ export const labelVersions = pgTable(
   },
   (table) => [unique().on(table.labelId, table.version)]
 );
+
+export const printJobs = pgTable('print_jobs', {
+  id: text('id').primaryKey(),
+  labelId: text('label_id')
+    .notNull()
+    .references(() => labels.id),
+  labelVersion: integer('label_version').notNull(),
+  printer: text('printer').notNull(),
+  status: text('status').notNull(),
+  copies: integer('copies').notNull().default(1),
+  totalChunks: integer('total_chunks').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});

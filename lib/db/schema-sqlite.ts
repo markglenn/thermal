@@ -41,3 +41,18 @@ export const labelVersions = sqliteTable(
   },
   (table) => [unique().on(table.labelId, table.version)]
 );
+
+export const printJobs = sqliteTable('print_jobs', {
+  id: text('id').primaryKey(),
+  labelId: text('label_id')
+    .notNull()
+    .references(() => labels.id),
+  labelVersion: integer('label_version').notNull(),
+  printer: text('printer').notNull(),
+  status: text('status').notNull(),
+  copies: integer('copies').notNull().default(1),
+  totalChunks: integer('total_chunks').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});

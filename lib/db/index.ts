@@ -6,7 +6,7 @@ import type * as sqliteSchema from './schema-sqlite';
 // Use the SQLite schema types as the canonical table type — both dialects have
 // identical column names so queries written against these types work for either.
 type Schema = typeof sqliteSchema;
-type Tables = { labels: Schema['labels']; labelVersions: Schema['labelVersions']; labelSizes: Schema['labelSizes'] };
+type Tables = { labels: Schema['labels']; labelVersions: Schema['labelVersions']; labelSizes: Schema['labelSizes']; printJobs: Schema['printJobs'] };
 
 // LibSQLDatabase is the canonical DB type. Both libsql (dev) and node-postgres
 // (prod) expose an async API, so the runtime contract is the same. The Postgres
@@ -34,7 +34,7 @@ async function initDb(): Promise<{ db: Db; tables: Tables }> {
     const schema = require('./schema-pg');
     const pool = new Pool({ connectionString: DATABASE_URL });
     _db = drizzle(pool, { schema }) as Db;
-    _tables = { labels: schema.labels, labelVersions: schema.labelVersions, labelSizes: schema.labelSizes };
+    _tables = { labels: schema.labels, labelVersions: schema.labelVersions, labelSizes: schema.labelSizes, printJobs: schema.printJobs };
   } else {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { createClient } = require('@libsql/client');
@@ -48,7 +48,7 @@ async function initDb(): Promise<{ db: Db; tables: Tables }> {
     const db = drizzle(client, { schema }) as Db;
     await migrate(db, { migrationsFolder: path.join(process.cwd(), 'drizzle/sqlite') });
     _db = db;
-    _tables = { labels: schema.labels, labelVersions: schema.labelVersions, labelSizes: schema.labelSizes };
+    _tables = { labels: schema.labels, labelVersions: schema.labelVersions, labelSizes: schema.labelSizes, printJobs: schema.printJobs };
   }
 
   return { db: _db!, tables: _tables! };
