@@ -25,27 +25,41 @@ describe('computeBarcodeSize', () => {
   it('computes Code39 width correctly', () => {
     const props = makeBarcodeProps({ content: 'ABC', encoding: 'code39' });
     const size = computeBarcodeSize(props);
-    // 13 * (3 + 2) + (3 + 1) = 65 + 4 = 69 modules
-    expect(size).toEqual({ width: 69 * 2, height: 100 });
+    // 16 * (3 + 2 start/stop) = 80 modules
+    expect(size).toEqual({ width: 80 * 2, height: 100 });
   });
 
-  it('computes EAN-13 fixed width', () => {
+  it('computes EAN-13 fixed width without text', () => {
     const props = makeBarcodeProps({ content: '5901234123457', encoding: 'ean13' });
     const size = computeBarcodeSize(props);
     expect(size).toEqual({ width: 190, height: 100 });
   });
 
-  it('computes UPC-A fixed width', () => {
+  it('computes EAN-13 width with text (includes leading digit padding)', () => {
+    const props = makeBarcodeProps({ content: '5901234123457', encoding: 'ean13', showText: true });
+    const size = computeBarcodeSize(props);
+    // 95 bar modules + 12 leading digit padding = 107 modules * 2
+    expect(size).toEqual({ width: 214, height: 122 });
+  });
+
+  it('computes UPC-A fixed width without text', () => {
     const props = makeBarcodeProps({ content: '012345678905', encoding: 'upca' });
     const size = computeBarcodeSize(props);
     expect(size).toEqual({ width: 190, height: 100 });
   });
 
+  it('computes UPC-A width with text (includes first/last digit padding)', () => {
+    const props = makeBarcodeProps({ content: '012345678905', encoding: 'upca', showText: true });
+    const size = computeBarcodeSize(props);
+    // 95 bar modules + 16 first/last digit padding = 111 modules * 2
+    expect(size).toEqual({ width: 222, height: 122 });
+  });
+
   it('computes ITF width correctly', () => {
     const props = makeBarcodeProps({ content: '1234', encoding: 'itf' });
     const size = computeBarcodeSize(props);
-    // 7 * 4 + 7 = 35 modules
-    expect(size).toEqual({ width: 35 * 2, height: 100 });
+    // 9 * 4 + 9 = 45 modules
+    expect(size).toEqual({ width: 45 * 2, height: 100 });
   });
 
   it('returns zero width for empty content', () => {
