@@ -27,6 +27,7 @@ export async function GET() {
             sql`(${tables.labelVersions.labelId}, ${tables.labelVersions.version}) IN (
               SELECT ${tables.labelVersions.labelId}, MAX(${tables.labelVersions.version})
               FROM ${tables.labelVersions}
+              WHERE ${tables.labelVersions.archivedAt} IS NULL
               GROUP BY ${tables.labelVersions.labelId}
             )`
           )
@@ -45,7 +46,7 @@ export async function GET() {
         name: label.name,
         hasThumbnail: !!latest?.hasThumbnail,
         latestVersion: latest?.version ?? 0,
-        latestStatus: latest?.status ?? 'draft',
+        latestStatus: latest?.status ?? null,
         updatedAt: label.updatedAt.toISOString(),
       };
     });
@@ -95,7 +96,7 @@ export async function POST(request: NextRequest) {
         id: versionId,
         labelId,
         version: 1,
-        status: 'draft',
+        status: null,
         document,
         thumbnail: thumbnailData,
         createdAt: now,
@@ -106,7 +107,7 @@ export async function POST(request: NextRequest) {
       id: labelId,
       name,
       version: 1,
-      status: 'draft',
+      status: null,
     }, { status: 201 });
   } catch (e) {
     console.error('POST /api/labels failed:', e);

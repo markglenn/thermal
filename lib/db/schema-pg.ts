@@ -24,7 +24,8 @@ export const labelVersions = pgTable(
       .notNull()
       .references(() => labels.id, { onDelete: 'cascade' }),
     version: integer('version').notNull(),
-    status: text('status', { enum: ['draft', 'production'] }).notNull(),
+    status: text('status'),
+    archivedAt: timestamp('archived_at'),
     document: jsonb('document').notNull(),
     thumbnail: text('thumbnail'),
     createdAt: timestamp('created_at').notNull().defaultNow(),

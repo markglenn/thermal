@@ -44,7 +44,7 @@ export function useCanvasDrag() {
 
       if (isToggle) {
         store.selectComponent(componentId, { toggle: true });
-        if (!alreadySelected) {
+        if (!alreadySelected && !store.readOnly) {
           const newIds = [...store.selectedComponentIds, componentId];
           startDrag(e, componentId, newIds);
         }
@@ -54,6 +54,8 @@ export function useCanvasDrag() {
       if (!alreadySelected) {
         store.selectComponent(componentId);
       }
+
+      if (store.readOnly) return;
 
       const selectedIds = alreadySelected ? store.selectedComponentIds : [componentId];
       startDrag(e, componentId, selectedIds);

@@ -15,6 +15,7 @@ import { LabelaryApiPreview } from '../preview/LabelaryApiPreview';
 import { PanelResizeHandle } from './PanelResizeHandle';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { DragGhost } from './DragGhost';
+import { ReadOnlyBanner } from './ReadOnlyBanner';
 import { LabelBrowserModal } from '../documents/LabelBrowserModal';
 import { PanelLeftOpen, PanelRightOpen, PanelBottomClose, PanelBottomOpen, FilePlus, FolderOpen, Flame } from 'lucide-react';
 import type { LabelDocument } from '@/lib/types';
@@ -66,6 +67,7 @@ function EditorInner() {
       <DragGhost />
       <Toolbar />
       <TabBar />
+      <ReadOnlyBanner />
       <div className="flex-1 flex overflow-hidden">
         {/* Left panel */}
         {leftCollapsed ? (
@@ -169,7 +171,7 @@ function EmptyState() {
     const res = await fetch(`/api/labels/${id}`);
     if (res.ok) {
       const data = await res.json();
-      useTabStore.getState().openLabel(data.id, data.name, data.document as LabelDocument);
+      useTabStore.getState().openLabel(data.id, data.name, data.document as LabelDocument, data.version, data.status);
     }
     setShowBrowser(false);
   };

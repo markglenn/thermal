@@ -75,9 +75,10 @@ export type LabelVersionRow = {
   id: string;
   labelId: string;
   version: number;
-  status: 'draft' | 'production';
+  status: 'production' | null;
   document: LabelDocument;
   thumbnail: ArrayBuffer | string | null;
+  archivedAt: Date | null;
   createdAt: Date;
 };
 

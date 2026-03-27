@@ -9,7 +9,7 @@ interface LabelListItem {
   name: string;
   hasThumbnail: boolean;
   latestVersion: number;
-  latestStatus: 'draft' | 'production';
+  latestStatus: 'production' | null;
   updatedAt: string;
 }
 
@@ -187,13 +187,12 @@ export function LabelBrowserModal({ onSelect, onCancel }: Props) {
                         {label.name}
                       </div>
                       <div className="text-xs text-gray-400 flex items-center gap-1.5">
-                        <span className={`inline-block px-1 py-0.5 rounded text-[10px] font-medium ${
-                          label.latestStatus === 'production'
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-amber-100 text-amber-700'
-                        }`}>
-                          {label.latestStatus === 'production' ? 'Prod' : 'Draft'} v{label.latestVersion}
-                        </span>
+                        {label.latestStatus === 'production' && (
+                          <span className="inline-block px-1 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700">
+                            Prod
+                          </span>
+                        )}
+                        <span className="text-gray-500">v{label.latestVersion}</span>
                         <span>{relativeTime(label.updatedAt)}</span>
                       </div>
                     </div>

@@ -48,6 +48,7 @@ const initialState: EditorState = {
   gridSize: GRID_SIZE,
   currentLabelId: null,
   currentLabelName: null,
+  readOnly: false,
 };
 
 export interface EditorActions {
@@ -97,6 +98,7 @@ export interface EditorActions {
 
   // Label persistence
   setLabelMeta: (id: string | null, name: string | null) => void;
+  setReadOnly: (readOnly: boolean) => void;
 }
 
 export type EditorStore = EditorState & EditorActions & {
@@ -444,6 +446,10 @@ export function createEditorStore() {
 
         setLabelMeta: (id, name) => {
           set((state) => { state.currentLabelId = id; state.currentLabelName = name; });
+        },
+
+        setReadOnly: (readOnly) => {
+          set((state) => { state.readOnly = readOnly; });
         },
       })),
       {

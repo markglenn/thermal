@@ -1,28 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { eq, and, desc, isNull } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { getDatabase } from '@/lib/db';
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string; version: string }> }
 ) {
   try {
-    const { id } = await params;
+    const { id, version: versionStr } = await params;
+    const version = parseInt(versionStr, 10);
+    if (isNaN(version) || version < 1) {
+      return new NextResponse(null, { status: 400 });
+    }
+
     const { db, tables } = await getDatabase();
 
-    const versions = await db
+    const rows = await db
       .select({ thumbnail: tables.labelVersions.thumbnail })
       .from(tables.labelVersions)
-      .where(and(eq(tables.labelVersions.labelId, id), isNull(tables.labelVersions.archivedAt)))
-      .orderBy(desc(tables.labelVersions.version))
+      .where(
+        and(
+          eq(tables.labelVersions.labelId, id),
+          eq(tables.labelVersions.version, version)
+        )
+      )
       .limit(1);
 
-    const thumb = versions[0]?.thumbnail;
+    const thumb = rows[0]?.thumbnail;
     if (!thumb) {
       return new NextResponse(null, { status: 404 });
     }
 
-    // libsql returns ArrayBuffer, pg may return string
     const buf = typeof thumb === 'string'
       ? Buffer.from(thumb, 'base64')
       : Buffer.from(thumb);
@@ -33,7 +41,7 @@ export async function GET(
       },
     });
   } catch (e) {
-    console.error('GET /api/labels/[id]/thumbnail failed:', e);
+    console.error('GET /api/labels/[id]/versions/[version]/thumbnail failed:', e);
     return new NextResponse(null, { status: 500 });
   }
 }

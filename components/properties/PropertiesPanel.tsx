@@ -25,6 +25,7 @@ function MultiSelectOrEmptyMessage() {
 
 export function PropertiesPanel({ onCollapse }: Props) {
   const selected = useSelectedComponent();
+  const readOnly = useEditorStoreContext((s) => s.readOnly);
 
   const def = selected ? getDefinition(selected.typeData.type) : null;
   const Panel = def?.PropertiesPanel;
@@ -38,10 +39,12 @@ export function PropertiesPanel({ onCollapse }: Props) {
           </button>
         </div>
       )}
-      <LabelSettings />
+      <div className={readOnly ? 'pointer-events-none opacity-60' : ''}>
+        <LabelSettings />
+      </div>
 
       {selected ? (
-        <>
+        <div className={readOnly ? 'pointer-events-none opacity-60' : ''}>
           <ConstraintEditor component={selected} />
 
           {Panel && (
@@ -53,7 +56,7 @@ export function PropertiesPanel({ onCollapse }: Props) {
           {def?.traits.bindable && (
             <FieldBindingEditor componentId={selected.id} binding={selected.fieldBinding} />
           )}
-        </>
+        </div>
       ) : (
         <MultiSelectOrEmptyMessage />
       )}

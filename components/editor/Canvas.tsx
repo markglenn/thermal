@@ -25,15 +25,30 @@ export function Canvas() {
   const gridSize = useEditorStoreContext((s) => s.gridSize);
   const setDragState = useEditorStoreContext((s) => s.setDragState);
   const setResizeState = useEditorStoreContext((s) => s.setResizeState);
+  const readOnly = useEditorStoreContext((s) => s.readOnly);
   const storeApi = useEditorStoreApi();
 
   const widthDots = labelWidthDots(document.label);
   const heightDots = labelHeightDots(document.label);
 
   const { handlePointerDown, handleSpacePanCapture, isPanning, isSpaceHeld, fitToView } = useCanvasZoomPan(canvasRef, document.label);
-  const { handleComponentPointerDown, handleDragMove, dragState } = useCanvasDrag();
-  const { handleResizeMove, resizeState } = useCanvasResize();
-  const { handleDrop } = usePaletteDrop(labelRef);
+  const { handleComponentPointerDown, handleDragMove: rawDragMove, dragState } = useCanvasDrag();
+  const { handleResizeMove: rawResizeMove, resizeState } = useCanvasResize();
+  const { handleDrop: rawHandleDrop } = usePaletteDrop(labelRef);
+
+  // Disable mutation interactions in read-only mode (selection still allowed via rawComponentPointerDown)
+  const handleDragMove = useCallback(
+    (e: React.PointerEvent) => { if (!readOnly) rawDragMove(e); },
+    [readOnly, rawDragMove]
+  );
+  const handleResizeMove = useCallback(
+    (e: React.PointerEvent) => { if (!readOnly) rawResizeMove(e); },
+    [readOnly, rawResizeMove]
+  );
+  const handleDrop = useCallback(
+    (e: React.PointerEvent) => { if (!readOnly) rawHandleDrop(e); },
+    [readOnly, rawHandleDrop]
+  );
   const { boundsMap, absoluteBoundsMap, handleMeasure } = useAbsoluteBounds();
   const { marquee, handleLabelPointerDown, startMarquee } = useMarqueeSelect(labelRef, absoluteBoundsMap);
 

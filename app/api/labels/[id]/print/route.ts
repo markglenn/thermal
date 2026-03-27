@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { eq, desc } from 'drizzle-orm';
+import { eq, and, desc, isNull } from 'drizzle-orm';
 import { getDatabase } from '@/lib/db';
 import { generateZplMerge } from '@/lib/zpl/generator-merge';
 import type { LabelDocument } from '@/lib/types';
@@ -47,18 +47,57 @@ export async function POST(
       return NextResponse.json({ error: 'Label not found' }, { status: 404 });
     }
 
-    const versions = await db
-      .select({ document: tables.labelVersions.document })
-      .from(tables.labelVersions)
-      .where(eq(tables.labelVersions.labelId, id))
-      .orderBy(desc(tables.labelVersions.version))
-      .limit(1);
+    const versionParam = request.nextUrl.searchParams.get('version');
+    let versionRows;
 
-    if (versions.length === 0) {
-      return NextResponse.json({ error: 'No versions found' }, { status: 404 });
+    if (versionParam) {
+      const versionNum = parseInt(versionParam, 10);
+      if (isNaN(versionNum) || versionNum < 1) {
+        return NextResponse.json({ error: 'Invalid version number' }, { status: 400 });
+      }
+      versionRows = await db
+        .select({ document: tables.labelVersions.document })
+        .from(tables.labelVersions)
+        .where(
+          and(
+            eq(tables.labelVersions.labelId, id),
+            eq(tables.labelVersions.version, versionNum)
+          )
+        )
+        .limit(1);
+    } else {
+      // Default: production version, falling back to latest
+      versionRows = await db
+        .select({ document: tables.labelVersions.document })
+        .from(tables.labelVersions)
+        .where(
+          and(
+            eq(tables.labelVersions.labelId, id),
+            eq(tables.labelVersions.status, 'production')
+          )
+        )
+        .orderBy(desc(tables.labelVersions.version))
+        .limit(1);
+
+      // No production version — fall back to latest non-archived
+      if (versionRows.length === 0) {
+        versionRows = await db
+          .select({ document: tables.labelVersions.document })
+          .from(tables.labelVersions)
+          .where(and(eq(tables.labelVersions.labelId, id), isNull(tables.labelVersions.archivedAt)))
+          .orderBy(desc(tables.labelVersions.version))
+          .limit(1);
+      }
     }
 
-    const doc = versions[0].document as LabelDocument;
+    if (versionRows.length === 0) {
+      const msg = versionParam
+        ? 'Version not found'
+        : 'No versions found';
+      return NextResponse.json({ error: msg }, { status: 404 });
+    }
+
+    const doc = versionRows[0].document as LabelDocument;
 
     // Generate merged ZPL for each data entry, passing index for counter variables
     const zplBlocks = await Promise.all(

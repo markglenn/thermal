@@ -30,7 +30,8 @@ export const labelVersions = sqliteTable(
       .notNull()
       .references(() => labels.id, { onDelete: 'cascade' }),
     version: integer('version').notNull(),
-    status: text('status', { enum: ['draft', 'production'] }).notNull(),
+    status: text('status'),
+    archivedAt: integer('archived_at', { mode: 'timestamp' }),
     document: text('document', { mode: 'json' }).notNull(),
     thumbnail: blob('thumbnail', { mode: 'buffer' }),
     createdAt: integer('created_at', { mode: 'timestamp' })

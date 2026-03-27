@@ -71,6 +71,9 @@ export function useKeyboardShortcuts() {
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') return;
 
+      // In read-only mode, only allow copy (not cut, paste, delete, duplicate, nudge)
+      const { readOnly } = state;
+
       // Copy
       if (e.key === 'c' && mod && selectedComponentIds.length > 0) {
         e.preventDefault();
@@ -80,6 +83,9 @@ export function useKeyboardShortcuts() {
         if (components.length > 0) copyToClipboard(components);
         return;
       }
+
+      // All remaining shortcuts mutate — block in read-only mode
+      if (readOnly) return;
 
       // Cut
       if (e.key === 'x' && mod && selectedComponentIds.length > 0) {

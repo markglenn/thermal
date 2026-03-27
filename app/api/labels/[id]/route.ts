@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { eq, desc } from 'drizzle-orm';
+import { eq, and, desc, isNull } from 'drizzle-orm';
 import { getDatabase, parseThumbnail } from '@/lib/db';
 import { validateDocument } from '@/lib/documents/validate';
 
@@ -23,10 +23,11 @@ export async function GET(
 
     const label = labelRows[0];
 
+    // Get latest non-archived version
     const versions = await db
       .select()
       .from(tables.labelVersions)
-      .where(eq(tables.labelVersions.labelId, id))
+      .where(and(eq(tables.labelVersions.labelId, id), isNull(tables.labelVersions.archivedAt)))
       .orderBy(desc(tables.labelVersions.version))
       .limit(1);
 
@@ -88,23 +89,30 @@ export async function PUT(
     const now = new Date();
     const thumbnailData = parseThumbnail(thumbnail);
 
-    // Get latest version
+    // Get latest non-archived version
     const versions = await db
       .select()
       .from(tables.labelVersions)
-      .where(eq(tables.labelVersions.labelId, id))
+      .where(and(eq(tables.labelVersions.labelId, id), isNull(tables.labelVersions.archivedAt)))
       .orderBy(desc(tables.labelVersions.version))
       .limit(1);
 
     const latest = versions[0];
     const labelName = name || labelRows[0].name;
 
-    if (latest && latest.status === 'draft') {
-      // Overwrite existing draft — transaction for atomicity
-      await db.transaction(async (tx) => {
-        await tx.update(tables.labels)
-          .set({ name: labelName, updatedAt: now })
-          .where(eq(tables.labels.id, id));
+    if (latest && latest.status === 'production') {
+      return NextResponse.json(
+        { error: 'Latest version is in production. Create a new version first.' },
+        { status: 409 }
+      );
+    }
+
+    // Overwrite latest version — transaction for atomicity
+    await db.transaction(async (tx) => {
+      await tx.update(tables.labels)
+        .set({ name: labelName, updatedAt: now })
+        .where(eq(tables.labels.id, id));
+      if (latest) {
         await tx.update(tables.labelVersions)
           .set({
             document,
@@ -112,41 +120,25 @@ export async function PUT(
             createdAt: now,
           })
           .where(eq(tables.labelVersions.id, latest.id));
-      });
-
-      return NextResponse.json({
-        id,
-        name: labelName,
-        version: latest.version,
-        status: 'draft',
-      });
-    } else {
-      // Create new draft version
-      const newVersion = (latest?.version ?? 0) + 1;
-      const versionId = crypto.randomUUID();
-
-      await db.transaction(async (tx) => {
-        await tx.update(tables.labels)
-          .set({ name: labelName, updatedAt: now })
-          .where(eq(tables.labels.id, id));
+      } else {
         await tx.insert(tables.labelVersions).values({
-          id: versionId,
+          id: crypto.randomUUID(),
           labelId: id,
-          version: newVersion,
-          status: 'draft',
+          version: 1,
+          status: null,
           document,
           thumbnail: thumbnailData,
           createdAt: now,
         });
-      });
+      }
+    });
 
-      return NextResponse.json({
-        id,
-        name: labelName,
-        version: newVersion,
-        status: 'draft',
-      });
-    }
+    return NextResponse.json({
+      id,
+      name: labelName,
+      version: latest?.version ?? 1,
+      status: latest?.status ?? null,
+    });
   } catch (e) {
     console.error('PUT /api/labels/[id] failed:', e);
     return NextResponse.json({ error: 'Failed to save label' }, { status: 500 });

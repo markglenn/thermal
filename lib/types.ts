@@ -32,6 +32,9 @@ export interface ResolvedBounds {
   height: number;
 }
 
+/** A version is either 'production' (the live/printable version) or null (a regular saved version). */
+export type VersionStatus = 'production' | null;
+
 export type ComponentType =
   | 'text'
   | 'barcode'
@@ -240,4 +243,5 @@ export interface EditorState {
   gridSize: number;
   currentLabelId: string | null;
   currentLabelName: string | null;
+  readOnly: boolean;
 }

@@ -15,6 +15,20 @@
       "when": 1773953247470,
       "tag": "0001_aspiring_malice",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1774641691984,
+      "tag": "0002_confused_mentor",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1774643015207,
+      "tag": "0003_fat_zaladane",
+      "breakpoints": true
     }
   ]
 }

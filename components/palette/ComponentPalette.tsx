@@ -2,6 +2,7 @@
 
 import { PanelLeftClose } from 'lucide-react';
 import { getAllDefinitions } from '@/lib/components';
+import { useEditorStoreContext } from '@/lib/store/editor-context';
 import { PaletteItem } from './PaletteItem';
 import { LayerHierarchy } from './LayerHierarchy';
 import { VariablesPanel } from '../properties/VariablesPanel';
@@ -13,6 +14,7 @@ interface Props {
 
 export function ComponentPalette({ onCollapse }: Props) {
   const definitions = getAllDefinitions();
+  const readOnly = useEditorStoreContext((s) => s.readOnly);
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -26,7 +28,7 @@ export function ComponentPalette({ onCollapse }: Props) {
             </button>
           )}
         </div>
-        <div className="p-1 flex flex-col gap-0.5">
+        <div className={`p-1 flex flex-col gap-0.5 ${readOnly ? 'opacity-50 pointer-events-none' : ''}`}>
           {definitions.map((def) => (
             <PaletteItem key={def.type} type={def.type as ComponentType} label={def.label} icon={def.icon} />
           ))}

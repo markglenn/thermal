@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { createEditorStore, type EditorStoreApi } from './editor-store';
-import type { LabelDocument } from '../types';
+import type { LabelDocument, VersionStatus } from '../types';
 
 export interface TabInfo {
   id: string;
@@ -12,6 +12,12 @@ export interface TabInfo {
   cleanDocumentRef: LabelDocument;
   /** Unsubscribe from the editor store's document-change listener */
   unsubscribe: () => void;
+  /** Which version is currently being viewed (null = latest) */
+  viewingVersion: number | null;
+  /** The latest version number for this label */
+  latestVersion: number | null;
+  /** Status of the latest version */
+  latestStatus: VersionStatus | null;
 }
 
 interface TabManagerState {
@@ -21,13 +27,16 @@ interface TabManagerState {
 
 interface TabManagerActions {
   createTab: () => string;
-  openLabel: (labelId: string, name: string, doc: LabelDocument) => string;
+  openLabel: (labelId: string, name: string, doc: LabelDocument, version?: number, status?: VersionStatus) => string;
+  openLabelVersion: (labelId: string, name: string, doc: LabelDocument, version: number, latestVersion: number) => void;
+  returnToLatest: (tabId: string, doc: LabelDocument, latestVersion: number, latestStatus: VersionStatus) => void;
   closeTab: (tabId: string) => void;
   setActiveTab: (tabId: string) => void;
   markDirty: (tabId: string, dirty: boolean) => void;
   markClean: (tabId: string) => void;
   updateTabName: (tabId: string, name: string) => void;
   updateTabLabelId: (tabId: string, labelId: string) => void;
+  updateTabVersionMeta: (tabId: string, version: number, status: VersionStatus) => void;
 }
 
 type TabStore = TabManagerState & TabManagerActions;
@@ -47,6 +56,9 @@ function createTab(name: string = 'Untitled', labelId: string | null = null, id:
     dirty: false,
     cleanDocumentRef: store.getState().document,
     unsubscribe: () => {},
+    viewingVersion: null,
+    latestVersion: null,
+    latestStatus: null,
   };
 
   // Subscribe to document changes and update dirty flag via reference identity
@@ -80,7 +92,7 @@ export const useTabStore = create<TabStore>()((set, get) => ({
     return tab.id;
   },
 
-  openLabel: (labelId, name, doc) => {
+  openLabel: (labelId, name, doc, version, status) => {
     const state = get();
 
     // If this label is already open in a tab, switch to it
@@ -97,10 +109,20 @@ export const useTabStore = create<TabStore>()((set, get) => ({
       if (editorState.document.components.length === 0) {
         activeTab.store.getState().loadDocument(doc);
         activeTab.store.getState().setLabelMeta(labelId, name);
+        activeTab.store.getState().setReadOnly(status === 'production');
         const cleanRef = activeTab.store.getState().document;
         set((s) => ({
           tabs: s.tabs.map((t) =>
-            t.id === activeTab.id ? { ...t, labelId, name, dirty: false, cleanDocumentRef: cleanRef } : t
+            t.id === activeTab.id ? {
+              ...t,
+              labelId,
+              name,
+              dirty: false,
+              cleanDocumentRef: cleanRef,
+              viewingVersion: null,
+              latestVersion: version ?? null,
+              latestStatus: status ?? null,
+            } : t
           ),
         }));
         return activeTab.id;
@@ -111,12 +133,52 @@ export const useTabStore = create<TabStore>()((set, get) => ({
     const tab = createTab(name, labelId);
     tab.store.getState().loadDocument(doc);
     tab.store.getState().setLabelMeta(labelId, name);
+    tab.store.getState().setReadOnly(status === 'production');
     tab.cleanDocumentRef = tab.store.getState().document;
+    tab.latestVersion = version ?? null;
+    tab.latestStatus = status ?? null;
     set((s) => ({
       tabs: [...s.tabs, tab],
       activeTabId: tab.id,
     }));
     return tab.id;
+  },
+
+  openLabelVersion: (labelId, name, doc, version, latestVersion) => {
+    const state = get();
+    const tab = state.tabs.find((t) => t.labelId === labelId);
+    if (!tab) return;
+
+    tab.store.getState().loadDocument(doc);
+    tab.store.getState().setReadOnly(true);
+    const cleanRef = tab.store.getState().document;
+    set((s) => ({
+      activeTabId: tab.id,
+      tabs: s.tabs.map((t) =>
+        t.id === tab.id ? { ...t, viewingVersion: version, latestVersion, dirty: false, cleanDocumentRef: cleanRef } : t
+      ),
+    }));
+  },
+
+  returnToLatest: (tabId, doc, latestVersion, latestStatus) => {
+    const tab = get().tabs.find((t) => t.id === tabId);
+    if (!tab) return;
+
+    tab.store.getState().loadDocument(doc);
+    tab.store.getState().setReadOnly(latestStatus === 'production');
+    const cleanRef = tab.store.getState().document;
+    set((s) => ({
+      tabs: s.tabs.map((t) =>
+        t.id === tabId ? {
+          ...t,
+          viewingVersion: null,
+          latestVersion,
+          latestStatus,
+          dirty: false,
+          cleanDocumentRef: cleanRef,
+        } : t
+      ),
+    }));
   },
 
   closeTab: (tabId) => {
@@ -170,6 +232,14 @@ export const useTabStore = create<TabStore>()((set, get) => ({
   updateTabLabelId: (tabId, labelId) => {
     set((state) => ({
       tabs: state.tabs.map((t) => (t.id === tabId ? { ...t, labelId } : t)),
+    }));
+  },
+
+  updateTabVersionMeta: (tabId, version, status) => {
+    set((state) => ({
+      tabs: state.tabs.map((t) =>
+        t.id === tabId ? { ...t, latestVersion: version, latestStatus: status } : t
+      ),
     }));
   },
 }));

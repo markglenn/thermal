@@ -64,7 +64,17 @@ function Tab({
       }`}
     >
       <FileText size={12} className="shrink-0 text-gray-400" />
-      <span className="truncate">{tab.name}</span>
+      <span className="truncate">
+        {tab.name}
+        {tab.latestVersion !== null && (
+          <span className={`ml-1 ${tab.viewingVersion !== null ? 'text-amber-600' : 'text-gray-400'}`}>
+            v{tab.viewingVersion ?? tab.latestVersion}
+          </span>
+        )}
+        {tab.latestStatus === 'production' && tab.viewingVersion === null && (
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 ml-1 align-middle" title="Published" />
+        )}
+      </span>
       <button
         onClick={onClose}
         className="ml-auto text-gray-400 hover:text-gray-700 shrink-0 w-3 h-3 flex items-center justify-center group/close"

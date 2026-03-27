@@ -57,7 +57,7 @@ async function createLabel(name: string, doc: LabelDocument = sampleDocument) {
     id: versionId,
     labelId,
     version: 1,
-    status: 'draft',
+    status: null,
     document: doc,
     thumbnail: null,
     createdAt: now,
@@ -100,7 +100,7 @@ describe('labels database operations', () => {
         .where(eq(schema.labelVersions.labelId, labelId));
       expect(versions).toHaveLength(1);
       expect(versions[0].version).toBe(1);
-      expect(versions[0].status).toBe('draft');
+      expect(versions[0].status).toBeNull();
     });
 
     it('stores the document as JSON', async () => {
@@ -144,7 +144,7 @@ describe('labels database operations', () => {
         id: crypto.randomUUID(),
         labelId,
         version: 2,
-        status: 'draft',
+        status: null,
         document: sampleDocument,
         thumbnail: null,
         createdAt: new Date(),
@@ -209,7 +209,7 @@ describe('labels database operations', () => {
         .limit(1);
 
       const latest = versions[0];
-      expect(latest.status).toBe('draft');
+      expect(latest.status).toBeNull();
 
       // Update it
       const updatedDoc = { ...sampleDocument, components: [] };
@@ -243,7 +243,7 @@ describe('labels database operations', () => {
         id: crypto.randomUUID(),
         labelId,
         version: 2,
-        status: 'draft',
+        status: null,
         document: sampleDocumentWithText,
         thumbnail: null,
         createdAt: new Date(),
@@ -257,7 +257,7 @@ describe('labels database operations', () => {
 
       expect(allVersions).toHaveLength(2);
       expect(allVersions[0].version).toBe(2);
-      expect(allVersions[0].status).toBe('draft');
+      expect(allVersions[0].status).toBeNull();
       expect(allVersions[1].version).toBe(1);
       expect(allVersions[1].status).toBe('production');
     });
@@ -288,7 +288,7 @@ describe('labels database operations', () => {
         id: crypto.randomUUID(),
         labelId,
         version: 2,
-        status: 'draft',
+        status: null,
         document: sampleDocument,
         thumbnail: null,
         createdAt: new Date(),
@@ -332,7 +332,7 @@ describe('labels database operations', () => {
           id: crypto.randomUUID(),
           labelId,
           version: 1, // duplicate
-          status: 'draft',
+          status: null,
           document: sampleDocument,
           thumbnail: null,
           createdAt: new Date(),
