@@ -73,6 +73,7 @@ export function TabBar() {
         className="flex items-stretch min-w-0 overflow-x-auto overflow-y-hidden scrollbar-none"
       >
         <DndContext
+          id="tab-bar-dnd"
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}

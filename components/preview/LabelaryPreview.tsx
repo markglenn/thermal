@@ -4,6 +4,7 @@ import { useMemo, useEffect, useState, useRef } from 'react';
 import { useDocument } from '@/lib/store/editor-context';
 import { generateZpl } from '@/lib/zpl/generator';
 import { fetchLabelaryPreview } from '@/lib/labelary/client';
+import { Spinner } from '@/components/ui/Spinner';
 
 export function LabelaryPreview() {
   const document = useDocument();
@@ -48,13 +49,13 @@ export function LabelaryPreview() {
   }, [zpl, hasComponents, document.label]);
 
   return (
-    <div className="h-full p-3 flex items-center justify-center bg-gray-50 overflow-auto">
+    <div className="h-full p-3 flex items-center justify-center bg-gray-50 overflow-auto relative">
       {imageUrl && !error && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={imageUrl}
           alt="Label preview"
-          className="max-w-full max-h-full border border-gray-200 shadow-sm"
+          className={`max-w-full max-h-full border border-gray-200 shadow-sm transition-opacity ${loading ? 'opacity-40' : ''}`}
         />
       )}
       {error && (
@@ -63,8 +64,10 @@ export function LabelaryPreview() {
       {!imageUrl && !error && !loading && (
         <div className="text-sm text-gray-400">Add components to your label to see a preview</div>
       )}
-      {loading && !imageUrl && (
-        <div className="text-sm text-gray-400">Rendering...</div>
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Spinner className="text-gray-400" />
+        </div>
       )}
     </div>
   );

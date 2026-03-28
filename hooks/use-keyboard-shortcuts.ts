@@ -13,6 +13,7 @@ export const EDITOR_EVENTS = {
   SAVE_AS: 'editor:save-as',
   OPEN: 'editor:open',
   FIT_TO_VIEW: 'editor:fit-to-view',
+  SHOW_SHORTCUTS: 'editor:show-shortcuts',
 } as const;
 
 export function useKeyboardShortcuts() {
@@ -71,6 +72,12 @@ export function useKeyboardShortcuts() {
       if (e.key === '0' && mod) {
         e.preventDefault();
         window.dispatchEvent(new Event(EDITOR_EVENTS.FIT_TO_VIEW));
+        return;
+      }
+      // Keyboard shortcuts (Cmd+/)
+      if (e.key === '/' && mod) {
+        e.preventDefault();
+        window.dispatchEvent(new Event(EDITOR_EVENTS.SHOW_SHORTCUTS));
         return;
       }
       if (e.key === 'n' && mod) {

@@ -5,11 +5,13 @@ import { Flame, History, ChevronDown, Undo2, Redo2, Check } from 'lucide-react';
 import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
 import { EDITOR_EVENTS } from '@/hooks/use-keyboard-shortcuts';
 import { MIN_ZOOM, MAX_ZOOM } from '@/lib/constants';
+import { formatShortcut } from '@/lib/platform';
 import { useTabStore } from '@/lib/store/tab-store';
 import { captureThumbnail } from '@/lib/documents/thumbnail';
 import { SaveNameModal } from '@/components/documents/SaveNameModal';
 import { LabelBrowserModal } from '@/components/documents/LabelBrowserModal';
 import { VersionHistoryPanel } from '@/components/documents/VersionHistoryPanel';
+import { KeyboardShortcutsModal } from '@/components/editor/KeyboardShortcutsModal';
 import type { LabelDocument } from '@/lib/types';
 
 function ToolbarSeparator() {
@@ -41,7 +43,7 @@ function MenuItem({
         {checked !== undefined && <Check size={12} className={checked ? 'opacity-100' : 'opacity-0'} />}
       </span>
       <span className="flex-1">{label}</span>
-      {shortcut && <span className="text-gray-400 ml-4 shrink-0">{shortcut}</span>}
+      {shortcut && <span className="text-gray-400 ml-4 shrink-0">{formatShortcut(shortcut)}</span>}
     </button>
   );
 }
@@ -80,7 +82,7 @@ function UndoRedoButtons() {
         onClick={handleUndo}
         disabled={!canUndo}
         className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-default"
-        title="Undo (⌘Z)"
+        title={`Undo (${formatShortcut('⌘Z')})`}
       >
         <Undo2 size={14} />
       </button>
@@ -88,7 +90,7 @@ function UndoRedoButtons() {
         onClick={handleRedo}
         disabled={!canRedo}
         className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-default"
-        title="Redo (⌘⇧Z)"
+        title={`Redo (${formatShortcut('⌘⇧Z')})`}
       >
         <Redo2 size={14} />
       </button>
@@ -122,6 +124,7 @@ export function Toolbar() {
   const [versionLabelSize, setVersionLabelSize] = useState<{ widthInches: number; heightInches: number } | null>(null);
   const [showFileMenu, setShowFileMenu] = useState(false);
   const [showViewMenu, setShowViewMenu] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const saveLabel = useCallback(async (name: string) => {
@@ -270,14 +273,17 @@ export function Toolbar() {
     };
     const onSaveAs = () => setShowSaveModal(true);
     const onOpen = () => setShowBrowserModal(true);
+    const onShortcuts = () => setShowShortcuts(true);
 
     window.addEventListener(EDITOR_EVENTS.SAVE, onSave);
     window.addEventListener(EDITOR_EVENTS.SAVE_AS, onSaveAs);
     window.addEventListener(EDITOR_EVENTS.OPEN, onOpen);
+    window.addEventListener(EDITOR_EVENTS.SHOW_SHORTCUTS, onShortcuts);
     return () => {
       window.removeEventListener(EDITOR_EVENTS.SAVE, onSave);
       window.removeEventListener(EDITOR_EVENTS.SAVE_AS, onSaveAs);
       window.removeEventListener(EDITOR_EVENTS.OPEN, onOpen);
+      window.removeEventListener(EDITOR_EVENTS.SHOW_SHORTCUTS, onShortcuts);
     };
   }, [saveLabel, storeApi]);
 
@@ -292,18 +298,21 @@ export function Toolbar() {
 
         <ToolbarSeparator />
 
+        {/* Backdrop to close any open menu */}
+        {(showFileMenu || showViewMenu) && (
+          <div className="fixed inset-0 z-40" onPointerDown={() => { setShowFileMenu(false); setShowViewMenu(false); }} />
+        )}
+
         {/* File menu */}
-        <div className="relative">
+        <div className="relative z-41">
           <button
-            onClick={() => setShowFileMenu((v) => !v)}
+            onClick={() => { setShowFileMenu((v) => !v); setShowViewMenu(false); }}
             className="flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 text-xs"
           >
             File
             <ChevronDown size={12} />
           </button>
           {showFileMenu && (
-            <>
-            <div className="fixed inset-0 z-40" onPointerDown={() => setShowFileMenu(false)} />
             <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 min-w-44">
               <MenuItem label="New" onClick={() => { setShowFileMenu(false); useTabStore.getState().createTab(); }} />
               <MenuItem label="Open..." shortcut="⌘O" onClick={() => { setShowFileMenu(false); setShowBrowserModal(true); }} />
@@ -333,7 +342,6 @@ export function Toolbar() {
                 state.closeTab(state.activeTabId);
               }} />
             </div>
-            </>
           )}
         </div>
 
@@ -343,18 +351,16 @@ export function Toolbar() {
         <UndoRedoButtons />
 
         {/* View menu */}
-        <div className="relative">
+        <div className="relative z-41">
           <button
-            onClick={() => setShowViewMenu((v) => !v)}
+            onClick={() => { setShowViewMenu((v) => !v); setShowFileMenu(false); }}
             className="flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 text-xs"
           >
             View
             <ChevronDown size={12} />
           </button>
           {showViewMenu && (
-            <>
-            <div className="fixed inset-0 z-40" onPointerDown={() => setShowViewMenu(false)} />
-            <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 min-w-44">
+            <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 min-w-56">
               <MenuItem label="Grid" checked={showGrid} onClick={() => { toggleGrid(); setShowViewMenu(false); }} />
               <MenuItem label="Rulers" checked={showRulers} shortcut="⇧R" onClick={() => { toggleRulers(); setShowViewMenu(false); }} />
               <MenuDivider />
@@ -365,8 +371,9 @@ export function Toolbar() {
               {[50, 100, 200].map((pct) => (
                 <MenuItem key={pct} label={`${pct}%`} checked={Math.round(zoom * 100) === pct} onClick={() => { storeApi.getState().setZoom(pct / 100); setShowViewMenu(false); }} />
               ))}
+              <MenuDivider />
+              <MenuItem label="Keyboard Shortcuts" shortcut="⌘/" onClick={() => { setShowShortcuts(true); setShowViewMenu(false); }} />
             </div>
-            </>
           )}
         </div>
 
@@ -440,6 +447,10 @@ export function Toolbar() {
           currentLabelSize={versionLabelSize}
           onClose={() => setShowVersionHistory(false)}
         />
+      )}
+
+      {showShortcuts && (
+        <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />
       )}
     </>
   );

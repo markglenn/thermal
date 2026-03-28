@@ -183,7 +183,7 @@ export function LayerHierarchy() {
         {document.components.length === 0 ? (
           <div className="px-3 py-3 text-xs text-gray-400 text-center" data-testid="layers-empty">No components</div>
         ) : (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd} modifiers={[restrictToVerticalAxis, restrictToParentElement]}>
+          <DndContext id="layer-hierarchy-dnd" sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd} modifiers={[restrictToVerticalAxis, restrictToParentElement]}>
             <SortableContext items={ids} strategy={verticalListSortingStrategy}>
               {document.components.map((comp) => (
                 <SortableLayerItem key={comp.id} component={comp} depth={0} />
