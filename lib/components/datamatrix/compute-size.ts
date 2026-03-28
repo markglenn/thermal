@@ -20,18 +20,28 @@ const DM_SIZES: [number, number][] = [
 ];
 
 /**
- * Estimate data codewords for a string using Data Matrix auto-encoding rules.
- * Consecutive digit pairs are packed (1 codeword per 2 digits), other ASCII
- * characters use 1 codeword each.
+ * Estimate data codewords for a string using Data Matrix encoding rules.
+ * Consecutive digit pairs are packed (1 codeword per 2 digits). A mode-switch
+ * codeword is added when transitioning between digit runs and other characters.
  */
-function estimateCodewords(content: string): number {
+export function estimateCodewords(content: string): number {
   let codewords = 0;
+  let inDigitMode = false;
   let i = 0;
   while (i < content.length) {
-    if (i + 1 < content.length && content[i] >= '0' && content[i] <= '9' && content[i + 1] >= '0' && content[i + 1] <= '9') {
+    const isDigit = content[i] >= '0' && content[i] <= '9';
+    const nextIsDigit = i + 1 < content.length && content[i + 1] >= '0' && content[i + 1] <= '9';
+
+    if (isDigit && nextIsDigit) {
+      if (!inDigitMode) inDigitMode = true;
       codewords++;
       i += 2;
     } else {
+      if (inDigitMode) {
+        // Unlatch from digit mode costs 1 codeword
+        codewords++;
+        inDigitMode = false;
+      }
       codewords++;
       i++;
     }
@@ -44,8 +54,6 @@ function estimateCodewords(content: string): number {
  */
 export function computeDataMatrixSize(props: DataMatrixProperties): { width: number; height: number } {
   const { content, moduleSize } = props;
-  // ZPL ^BX uses auto-encoding: digit pairs are packed into 1 codeword each,
-  // ASCII characters use 1 codeword each. Estimate data codewords needed.
   const contentLength = estimateCodewords(content) || 1;
 
   let renderedModules = 10; // minimum (10x10 symbol)

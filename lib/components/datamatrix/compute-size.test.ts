@@ -18,9 +18,15 @@ describe('computeDataMatrixSize', () => {
   });
 
   it('selects larger size for longer content', () => {
-    // "1234567890" = 10 digits = 5 codewords (digit pairs) → capacity 6 → 12x12 symbol
+    // "1234567890" = 5 digit-pair codewords → capacity 6 → 12x12 symbol
     const size = computeDataMatrixSize(makeProps({ content: '1234567890', moduleSize: 3 }));
     expect(size).toEqual({ width: 36, height: 36 });
+  });
+
+  it('accounts for mode-switch overhead with mixed content', () => {
+    // "1234567890a" = 5 digit-pairs + 1 unlatch + 1 ascii = 7 codewords → 14x14
+    const size = computeDataMatrixSize(makeProps({ content: '1234567890a', moduleSize: 5 }));
+    expect(size).toEqual({ width: 70, height: 70 });
   });
 
   it('scales with module size', () => {
@@ -32,7 +38,7 @@ describe('computeDataMatrixSize', () => {
 
   it('handles empty content as 1 codeword', () => {
     const size = computeDataMatrixSize(makeProps({ content: '', moduleSize: 4 }));
-    // 1 codeword → capacity 3 → 10x10 symbol
+    // 1 char → capacity 3 → 10x10 symbol
     expect(size).toEqual({ width: 40, height: 40 });
   });
 
@@ -40,12 +46,5 @@ describe('computeDataMatrixSize', () => {
     const size = computeDataMatrixSize(makeProps({ content: 'A'.repeat(2500), moduleSize: 1 }));
     // exceeds all → 144-module symbol
     expect(size).toEqual({ width: 144, height: 144 });
-  });
-
-  it('packs digit pairs into fewer codewords', () => {
-    // "1234" = 2 codewords (digit pairs), "ABCD" = 4 codewords
-    const digits = computeDataMatrixSize(makeProps({ content: '1234', moduleSize: 1 }));
-    const alpha = computeDataMatrixSize(makeProps({ content: 'ABCD', moduleSize: 1 }));
-    expect(digits.width).toBeLessThan(alpha.width);
   });
 });
