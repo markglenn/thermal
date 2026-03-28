@@ -28,7 +28,7 @@ const dejaVuSansMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Thermal - ZPL Label Editor",
+  title: { default: "Thermal", template: "%s — Thermal" },
   description: "WYSIWYG editor for Zebra printer labels",
 };
 

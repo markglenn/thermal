@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import '@/lib/components'; // Register all component plugins
 import { useTabStore } from '@/lib/store/tab-store';
 import { EditorStoreProvider } from '@/lib/store/editor-context';
@@ -23,10 +23,18 @@ import type { LabelDocument } from '@/lib/types';
 
 export function Editor() {
   const activeTabId = useTabStore((s) => s.activeTabId);
+  const activeTabName = useTabStore((s) => {
+    const tab = s.tabs.find((t) => t.id === s.activeTabId);
+    return tab?.name ?? null;
+  });
   const activeStore = useTabStore((s) => {
     const tab = s.tabs.find((t) => t.id === s.activeTabId);
     return tab?.store ?? null;
   });
+
+  useEffect(() => {
+    document.title = activeTabName ? `${activeTabName} — Thermal` : 'Thermal';
+  }, [activeTabName]);
 
   if (!activeStore) {
     return (
