@@ -4,9 +4,10 @@ export const DPI_VALUES = [203, 300, 600] as const;
 
 export const DEFAULT_LABEL: LabelConfig = {
   dpi: 203,
-  activeVariant: 'Default',
   variants: [{ name: 'Default', widthDots: 406, heightDots: 203, unit: 'in' }],
 };
+
+export const DEFAULT_ACTIVE_VARIANT = 'Default';
 
 export const DEFAULT_ZOOM = 1;
 export const MIN_ZOOM = 0.1;
@@ -109,16 +110,19 @@ export function getZplFontStyle(font: string, fontSize: number, fontWidth: numbe
 export const LABELARY_BASE_URL = 'http://api.labelary.com/v1/printers';
 export const LABELARY_DEBOUNCE_MS = 300;
 
-export function getActiveVariant(label: LabelConfig): LabelSizeVariant {
-  return label.variants.find((v) => v.name === label.activeVariant) ?? label.variants[0];
+export function getActiveVariant(label: LabelConfig, activeVariant?: string): LabelSizeVariant {
+  if (activeVariant) {
+    return label.variants.find((v) => v.name === activeVariant) ?? label.variants[0];
+  }
+  return label.variants[0];
 }
 
-export function labelWidthDots(label: LabelConfig): number {
-  return getActiveVariant(label).widthDots;
+export function labelWidthDots(label: LabelConfig, activeVariant?: string): number {
+  return getActiveVariant(label, activeVariant).widthDots;
 }
 
-export function labelHeightDots(label: LabelConfig): number {
-  return getActiveVariant(label).heightDots;
+export function labelHeightDots(label: LabelConfig, activeVariant?: string): number {
+  return getActiveVariant(label, activeVariant).heightDots;
 }
 
 // Unit conversion helpers — dots are the canonical storage unit
@@ -153,16 +157,26 @@ export function unitToDots(value: number, dpi: number, unit: 'in' | 'mm'): numbe
  * Migrate a legacy LabelConfig (widthInches/heightInches) to the new variants format.
  * Returns the config unchanged if it already uses variants.
  */
-export function migrateLabelConfig(label: Record<string, unknown>): LabelConfig {
+/**
+ * Migrate a legacy LabelConfig (widthInches/heightInches) to the new variants format.
+ * Returns { label, activeVariant } — activeVariant is extracted so it can be stored
+ * outside the document (it's editor state, not document state).
+ */
+export function migrateLabelConfig(label: Record<string, unknown>): { label: LabelConfig; activeVariant: string } {
   if ('variants' in label && Array.isArray(label.variants)) {
-    return label as unknown as LabelConfig;
+    // Strip activeVariant from the label if present (legacy documents may have it)
+    const activeVariant = (label.activeVariant as string) ?? (label.variants as LabelSizeVariant[])[0]?.name ?? 'Default';
+    const { activeVariant: _, ...rest } = label as Record<string, unknown>;
+    return { label: rest as unknown as LabelConfig, activeVariant };
   }
   const dpi = (label.dpi as number) ?? 203;
   const widthDots = Math.round(((label.widthInches as number) ?? 2) * dpi);
   const heightDots = Math.round(((label.heightInches as number) ?? 1) * dpi);
   return {
-    dpi: dpi as 203 | 300 | 600,
+    label: {
+      dpi: dpi as 203 | 300 | 600,
+      variants: [{ name: 'Default', widthDots, heightDots, unit: 'in' }],
+    },
     activeVariant: 'Default',
-    variants: [{ name: 'Default', widthDots, heightDots, unit: 'in' }],
   };
 }

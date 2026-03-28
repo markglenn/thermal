@@ -13,7 +13,7 @@ import type {
   HorizontalAnchor,
   VerticalAnchor,
 } from '../types';
-import { DEFAULT_LABEL, DEFAULT_ZOOM, GRID_SIZE, DUPLICATE_OFFSET, UNDO_THROTTLE_MS, labelWidthDots, labelHeightDots, migrateLabelConfig } from '../constants';
+import { DEFAULT_LABEL, DEFAULT_ACTIVE_VARIANT, DEFAULT_ZOOM, GRID_SIZE, DUPLICATE_OFFSET, UNDO_THROTTLE_MS, labelWidthDots, labelHeightDots, migrateLabelConfig } from '../constants';
 import { createComponent, generateId } from './editor-actions';
 import { findComponent } from '@/lib/utils';
 import { resolveLayout } from '@/lib/constraints/resolver';
@@ -39,6 +39,7 @@ const initialDocument: LabelDocument = {
 
 const initialState: EditorState = {
   document: initialDocument,
+  activeVariant: DEFAULT_ACTIVE_VARIANT,
   selectedComponentIds: [],
   viewport: { zoom: DEFAULT_ZOOM, panX: 0, panY: 0 },
   interactionMode: 'select',
@@ -289,8 +290,8 @@ export function createEditorStore() {
           // Resolve the current visual position so we can recompute x/y
           // to keep the component in the same place after anchor change
           const { label } = currentState.document;
-          const lw = labelWidthDots(label);
-          const lh = labelHeightDots(label);
+          const lw = labelWidthDots(label, currentState.activeVariant);
+          const lh = labelHeightDots(label, currentState.activeVariant);
           const bounds = resolveLayout(currentComp.layout, lw, lh);
 
           set((state) => {
@@ -403,7 +404,7 @@ export function createEditorStore() {
         setActiveVariant: (name) => {
           set((state) => {
             const exists = state.document.label.variants.some((v) => v.name === name);
-            if (exists) state.document.label.activeVariant = name;
+            if (exists) state.activeVariant = name;
           });
         },
 
@@ -429,8 +430,8 @@ export function createEditorStore() {
             const variant = variants.find((v) => v.name === oldName);
             if (!variant) return;
             variant.name = trimmed;
-            if (state.document.label.activeVariant === oldName) {
-              state.document.label.activeVariant = trimmed;
+            if (state.activeVariant === oldName) {
+              state.activeVariant = trimmed;
             }
           });
         },
@@ -442,8 +443,8 @@ export function createEditorStore() {
             const idx = variants.findIndex((v) => v.name === name);
             if (idx === -1) return;
             variants.splice(idx, 1);
-            if (state.document.label.activeVariant === name) {
-              state.document.label.activeVariant = variants[0].name;
+            if (state.activeVariant === name) {
+              state.activeVariant = variants[0].name;
             }
           });
         },
@@ -462,11 +463,13 @@ export function createEditorStore() {
           // Migrate legacy constraints/pins to layout model
           migrateDocument(doc.components);
           // Migrate legacy widthInches/heightInches to variants
-          doc.label = migrateLabelConfig(doc.label as unknown as Record<string, unknown>);
+          const migrated = migrateLabelConfig(doc.label as unknown as Record<string, unknown>);
+          doc.label = migrated.label;
           // Recompute sizes for auto/width-only components
           recomputeAllSizes(doc.components);
           set((state) => {
             state.document = doc;
+            state.activeVariant = migrated.activeVariant;
             state.selectedComponentIds = [];
             state._undoBatchSnapshot = null;
           });

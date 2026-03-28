@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useCallback, useState } from 'react';
-import { useViewport, useLabelConfig } from '@/lib/store/editor-context';
+import { useViewport, useLabelConfig, useActiveVariant } from '@/lib/store/editor-context';
 import { labelWidthDots, labelHeightDots } from '@/lib/constants';
 import {
   RULER_SIZE,
@@ -308,8 +308,9 @@ export function Ruler({ canvasRef, selectionBounds }: RulerProps) {
 
   const viewport = useViewport();
   const label = useLabelConfig();
-  const widthDots = labelWidthDots(label);
-  const heightDots = labelHeightDots(label);
+  const activeVariant = useActiveVariant();
+  const widthDots = labelWidthDots(label, activeVariant);
+  const heightDots = labelHeightDots(label, activeVariant);
 
   // ResizeObserver to track canvas container dimensions
   useEffect(() => {

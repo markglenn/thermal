@@ -340,10 +340,9 @@ describe('editor store', () => {
           { name: 'US', widthDots: 812, heightDots: 1218, unit: 'in' },
           { name: 'UK', widthDots: 800, heightDots: 1197, unit: 'mm' },
         ],
-        activeVariant: 'US',
       });
       useEditorStore.getState().setActiveVariant('UK');
-      expect(useEditorStore.getState().document.label.activeVariant).toBe('UK');
+      expect(useEditorStore.getState().activeVariant).toBe('UK');
     });
 
     it('addVariant adds a new variant', () => {
@@ -361,7 +360,7 @@ describe('editor store', () => {
       useEditorStore.getState().setActiveVariant('Default');
       useEditorStore.getState().removeVariant('Default');
       expect(useEditorStore.getState().document.label.variants).toHaveLength(1);
-      expect(useEditorStore.getState().document.label.activeVariant).toBe('UK');
+      expect(useEditorStore.getState().activeVariant).toBe('UK');
     });
 
     it('removeVariant does not remove the last variant', () => {
@@ -385,7 +384,7 @@ describe('editor store', () => {
       useEditorStore.getState().addComponent('text');
       const newDoc: LabelDocument = {
         version: 1,
-        label: { dpi: 300, activeVariant: 'Default', variants: [{ name: 'Default', widthDots: 1200, heightDots: 1800, unit: 'in' }] },
+        label: { dpi: 300, variants: [{ name: 'Default', widthDots: 1200, heightDots: 1800, unit: 'in' }] },
         components: [],
       };
       useEditorStore.getState().loadDocument(newDoc);
@@ -405,7 +404,7 @@ describe('editor store', () => {
       expect(label.variants).toHaveLength(1);
       expect(label.variants[0].widthDots).toBe(812);
       expect(label.variants[0].heightDots).toBe(1218);
-      expect(label.activeVariant).toBe('Default');
+      expect(useEditorStore.getState().activeVariant).toBe('Default');
     });
 
     it('undo after load does not change state', () => {
@@ -414,7 +413,7 @@ describe('editor store', () => {
       useEditorStore.getState().addComponent('rectangle');
       const newDoc: LabelDocument = {
         version: 1,
-        label: { dpi: 300, activeVariant: 'Default', variants: [{ name: 'Default', widthDots: 1200, heightDots: 1800, unit: 'in' }] },
+        label: { dpi: 300, variants: [{ name: 'Default', widthDots: 1200, heightDots: 1800, unit: 'in' }] },
         components: [],
       };
       useEditorStore.getState().loadDocument(newDoc);
@@ -436,7 +435,7 @@ describe('editor store', () => {
       });
       const newDoc: LabelDocument = {
         version: 1,
-        label: { dpi: 300, activeVariant: 'Default', variants: [{ name: 'Default', widthDots: 1200, heightDots: 1800, unit: 'in' }] },
+        label: { dpi: 300, variants: [{ name: 'Default', widthDots: 1200, heightDots: 1800, unit: 'in' }] },
         components: [],
       };
       useEditorStore.getState().loadDocument(newDoc);

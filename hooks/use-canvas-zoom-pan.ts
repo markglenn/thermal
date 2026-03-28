@@ -6,6 +6,7 @@ import type { LabelConfig } from '@/lib/types';
 export function useCanvasZoomPan(
   canvasRef: React.RefObject<HTMLDivElement | null>,
   label: LabelConfig,
+  activeVariant: string,
 ) {
   const [isPanning, setIsPanning] = useState(false);
   const [isSpaceHeld, setIsSpaceHeld] = useState(false);
@@ -18,8 +19,8 @@ export function useCanvasZoomPan(
   useEffect(() => {
     return () => { cleanupRef.current?.(); };
   }, []);
-  const widthDots = labelWidthDots(label);
-  const heightDots = labelHeightDots(label);
+  const widthDots = labelWidthDots(label, activeVariant);
+  const heightDots = labelHeightDots(label, activeVariant);
 
   // Clamp pan via ref so wheel handler always uses latest values
   const clampPanRef = useRef((panX: number, panY: number, _zoom: number) => ({ panX, panY }));

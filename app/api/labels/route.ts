@@ -54,8 +54,7 @@ export async function GET(request: NextRequest) {
       let heightInches: number | null = null;
       if (docLabel) {
         if (Array.isArray(docLabel.variants) && docLabel.variants.length > 0) {
-          const variant = (docLabel.variants as Array<{ name: string; widthDots: number; heightDots: number }>)
-            .find((v) => v.name === docLabel.activeVariant) ?? docLabel.variants[0] as { widthDots: number; heightDots: number };
+          const variant = docLabel.variants[0] as { widthDots: number; heightDots: number };
           const dpi = (docLabel.dpi as number) || 203;
           widthInches = variant.widthDots / dpi;
           heightInches = variant.heightDots / dpi;

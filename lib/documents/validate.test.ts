@@ -4,7 +4,7 @@ import { validateDocument } from './validate';
 describe('validateDocument', () => {
   const validDoc = {
     version: 1,
-    label: { dpi: 203, activeVariant: 'Default', variants: [{ name: 'Default', widthDots: 406, heightDots: 203, unit: 'in' }] },
+    label: { dpi: 203, variants: [{ name: 'Default', widthDots: 406, heightDots: 203, unit: 'in' }] },
     components: [],
   };
 
@@ -45,7 +45,7 @@ describe('validateDocument', () => {
   it('rejects invalid dpi', () => {
     expect(validateDocument({
       ...validDoc,
-      label: { dpi: 150, activeVariant: 'Default', variants: [{ name: 'Default', widthDots: 406, heightDots: 203, unit: 'in' }] },
+      label: { dpi: 150, variants: [{ name: 'Default', widthDots: 406, heightDots: 203, unit: 'in' }] },
     })).toBe(false);
   });
 
@@ -63,7 +63,7 @@ describe('validateDocument', () => {
   it('rejects empty variants array', () => {
     expect(validateDocument({
       ...validDoc,
-      label: { dpi: 203, activeVariant: 'Default', variants: [] },
+      label: { dpi: 203, variants: [] },
     })).toBe(false);
   });
 

@@ -17,8 +17,8 @@ export function useCanvasResize() {
       const dy = (e.clientY - resizeState.startY) / zoom;
       const sl = resizeState.startLayout;
       const handle = resizeState.handle;
-      const labelW = labelWidthDots(state.document.label);
-      const labelH = labelHeightDots(state.document.label);
+      const labelW = labelWidthDots(state.document.label, state.activeVariant);
+      const labelH = labelHeightDots(state.document.label, state.activeVariant);
 
       const update: Partial<ComponentLayout> = {};
       const isCenter = sl.horizontalAnchor === 'center';

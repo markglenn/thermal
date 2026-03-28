@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { Plus, Settings, X } from 'lucide-react';
-import { useEditorStoreContext } from '@/lib/store/editor-context';
+import { useEditorStoreContext, useActiveVariant } from '@/lib/store/editor-context';
 import { useLabelConfig } from '@/lib/store/editor-context';
 import { DPI_VALUES, getActiveVariant, dotsToUnit, unitToDots } from '@/lib/constants';
 import { CollapsibleSection } from '../ui/CollapsibleSection';
@@ -55,10 +55,12 @@ export function LabelSettings() {
   const [forceCustom, setForceCustom] = useState(false);
   const [showAddVariant, setShowAddVariant] = useState(false);
   const [newVariantName, setNewVariantName] = useState('');
+  const addVariantInputRef = useRef<HTMLInputElement>(null);
   const [editingVariantName, setEditingVariantName] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState('');
+  const activeVariantName = useActiveVariant();
 
-  const variant = getActiveVariant(label);
+  const variant = getActiveVariant(label, activeVariantName);
   const unit = variant.unit;
 
   // Display values in the variant's preferred unit
@@ -131,44 +133,10 @@ export function LabelSettings() {
       <div className="px-3 pb-3 space-y-2">
         {/* Variants */}
         <div>
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs text-gray-500">Variants</span>
-            <button
-              onClick={() => setShowAddVariant(true)}
-              className="flex items-center gap-0.5 text-xs text-gray-400 hover:text-gray-600"
-            >
-              <Plus size={10} />
-              Add
-            </button>
-          </div>
+          <span className="text-xs text-gray-500">Variants</span>
 
-          {/* Inline add variant form */}
-          {showAddVariant && (
-            <div className="flex gap-1 mb-1">
-              <input
-                type="text"
-                value={newVariantName}
-                onChange={(e) => setNewVariantName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleAddVariant();
-                  if (e.key === 'Escape') { setShowAddVariant(false); setNewVariantName(''); }
-                }}
-                placeholder="e.g. UK"
-                autoFocus
-                className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-              <button
-                onClick={handleAddVariant}
-                disabled={!newVariantName.trim() || label.variants.some((v) => v.name === newVariantName.trim())}
-                className="px-2 py-1 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded disabled:opacity-50"
-              >
-                Add
-              </button>
-            </div>
-          )}
-
-          {/* Variant tabs — always visible */}
-          <div className="flex rounded overflow-hidden border border-gray-300">
+          {/* Variant tabs with inline add button */}
+          <div className="flex mt-0.5 rounded overflow-hidden border border-gray-300">
             {label.variants.map((v) => (
               <button
                 key={v.name}
@@ -178,9 +146,9 @@ export function LabelSettings() {
                   setEditingValue(v.name);
                 }}
                 className={`flex-1 px-2 py-1 text-xs font-medium transition-colors relative group ${
-                  v.name === label.activeVariant
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white text-gray-600 hover:bg-gray-50'
+                  v.name === activeVariantName
+                    ? 'bg-gray-200 text-gray-800 font-semibold'
+                    : 'bg-white text-gray-500 hover:bg-gray-50'
                 }`}
               >
                 {editingVariantName === v.name ? (
@@ -195,12 +163,12 @@ export function LabelSettings() {
                     }}
                     autoFocus
                     onClick={(e) => e.stopPropagation()}
-                    className="w-full bg-transparent text-center text-xs font-medium outline-none text-white"
+                    className="w-full bg-transparent text-center text-xs font-medium outline-none text-gray-800"
                   />
                 ) : (
                   v.name
                 )}
-                {label.variants.length > 1 && v.name === label.activeVariant && editingVariantName !== v.name && (
+                {label.variants.length > 1 && v.name === activeVariantName && editingVariantName !== v.name && (
                   <span
                     onClick={(e) => { e.stopPropagation(); removeVariant(v.name); }}
                     className="absolute right-0.5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 hover:text-red-200 cursor-pointer"
@@ -210,6 +178,40 @@ export function LabelSettings() {
                 )}
               </button>
             ))}
+            <button
+              onClick={() => { if (showAddVariant) { setShowAddVariant(false); setNewVariantName(''); } else { setShowAddVariant(true); requestAnimationFrame(() => addVariantInputRef.current?.focus()); } }}
+              className="px-2 py-1 text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-50 border-l border-gray-300"
+              title="Add variant"
+            >
+              <Plus size={12} />
+            </button>
+          </div>
+
+          {/* Inline add variant form */}
+          <div className={`grid transition-all duration-200 ease-out ${showAddVariant ? 'grid-rows-[1fr] opacity-100 mt-1' : 'grid-rows-[0fr] opacity-0'}`}>
+            <div className="overflow-hidden">
+              <div className="flex gap-1">
+                <input
+                  type="text"
+                  value={newVariantName}
+                  onChange={(e) => setNewVariantName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleAddVariant();
+                    if (e.key === 'Escape') { setShowAddVariant(false); setNewVariantName(''); }
+                  }}
+                  placeholder="e.g. UK"
+                  ref={addVariantInputRef}
+                  className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+                <button
+                  onClick={handleAddVariant}
+                  disabled={!newVariantName.trim() || label.variants.some((v) => v.name === newVariantName.trim())}
+                  className="px-2 py-1 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded disabled:opacity-50"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 

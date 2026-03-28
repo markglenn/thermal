@@ -19,7 +19,7 @@ function makeLayout(overrides: Partial<ComponentLayout> = {}): ComponentLayout {
 function makeDoc(components: LabelComponent[]): LabelDocument {
   return {
     version: 1,
-    label: { dpi: 203, activeVariant: 'Default', variants: [{ name: 'Default', widthDots: 406, heightDots: 203, unit: 'in' as const }] },
+    label: { dpi: 203, variants: [{ name: 'Default', widthDots: 406, heightDots: 203, unit: 'in' as const }] },
     components,
   };
 }

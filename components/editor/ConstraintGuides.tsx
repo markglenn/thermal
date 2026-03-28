@@ -1,6 +1,6 @@
 'use client';
 
-import { useEditorStoreContext } from '@/lib/store/editor-context';
+import { useEditorStoreContext, useActiveVariant } from '@/lib/store/editor-context';
 import { useDocument } from '@/lib/store/editor-context';
 import { labelWidthDots, labelHeightDots } from '@/lib/constants';
 import { findComponent } from '@/lib/utils';
@@ -14,9 +14,10 @@ export function ConstraintGuides({ absoluteBoundsMap }: Props) {
   const dragState = useEditorStoreContext((s) => s.dragState);
   const selectedId = useEditorStoreContext((s) => s.selectedComponentIds.length === 1 ? s.selectedComponentIds[0] : null);
   const doc = useDocument();
+  const activeVariant = useActiveVariant();
 
-  const labelW = labelWidthDots(doc.label);
-  const labelH = labelHeightDots(doc.label);
+  const labelW = labelWidthDots(doc.label, activeVariant);
+  const labelH = labelHeightDots(doc.label, activeVariant);
 
   // Show guides when dragging or when selected
   const compId = dragState?.componentId ?? selectedId;

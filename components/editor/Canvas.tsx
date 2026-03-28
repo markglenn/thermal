@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useCallback, useMemo, useEffect } from 'react';
-import { useEditorStoreContext, useEditorStoreApi, useDocument, useViewport } from '@/lib/store/editor-context';
+import { useEditorStoreContext, useEditorStoreApi, useDocument, useViewport, useActiveVariant } from '@/lib/store/editor-context';
 import { EDITOR_EVENTS } from '@/hooks/use-keyboard-shortcuts';
 import { labelWidthDots, labelHeightDots } from '@/lib/constants';
 import { useCanvasZoomPan } from '@/hooks/use-canvas-zoom-pan';
@@ -36,11 +36,12 @@ export function Canvas() {
   // needed, which avoids a double render per pointer move.
   const snapGuides = getSnapGuides();
   const storeApi = useEditorStoreApi();
+  const activeVariant = useActiveVariant();
 
-  const widthDots = labelWidthDots(document.label);
-  const heightDots = labelHeightDots(document.label);
+  const widthDots = labelWidthDots(document.label, activeVariant);
+  const heightDots = labelHeightDots(document.label, activeVariant);
 
-  const { handlePointerDown, handleSpacePanCapture, isPanning, isSpaceHeld, fitToView } = useCanvasZoomPan(canvasRef, document.label);
+  const { handlePointerDown, handleSpacePanCapture, isPanning, isSpaceHeld, fitToView } = useCanvasZoomPan(canvasRef, document.label, activeVariant);
 
   useEffect(() => {
     const handler = () => fitToView();

@@ -397,8 +397,8 @@ export function Toolbar() {
             }
             setVersionThumbnail(thumbnail);
             setVersionLabelSize({
-              widthInches: dotsToInches(labelWidthDots(store.document.label), store.document.label.dpi),
-              heightInches: dotsToInches(labelHeightDots(store.document.label), store.document.label.dpi),
+              widthInches: dotsToInches(labelWidthDots(store.document.label, store.activeVariant), store.document.label.dpi),
+              heightInches: dotsToInches(labelHeightDots(store.document.label, store.activeVariant), store.document.label.dpi),
             });
             setShowVersionHistory(true);
           }}

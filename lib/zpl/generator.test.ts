@@ -8,7 +8,7 @@ import '../components';
 describe('generateZpl', () => {
   const baseDoc: LabelDocument = {
     version: 1,
-    label: { dpi: 203, activeVariant: 'Default', variants: [{ name: 'Default', widthDots: 406, heightDots: 203, unit: 'in' }] },
+    label: { dpi: 203, variants: [{ name: 'Default', widthDots: 406, heightDots: 203, unit: 'in' }] },
     components: [],
   };
 
@@ -73,7 +73,7 @@ describe('generateZpl', () => {
   it('uses correct dimensions for different DPI', () => {
     const doc: LabelDocument = {
       ...baseDoc,
-      label: { dpi: 300, activeVariant: 'Default', variants: [{ name: 'Default', widthDots: 1200, heightDots: 1800, unit: 'in' }] },
+      label: { dpi: 300, variants: [{ name: 'Default', widthDots: 1200, heightDots: 1800, unit: 'in' }] },
       components: [],
     };
     const zpl = generateZpl(doc);
@@ -85,7 +85,7 @@ describe('generateZpl', () => {
 describe('generateZplWithMap', () => {
   const baseDoc: LabelDocument = {
     version: 1,
-    label: { dpi: 203, activeVariant: 'Default', variants: [{ name: 'Default', widthDots: 406, heightDots: 203, unit: 'in' }] },
+    label: { dpi: 203, variants: [{ name: 'Default', widthDots: 406, heightDots: 203, unit: 'in' }] },
     components: [],
   };
 

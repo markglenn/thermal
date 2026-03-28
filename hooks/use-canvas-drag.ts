@@ -36,8 +36,8 @@ export function useCanvasDrag() {
         .filter((x): x is { componentId: string; startLayout: ComponentLayout } => x !== null);
 
       // Pre-compute snap targets at drag start
-      const lw = labelWidthDots(state.document.label);
-      const lh = labelHeightDots(state.document.label);
+      const lw = labelWidthDots(state.document.label, state.activeVariant);
+      const lh = labelHeightDots(state.document.label, state.activeVariant);
       const draggedIds = new Set(selectedIds);
       const boundsMap = new Map<string, ResolvedBounds>();
       for (const c of state.document.components) {
@@ -148,8 +148,8 @@ export function useCanvasDrag() {
         setSnapGuides([]);
       }
 
-      const lw = snapCache?.lw ?? labelWidthDots(state.document.label);
-      const lh = snapCache?.lh ?? labelHeightDots(state.document.label);
+      const lw = snapCache?.lw ?? labelWidthDots(state.document.label, state.activeVariant);
+      const lh = snapCache?.lh ?? labelHeightDots(state.document.label, state.activeVariant);
 
       const updates: { id: string; layout: Partial<ComponentLayout> }[] = [];
       updates.push({ id: ds.componentId, layout: computeMove(ds.startLayout, dx, dy, lw, lh) });

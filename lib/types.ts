@@ -187,7 +187,6 @@ export interface LabelSizeVariant {
 
 export interface LabelConfig {
   dpi: 203 | 300 | 600;
-  activeVariant: string;
   variants: LabelSizeVariant[];
 }
 
@@ -242,6 +241,7 @@ export interface PaletteDropState {
 
 export interface EditorState {
   document: LabelDocument;
+  activeVariant: string;
   selectedComponentIds: string[];
   viewport: EditorViewport;
   interactionMode: InteractionMode;
