@@ -14,6 +14,8 @@ import { SelectionOverlay } from './SelectionOverlay';
 import { ConstraintGuides } from './ConstraintGuides';
 import { GridOverlay } from './GridOverlay';
 import { Ruler } from './Ruler';
+import { SmartGuides } from './SmartGuides';
+import { getSnapGuides, setSnapGuides } from '@/lib/snap-guides-store';
 import { reconvertImageAtBounds } from '@/lib/components/image/reconvert';
 
 export function Canvas() {
@@ -28,6 +30,10 @@ export function Canvas() {
   const setDragState = useEditorStoreContext((s) => s.setDragState);
   const setResizeState = useEditorStoreContext((s) => s.setResizeState);
   const readOnly = useEditorStoreContext((s) => s.readOnly);
+  // Read snap guides directly — updated by the drag hook before layout updates,
+  // so they're fresh when Canvas re-renders from the layout change. No subscription
+  // needed, which avoids a double render per pointer move.
+  const snapGuides = getSnapGuides();
   const storeApi = useEditorStoreApi();
 
   const widthDots = labelWidthDots(document.label);
@@ -84,6 +90,7 @@ export function Canvas() {
     (e: React.PointerEvent) => {
       if (dragState) {
         setDragState(null);
+        setSnapGuides([]);
       }
       if (resizeState) {
         reconvertImageAtBounds(resizeState.componentId, storeApi);
@@ -178,6 +185,9 @@ export function Canvas() {
 
           {/* Constraint guides */}
           <ConstraintGuides absoluteBoundsMap={absoluteBoundsMap} />
+
+          {/* Smart guides (snap-to-edge) */}
+          <SmartGuides guides={snapGuides} labelWidth={widthDots} labelHeight={heightDots} />
         </div>
       </div>
 

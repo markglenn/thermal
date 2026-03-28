@@ -2,7 +2,20 @@ import { useCallback } from 'react';
 import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
 import { findComponent } from '@/lib/utils';
 import { labelWidthDots, labelHeightDots } from '@/lib/constants';
-import type { ComponentLayout } from '@/lib/types';
+import { resolveLayout } from '@/lib/constraints/resolver';
+import { buildSnapAxis, computeSnap } from '@/lib/snap';
+import type { SnapAxis } from '@/lib/snap';
+import { setSnapGuides } from '@/lib/snap-guides-store';
+import type { ComponentLayout, ResolvedBounds } from '@/lib/types';
+
+interface SnapCache {
+  xAxis: SnapAxis;
+  yAxis: SnapAxis;
+  lw: number;
+  lh: number;
+}
+
+let snapCache: SnapCache | null = null;
 
 export function useCanvasDrag() {
   const dragState = useEditorStoreContext((s) => s.dragState);
@@ -21,6 +34,22 @@ export function useCanvasDrag() {
           return c ? { componentId: id, startLayout: { ...c.layout } } : null;
         })
         .filter((x): x is { componentId: string; startLayout: ComponentLayout } => x !== null);
+
+      // Pre-compute snap targets at drag start
+      const lw = labelWidthDots(state.document.label);
+      const lh = labelHeightDots(state.document.label);
+      const draggedIds = new Set(selectedIds);
+      const boundsMap = new Map<string, ResolvedBounds>();
+      for (const c of state.document.components) {
+        boundsMap.set(c.id, resolveLayout(c.layout, lw, lh));
+      }
+
+      snapCache = {
+        xAxis: buildSnapAxis(boundsMap, draggedIds, lw, 'x'),
+        yAxis: buildSnapAxis(boundsMap, draggedIds, lh, 'y'),
+        lw,
+        lh,
+      };
 
       state.setDragState({
         componentId,
@@ -65,18 +94,64 @@ export function useCanvasDrag() {
 
   const handleDragMove = useCallback(
     (e: React.PointerEvent) => {
-      const ds = storeApi.getState().dragState;
+      const state = storeApi.getState();
+      const ds = state.dragState;
       if (!ds) return;
 
-      const state = storeApi.getState();
       const zoom = state.viewport.zoom;
-      const dx = (e.clientX - ds.startX) / zoom;
-      const dy = (e.clientY - ds.startY) / zoom;
-      const lw = labelWidthDots(state.document.label);
-      const lh = labelHeightDots(state.document.label);
+      let dx = (e.clientX - ds.startX) / zoom;
+      let dy = (e.clientY - ds.startY) / zoom;
+
+      // Compute snap unless Alt/Option is held
+      if (!e.altKey && snapCache) {
+        const { lw, lh } = snapCache;
+
+        // Resolve where the primary component would be with the raw delta
+        const rawLayout = ds.startLayout;
+        const rawBounds = resolveLayout(
+          {
+            ...rawLayout,
+            x: rawLayout.x + (rawLayout.horizontalAnchor === 'right' ? -dx : dx),
+            y: rawLayout.y + (rawLayout.verticalAnchor === 'bottom' ? -dy : dy),
+          },
+          lw, lh,
+        );
+
+        // For multi-select, expand to the bounding box of all dragged components
+        let dragBounds = rawBounds;
+        if (ds.others && ds.others.length > 0) {
+          let minX = rawBounds.x, minY = rawBounds.y;
+          let maxX = rawBounds.x + rawBounds.width, maxY = rawBounds.y + rawBounds.height;
+          for (const other of ds.others) {
+            const ol = other.startLayout;
+            const ob = resolveLayout(
+              {
+                ...ol,
+                x: ol.x + (ol.horizontalAnchor === 'right' ? -dx : dx),
+                y: ol.y + (ol.verticalAnchor === 'bottom' ? -dy : dy),
+              },
+              lw, lh,
+            );
+            minX = Math.min(minX, ob.x);
+            minY = Math.min(minY, ob.y);
+            maxX = Math.max(maxX, ob.x + ob.width);
+            maxY = Math.max(maxY, ob.y + ob.height);
+          }
+          dragBounds = { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+        }
+
+        const snap = computeSnap(dragBounds, snapCache.xAxis, snapCache.yAxis);
+        dx += snap.dx;
+        dy += snap.dy;
+        setSnapGuides(snap.guides);
+      } else {
+        setSnapGuides([]);
+      }
+
+      const lw = snapCache?.lw ?? labelWidthDots(state.document.label);
+      const lh = snapCache?.lh ?? labelHeightDots(state.document.label);
 
       const updates: { id: string; layout: Partial<ComponentLayout> }[] = [];
-
       updates.push({ id: ds.componentId, layout: computeMove(ds.startLayout, dx, dy, lw, lh) });
 
       if (ds.others) {
@@ -85,7 +160,7 @@ export function useCanvasDrag() {
         }
       }
 
-      storeApi.getState().updateMultipleLayouts(updates);
+      state.updateMultipleLayouts(updates);
     },
     [storeApi]
   );
@@ -100,20 +175,12 @@ function computeMove(
   labelWidth: number,
   labelHeight: number,
 ): Partial<ComponentLayout> {
-  // Invert delta for right/bottom anchors — dragging right should move
-  // the component right (closer to the right edge = smaller x value)
-  // Center anchor behaves like left (positive dx = move right)
   const effectiveDx = startLayout.horizontalAnchor === 'right' ? -dx : dx;
   const effectiveDy = startLayout.verticalAnchor === 'bottom' ? -dy : dy;
 
   let newX = startLayout.lockX ? startLayout.x : Math.round(startLayout.x + effectiveDx);
   let newY = startLayout.lockY ? startLayout.y : Math.round(startLayout.y + effectiveDy);
 
-  // Ensure the resolved top-left position never goes below 0,0.
-  // Left-anchored: resolved x = layout.x → clamp layout.x >= 0
-  // Right-anchored: resolved x = labelW - layout.x - width → clamp layout.x <= labelW - width
-  // Center-anchored: resolved x = (labelW - width) / 2 + x → clamp x >= -(labelW - width) / 2
-  // Center anchor: x is always 0 — perfectly centered, no horizontal drag
   if (startLayout.horizontalAnchor === 'center') {
     newX = 0;
   } else if (startLayout.horizontalAnchor === 'left') {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, memo } from 'react';
 import type { LabelComponent, ResolvedBounds } from '@/lib/types';
 import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
 import { getDefinition, getSizingMode } from '@/lib/components';
@@ -13,7 +13,11 @@ interface Props {
   onMeasure?: (id: string, width: number, height: number) => void;
 }
 
-export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: Props) {
+function boundsEqual(a: ResolvedBounds, b: ResolvedBounds) {
+  return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
+}
+
+export const CanvasComponent = memo(function CanvasComponent({ component, bounds, onDragStart, onMeasure }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const isSelected = useEditorStoreContext((s) => s.selectedComponentIds.includes(component.id));
   const storeApi = useEditorStoreApi();
@@ -81,4 +85,9 @@ export function CanvasComponent({ component, bounds, onDragStart, onMeasure }: P
       <Element props={component.typeData.props} isSelected={isSelected} />
     </div>
   );
-}
+}, (prev, next) =>
+  prev.component === next.component &&
+  boundsEqual(prev.bounds, next.bounds) &&
+  prev.onDragStart === next.onDragStart &&
+  prev.onMeasure === next.onMeasure
+);
