@@ -71,6 +71,13 @@ export function useKeyboardShortcuts() {
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') return;
 
+      // Toggle rulers (Shift+R)
+      if (e.key === 'R' && e.shiftKey && !mod) {
+        e.preventDefault();
+        state.toggleRulers();
+        return;
+      }
+
       // In read-only mode, only allow copy (not cut, paste, delete, duplicate, nudge)
       const { readOnly } = state;
 

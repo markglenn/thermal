@@ -14,6 +14,8 @@ import type { LabelDocument } from '@/lib/types';
 export function Toolbar() {
   const showGrid = useEditorStoreContext((s) => s.showGrid);
   const toggleGrid = useEditorStoreContext((s) => s.toggleGrid);
+  const showRulers = useEditorStoreContext((s) => s.showRulers);
+  const toggleRulers = useEditorStoreContext((s) => s.toggleRulers);
   const currentLabelName = useEditorStoreContext((s) => s.currentLabelName);
   const storeApi = useEditorStoreApi();
 
@@ -217,6 +219,12 @@ export function Toolbar() {
           className={`px-2 py-0.5 rounded text-xs ${showGrid ? 'bg-gray-200' : 'hover:bg-gray-100'}`}
         >
           Grid
+        </button>
+        <button
+          onClick={toggleRulers}
+          className={`px-2 py-0.5 rounded text-xs ${showRulers ? 'bg-gray-200' : 'hover:bg-gray-100'}`}
+        >
+          Rulers
         </button>
 
         <div className="flex items-center gap-1 border-l border-gray-200 pl-2 ml-2">

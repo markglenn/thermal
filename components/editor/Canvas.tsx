@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useMemo } from 'react';
 import { useEditorStoreContext, useEditorStoreApi, useDocument, useViewport } from '@/lib/store/editor-context';
 import { labelWidthDots, labelHeightDots } from '@/lib/constants';
 import { useCanvasZoomPan } from '@/hooks/use-canvas-zoom-pan';
@@ -13,6 +13,7 @@ import { CanvasComponent } from './CanvasComponent';
 import { SelectionOverlay } from './SelectionOverlay';
 import { ConstraintGuides } from './ConstraintGuides';
 import { GridOverlay } from './GridOverlay';
+import { Ruler } from './Ruler';
 import { reconvertImageAtBounds } from '@/lib/components/image/reconvert';
 
 export function Canvas() {
@@ -22,6 +23,7 @@ export function Canvas() {
   const viewport = useViewport();
   const selectedIds = useEditorStoreContext((s) => s.selectedComponentIds);
   const showGrid = useEditorStoreContext((s) => s.showGrid);
+  const showRulers = useEditorStoreContext((s) => s.showRulers);
   const gridSize = useEditorStoreContext((s) => s.gridSize);
   const setDragState = useEditorStoreContext((s) => s.setDragState);
   const setResizeState = useEditorStoreContext((s) => s.setResizeState);
@@ -51,6 +53,24 @@ export function Canvas() {
   );
   const { boundsMap, absoluteBoundsMap, handleMeasure } = useAbsoluteBounds();
   const { marquee, handleLabelPointerDown, startMarquee } = useMarqueeSelect(labelRef, absoluteBoundsMap);
+
+  // Combined bounding box of selected components for ruler highlights
+  const selectionBounds = useMemo(() => {
+    if (selectedIds.length === 0) return null;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    let found = false;
+    for (const id of selectedIds) {
+      const b = absoluteBoundsMap.get(id);
+      if (!b) continue;
+      found = true;
+      minX = Math.min(minX, b.x);
+      minY = Math.min(minY, b.y);
+      maxX = Math.max(maxX, b.x + b.width);
+      maxY = Math.max(maxY, b.y + b.height);
+    }
+    if (!found) return null;
+    return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+  }, [selectedIds, absoluteBoundsMap]);
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
@@ -160,6 +180,9 @@ export function Canvas() {
           <ConstraintGuides absoluteBoundsMap={absoluteBoundsMap} />
         </div>
       </div>
+
+      {/* Rulers */}
+      {showRulers && <Ruler canvasRef={canvasRef} selectionBounds={selectionBounds} />}
 
       {/* Zoom indicator — click to fit */}
       <button

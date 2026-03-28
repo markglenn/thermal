@@ -240,6 +240,7 @@ export interface EditorState {
   resizeState: ResizeState | null;
   paletteDropState: PaletteDropState | null;
   showGrid: boolean;
+  showRulers: boolean;
   gridSize: number;
   currentLabelId: string | null;
   currentLabelName: string | null;

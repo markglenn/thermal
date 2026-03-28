@@ -45,6 +45,7 @@ const initialState: EditorState = {
   resizeState: null,
   paletteDropState: null,
   showGrid: true,
+  showRulers: true,
   gridSize: GRID_SIZE,
   currentLabelId: null,
   currentLabelName: null,
@@ -84,8 +85,9 @@ export interface EditorActions {
   // Label settings
   updateLabelConfig: (config: Partial<LabelConfig>) => void;
 
-  // Grid
+  // Grid & Rulers
   toggleGrid: () => void;
+  toggleRulers: () => void;
 
   // Document
   loadDocument: (doc: LabelDocument) => void;
@@ -394,6 +396,10 @@ export function createEditorStore() {
 
         toggleGrid: () => {
           set((state) => { state.showGrid = !state.showGrid; });
+        },
+
+        toggleRulers: () => {
+          set((state) => { state.showRulers = !state.showRulers; });
         },
 
         loadDocument: (doc) => {
