@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { Flame, History, ChevronDown, Undo2, Redo2, Check } from 'lucide-react';
 import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
 import { EDITOR_EVENTS } from '@/hooks/use-keyboard-shortcuts';
+import { MIN_ZOOM, MAX_ZOOM } from '@/lib/constants';
 import { useTabStore } from '@/lib/store/tab-store';
 import { captureThumbnail } from '@/lib/documents/thumbnail';
 import { SaveNameModal } from '@/components/documents/SaveNameModal';
@@ -13,6 +14,40 @@ import type { LabelDocument } from '@/lib/types';
 
 function ToolbarSeparator() {
   return <div className="w-px h-5 bg-gray-200 mx-1" />;
+}
+
+function MenuItem({
+  label,
+  shortcut,
+  checked,
+  disabled,
+  className: extraClass,
+  onClick,
+}: {
+  label: string;
+  shortcut?: string;
+  checked?: boolean;
+  disabled?: boolean;
+  className?: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`w-full text-left pl-2 pr-3 py-1.5 text-xs hover:bg-gray-100 flex items-center gap-1 disabled:opacity-50 ${extraClass ?? ''}`}
+    >
+      <span className="w-4 shrink-0 flex items-center justify-center">
+        {checked !== undefined && <Check size={12} className={checked ? 'opacity-100' : 'opacity-0'} />}
+      </span>
+      <span className="flex-1">{label}</span>
+      {shortcut && <span className="text-gray-400 ml-4 shrink-0">{shortcut}</span>}
+    </button>
+  );
+}
+
+function MenuDivider() {
+  return <div className="border-t border-gray-200 my-1" />;
 }
 
 function UndoRedoButtons() {
@@ -67,6 +102,7 @@ export function Toolbar() {
   const showRulers = useEditorStoreContext((s) => s.showRulers);
   const toggleRulers = useEditorStoreContext((s) => s.toggleRulers);
   const currentLabelName = useEditorStoreContext((s) => s.currentLabelName);
+  const zoom = useEditorStoreContext((s) => s.viewport.zoom);
   const storeApi = useEditorStoreApi();
 
   const readOnly = useEditorStoreContext((s) => s.readOnly);
@@ -269,68 +305,33 @@ export function Toolbar() {
             <>
             <div className="fixed inset-0 z-40" onPointerDown={() => setShowFileMenu(false)} />
             <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 min-w-44">
-              <button
-                onClick={() => { setShowFileMenu(false); useTabStore.getState().createTab(); }}
-                className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100"
-              >
-                New
-              </button>
-              <button
-                onClick={() => { setShowFileMenu(false); setShowBrowserModal(true); }}
-                className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 flex items-center justify-between"
-              >
-                Open...
-                <span className="text-gray-400 ml-4">⌘O</span>
-              </button>
-              <div className="border-t border-gray-200 my-1" />
+              <MenuItem label="New" onClick={() => { setShowFileMenu(false); useTabStore.getState().createTab(); }} />
+              <MenuItem label="Open..." shortcut="⌘O" onClick={() => { setShowFileMenu(false); setShowBrowserModal(true); }} />
+              <MenuDivider />
               {isPublished && !readOnly ? (
-                <button
-                  onClick={() => { setShowFileMenu(false); createNewDraft(); }}
+                <MenuItem
+                  label={isSaving ? 'Creating...' : 'New Version'}
                   disabled={isSaving}
-                  className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 text-blue-600 disabled:opacity-50"
-                >
-                  {isSaving ? 'Creating...' : 'New Version'}
-                </button>
+                  className="text-blue-600"
+                  onClick={() => { setShowFileMenu(false); createNewDraft(); }}
+                />
               ) : (
-                <button
-                  onClick={() => { setShowFileMenu(false); handleSaveClick(); }}
-                  disabled={isSaving || readOnly}
-                  className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 flex items-center justify-between disabled:opacity-50"
-                >
-                  Save
-                  <span className="text-gray-400 ml-4">⌘S</span>
-                </button>
+                <MenuItem label="Save" shortcut="⌘S" disabled={isSaving || readOnly} onClick={() => { setShowFileMenu(false); handleSaveClick(); }} />
               )}
-              <button
-                onClick={() => { setShowFileMenu(false); setShowSaveAsModal(true); }}
-                className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 flex items-center justify-between"
-              >
-                Save As...
-                <span className="text-gray-400 ml-4">⌘⇧S</span>
-              </button>
+              <MenuItem label="Save As..." shortcut="⌘⇧S" onClick={() => { setShowFileMenu(false); setShowSaveAsModal(true); }} />
               {currentLabelId && (
-                <button
-                  onClick={() => { setShowFileMenu(false); setShowRenameModal(true); }}
-                  className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100"
-                >
-                  Rename...
-                </button>
+                <MenuItem label="Rename..." onClick={() => { setShowFileMenu(false); setShowRenameModal(true); }} />
               )}
-              <div className="border-t border-gray-200 my-1" />
-              <button
-                onClick={() => {
-                  setShowFileMenu(false);
-                  const state = useTabStore.getState();
-                  const tab = state.tabs.find((t) => t.id === state.activeTabId);
-                  if (tab?.dirty) {
-                    if (!confirm(`"${tab.name}" has unsaved changes. Close anyway?`)) return;
-                  }
-                  state.closeTab(state.activeTabId);
-                }}
-                className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100"
-              >
-                Close
-              </button>
+              <MenuDivider />
+              <MenuItem label="Close" onClick={() => {
+                setShowFileMenu(false);
+                const state = useTabStore.getState();
+                const tab = state.tabs.find((t) => t.id === state.activeTabId);
+                if (tab?.dirty) {
+                  if (!confirm(`"${tab.name}" has unsaved changes. Close anyway?`)) return;
+                }
+                state.closeTab(state.activeTabId);
+              }} />
             </div>
             </>
           )}
@@ -354,25 +355,16 @@ export function Toolbar() {
             <>
             <div className="fixed inset-0 z-40" onPointerDown={() => setShowViewMenu(false)} />
             <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 min-w-44">
-              <button
-                onClick={() => { toggleGrid(); setShowViewMenu(false); }}
-                className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 flex items-center justify-between"
-              >
-                <span className="flex items-center gap-2">
-                  <Check size={12} className={showGrid ? 'opacity-100' : 'opacity-0'} />
-                  Grid
-                </span>
-              </button>
-              <button
-                onClick={() => { toggleRulers(); setShowViewMenu(false); }}
-                className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 flex items-center justify-between"
-              >
-                <span className="flex items-center gap-2">
-                  <Check size={12} className={showRulers ? 'opacity-100' : 'opacity-0'} />
-                  Rulers
-                </span>
-                <span className="text-gray-400 ml-4">⇧R</span>
-              </button>
+              <MenuItem label="Grid" checked={showGrid} onClick={() => { toggleGrid(); setShowViewMenu(false); }} />
+              <MenuItem label="Rulers" checked={showRulers} shortcut="⇧R" onClick={() => { toggleRulers(); setShowViewMenu(false); }} />
+              <MenuDivider />
+              <MenuItem label="Zoom In" shortcut="⌘+" onClick={() => { storeApi.getState().setZoom(Math.min(zoom * 1.25, MAX_ZOOM)); setShowViewMenu(false); }} />
+              <MenuItem label="Zoom Out" shortcut="⌘−" onClick={() => { storeApi.getState().setZoom(Math.max(zoom / 1.25, MIN_ZOOM)); setShowViewMenu(false); }} />
+              <MenuItem label="Fit to View" shortcut="⌘0" onClick={() => { window.dispatchEvent(new Event(EDITOR_EVENTS.FIT_TO_VIEW)); setShowViewMenu(false); }} />
+              <MenuDivider />
+              {[50, 100, 200].map((pct) => (
+                <MenuItem key={pct} label={`${pct}%`} checked={Math.round(zoom * 100) === pct} onClick={() => { storeApi.getState().setZoom(pct / 100); setShowViewMenu(false); }} />
+              ))}
             </div>
             </>
           )}

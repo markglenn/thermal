@@ -15,11 +15,25 @@ function generateComponentZpl(
   return [...def.generateZpl(component.typeData.props, bounds)];
 }
 
+export interface ZplLineRange {
+  start: number;
+  end: number;
+}
+
 /** Generate static ZPL with all content baked in (for preview). */
 export function generateZpl(document: LabelDocument): string {
+  return generateZplWithMap(document).zpl;
+}
+
+/** Generate ZPL and a map of component IDs to their line ranges. */
+export function generateZplWithMap(document: LabelDocument): {
+  zpl: string;
+  componentLineMap: Map<string, ZplLineRange>;
+} {
   const boundsMap = resolveDocument(document);
   const widthDots = labelWidthDots(document.label);
   const heightDots = labelHeightDots(document.label);
+  const componentLineMap = new Map<string, ZplLineRange>();
 
   const lines: string[] = [];
   lines.push('^XA');
@@ -27,11 +41,15 @@ export function generateZpl(document: LabelDocument): string {
   lines.push(`^LL${heightDots}`);
 
   for (const component of document.components) {
+    const start = lines.length;
     lines.push(...generateComponentZpl(component, boundsMap));
+    if (lines.length > start) {
+      componentLineMap.set(component.id, { start, end: lines.length - 1 });
+    }
   }
 
   lines.push('^XZ');
-  return lines.join('\n');
+  return { zpl: lines.join('\n'), componentLineMap };
 }
 
 /**

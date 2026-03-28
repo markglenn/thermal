@@ -5,12 +5,14 @@ import { useEditorStoreApi } from '@/lib/store/editor-context';
 import { useTabStore } from '@/lib/store/tab-store';
 import { findComponent } from '@/lib/utils';
 import { copyToClipboard, readClipboard } from '@/lib/store/clipboard';
+import { MIN_ZOOM, MAX_ZOOM } from '@/lib/constants';
 
 // Custom events for actions that need complex async handling (save/open)
 export const EDITOR_EVENTS = {
   SAVE: 'editor:save',
   SAVE_AS: 'editor:save-as',
   OPEN: 'editor:open',
+  FIT_TO_VIEW: 'editor:fit-to-view',
 } as const;
 
 export function useKeyboardShortcuts() {
@@ -49,6 +51,26 @@ export function useKeyboardShortcuts() {
       if (e.key === 'o' && mod) {
         e.preventDefault();
         window.dispatchEvent(new Event(EDITOR_EVENTS.OPEN));
+        return;
+      }
+      // Zoom in (Cmd+= or Cmd++)
+      if ((e.key === '=' || e.key === '+') && mod) {
+        e.preventDefault();
+        const s = storeApi.getState();
+        s.setZoom(Math.min(s.viewport.zoom * 1.25, MAX_ZOOM));
+        return;
+      }
+      // Zoom out (Cmd+-)
+      if (e.key === '-' && mod) {
+        e.preventDefault();
+        const s = storeApi.getState();
+        s.setZoom(Math.max(s.viewport.zoom / 1.25, MIN_ZOOM));
+        return;
+      }
+      // Fit to view (Cmd+0)
+      if (e.key === '0' && mod) {
+        e.preventDefault();
+        window.dispatchEvent(new Event(EDITOR_EVENTS.FIT_TO_VIEW));
         return;
       }
       if (e.key === 'n' && mod) {

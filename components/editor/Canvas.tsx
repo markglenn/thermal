@@ -1,7 +1,8 @@
 'use client';
 
-import { useRef, useCallback, useMemo } from 'react';
+import { useRef, useCallback, useMemo, useEffect } from 'react';
 import { useEditorStoreContext, useEditorStoreApi, useDocument, useViewport } from '@/lib/store/editor-context';
+import { EDITOR_EVENTS } from '@/hooks/use-keyboard-shortcuts';
 import { labelWidthDots, labelHeightDots } from '@/lib/constants';
 import { useCanvasZoomPan } from '@/hooks/use-canvas-zoom-pan';
 import { useCanvasDrag } from '@/hooks/use-canvas-drag';
@@ -40,6 +41,13 @@ export function Canvas() {
   const heightDots = labelHeightDots(document.label);
 
   const { handlePointerDown, handleSpacePanCapture, isPanning, isSpaceHeld, fitToView } = useCanvasZoomPan(canvasRef, document.label);
+
+  useEffect(() => {
+    const handler = () => fitToView();
+    window.addEventListener(EDITOR_EVENTS.FIT_TO_VIEW, handler);
+    return () => window.removeEventListener(EDITOR_EVENTS.FIT_TO_VIEW, handler);
+  }, [fitToView]);
+
   const { handleComponentPointerDown, handleDragMove: rawDragMove, dragState } = useCanvasDrag();
   const { handleResizeMove: rawResizeMove, resizeState } = useCanvasResize();
   const { handleDrop: rawHandleDrop } = usePaletteDrop(labelRef);
