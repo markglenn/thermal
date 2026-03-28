@@ -5,6 +5,7 @@ import type { LabelComponent, ResolvedBounds } from '@/lib/types';
 import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
 import { getDefinition, getSizingMode } from '@/lib/components';
 import { showComponentContextMenu } from '../shared/component-context-menu';
+import { useFlashIds } from '@/lib/undo-flash-store';
 
 interface Props {
   component: LabelComponent;
@@ -20,6 +21,7 @@ function boundsEqual(a: ResolvedBounds, b: ResolvedBounds) {
 export const CanvasComponent = memo(function CanvasComponent({ component, bounds, onDragStart, onMeasure }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const isSelected = useEditorStoreContext((s) => s.selectedComponentIds.includes(component.id));
+  const isFlashing = useFlashIds().has(component.id);
   const storeApi = useEditorStoreApi();
 
   const def = getDefinition(component.typeData.type);
@@ -75,6 +77,7 @@ export const CanvasComponent = memo(function CanvasComponent({ component, bounds
     <div
       ref={ref}
       style={style}
+      className={isFlashing ? 'undo-flash' : undefined}
       data-testid={`canvas-component-${component.id}`}
       data-component-type={component.typeData.type}
       onPointerDown={(e) => {

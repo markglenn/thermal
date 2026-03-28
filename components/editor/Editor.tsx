@@ -14,6 +14,7 @@ import { LabelaryPreview } from '../preview/LabelaryPreview';
 import { LabelaryApiPreview } from '../preview/LabelaryApiPreview';
 import { PanelResizeHandle } from './PanelResizeHandle';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
+import { useUndoFlash } from '@/hooks/use-undo-flash';
 import { DragGhost } from './DragGhost';
 import { ContextMenuProvider } from '../ui/ContextMenu';
 import { ReadOnlyBanner } from './ReadOnlyBanner';
@@ -64,6 +65,7 @@ type PreviewTab = 'zpl' | 'preview' | 'labelary';
 
 function EditorInner() {
   useKeyboardShortcuts();
+  useUndoFlash();
   const [previewTab, setPreviewTab] = useState<PreviewTab>('preview');
 
   const [leftWidth, setLeftWidth] = useState(208);
