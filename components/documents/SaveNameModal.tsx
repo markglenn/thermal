@@ -30,9 +30,7 @@ export function SaveNameModal({ initialName, title = 'Save Label', confirmLabel 
   return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onCancel();
-      }}
+
     >
       <div
         className="bg-white rounded-lg shadow-xl w-90 flex flex-col overflow-hidden"

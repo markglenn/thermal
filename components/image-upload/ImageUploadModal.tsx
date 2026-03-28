@@ -129,20 +129,17 @@ export function ImageUploadModal({ initialProps, onConfirm, onCancel }: Props) {
     [loadImageFile]
   );
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onCancel();
-    },
-    [onCancel]
-  );
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onCancel]);
 
   return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      onKeyDown={handleKeyDown}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onCancel();
-      }}
     >
       <div className="bg-white rounded-lg shadow-xl w-130 max-h-[90vh] flex flex-col overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">

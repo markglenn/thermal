@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Archive, ArchiveRestore, Search } from 'lucide-react';
 import { ConfirmButton } from '../ui/ConfirmButton';
@@ -121,20 +121,17 @@ export function LabelBrowserModal({ onSelect, onCancel }: Props) {
     }
   };
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onCancel();
-    },
-    [onCancel]
-  );
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onCancel]);
 
   return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      onKeyDown={handleKeyDown}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onCancel();
-      }}
     >
       <div className="bg-white rounded-lg shadow-xl w-150 max-h-[80vh] flex flex-col overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-200 space-y-2">

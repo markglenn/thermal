@@ -13,13 +13,14 @@ import type {
   HorizontalAnchor,
   VerticalAnchor,
 } from '../types';
-import { DEFAULT_LABEL, DEFAULT_ZOOM, GRID_SIZE, DUPLICATE_OFFSET, UNDO_THROTTLE_MS, labelWidthDots, labelHeightDots } from '../constants';
+import { DEFAULT_LABEL, DEFAULT_ZOOM, GRID_SIZE, DUPLICATE_OFFSET, UNDO_THROTTLE_MS, labelWidthDots, labelHeightDots, migrateLabelConfig } from '../constants';
 import { createComponent, generateId } from './editor-actions';
 import { findComponent } from '@/lib/utils';
 import { resolveLayout } from '@/lib/constraints/resolver';
 import { recomputeContentSize, recomputeAllSizes } from '@/lib/components/recompute-size';
 import { getDefinition } from '@/lib/components/registry';
 import { migrateDocument } from '@/lib/constraints/migrate';
+import type { LabelSizeVariant } from '../types';
 
 /** Offset a layout by `amount` in the visual "down-right" direction, respecting anchor. */
 function offsetForAnchor(layout: ComponentLayout, amount: number) {
@@ -84,6 +85,11 @@ export interface EditorActions {
 
   // Label settings
   updateLabelConfig: (config: Partial<LabelConfig>) => void;
+  setActiveVariant: (name: string) => void;
+  addVariant: (variant: LabelSizeVariant) => void;
+  updateVariant: (name: string, updates: Partial<Omit<LabelSizeVariant, 'name'>>) => void;
+  renameVariant: (oldName: string, newName: string) => void;
+  removeVariant: (name: string) => void;
 
   // Grid & Rulers
   toggleGrid: () => void;
@@ -394,6 +400,54 @@ export function createEditorStore() {
           set((state) => { Object.assign(state.document.label, config); });
         },
 
+        setActiveVariant: (name) => {
+          set((state) => {
+            const exists = state.document.label.variants.some((v) => v.name === name);
+            if (exists) state.document.label.activeVariant = name;
+          });
+        },
+
+        addVariant: (variant) => {
+          set((state) => {
+            state.document.label.variants.push(variant);
+          });
+        },
+
+        updateVariant: (name, updates) => {
+          set((state) => {
+            const variant = state.document.label.variants.find((v) => v.name === name);
+            if (variant) Object.assign(variant, updates);
+          });
+        },
+
+        renameVariant: (oldName, newName) => {
+          set((state) => {
+            const trimmed = newName.trim();
+            if (!trimmed) return;
+            const variants = state.document.label.variants;
+            if (variants.some((v) => v.name === trimmed && v.name !== oldName)) return;
+            const variant = variants.find((v) => v.name === oldName);
+            if (!variant) return;
+            variant.name = trimmed;
+            if (state.document.label.activeVariant === oldName) {
+              state.document.label.activeVariant = trimmed;
+            }
+          });
+        },
+
+        removeVariant: (name) => {
+          set((state) => {
+            const variants = state.document.label.variants;
+            if (variants.length <= 1) return;
+            const idx = variants.findIndex((v) => v.name === name);
+            if (idx === -1) return;
+            variants.splice(idx, 1);
+            if (state.document.label.activeVariant === name) {
+              state.document.label.activeVariant = variants[0].name;
+            }
+          });
+        },
+
         toggleGrid: () => {
           set((state) => { state.showGrid = !state.showGrid; });
         },
@@ -407,6 +461,8 @@ export function createEditorStore() {
           getTemporalState().pause();
           // Migrate legacy constraints/pins to layout model
           migrateDocument(doc.components);
+          // Migrate legacy widthInches/heightInches to variants
+          doc.label = migrateLabelConfig(doc.label as unknown as Record<string, unknown>);
           // Recompute sizes for auto/width-only components
           recomputeAllSizes(doc.components);
           set((state) => {

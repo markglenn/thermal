@@ -209,7 +209,7 @@ describe('resolveComponentTree', () => {
 describe('resolveDocument', () => {
   it('resolves using label config dimensions', () => {
     const doc = {
-      label: { widthInches: 2, heightInches: 1, dpi: 203 as const },
+      label: { dpi: 203 as const, activeVariant: 'Default', variants: [{ name: 'Default', widthDots: 406, heightDots: 203, unit: 'in' as const }] },
       components: [{
         id: 'a',
         name: 'a',

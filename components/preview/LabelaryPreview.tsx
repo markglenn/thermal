@@ -4,6 +4,7 @@ import { useMemo, useEffect, useState, useRef } from 'react';
 import { useDocument } from '@/lib/store/editor-context';
 import { generateZpl } from '@/lib/zpl/generator';
 import { fetchLabelaryPreview } from '@/lib/labelary/client';
+import { labelWidthDots, labelHeightDots, dotsToInches } from '@/lib/constants';
 import { Spinner } from '@/components/ui/Spinner';
 
 export function LabelaryPreview() {
@@ -32,8 +33,8 @@ export function LabelaryPreview() {
         const url = await fetchLabelaryPreview({
           zpl,
           dpi: document.label.dpi,
-          widthInches: document.label.widthInches,
-          heightInches: document.label.heightInches,
+          widthInches: dotsToInches(labelWidthDots(document.label), document.label.dpi),
+          heightInches: dotsToInches(labelHeightDots(document.label), document.label.dpi),
         });
         setImageUrl(url);
       } catch (e) {

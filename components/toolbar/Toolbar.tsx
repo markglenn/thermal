@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { Flame, History, ChevronDown, Undo2, Redo2, Check } from 'lucide-react';
 import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
 import { EDITOR_EVENTS } from '@/hooks/use-keyboard-shortcuts';
-import { MIN_ZOOM, MAX_ZOOM } from '@/lib/constants';
+import { MIN_ZOOM, MAX_ZOOM, labelWidthDots, labelHeightDots, dotsToInches } from '@/lib/constants';
 import { formatShortcut, useIsMac } from '@/lib/platform';
 import { useTabStore } from '@/lib/store/tab-store';
 import { captureThumbnail } from '@/lib/documents/thumbnail';
@@ -396,7 +396,10 @@ export function Toolbar() {
               });
             }
             setVersionThumbnail(thumbnail);
-            setVersionLabelSize({ widthInches: store.document.label.widthInches, heightInches: store.document.label.heightInches });
+            setVersionLabelSize({
+              widthInches: dotsToInches(labelWidthDots(store.document.label), store.document.label.dpi),
+              heightInches: dotsToInches(labelHeightDots(store.document.label), store.document.label.dpi),
+            });
             setShowVersionHistory(true);
           }}
           className="flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 text-xs"

@@ -328,7 +328,45 @@ describe('editor store', () => {
     it('merges label config', () => {
       useEditorStore.getState().updateLabelConfig({ dpi: 300 });
       expect(useEditorStore.getState().document.label.dpi).toBe(300);
-      expect(useEditorStore.getState().document.label.widthInches).toBe(2); // unchanged
+      // variants should be unchanged
+      expect(useEditorStore.getState().document.label.variants[0].widthDots).toBe(406);
+    });
+  });
+
+  describe('variant actions', () => {
+    it('setActiveVariant switches the active variant', () => {
+      useEditorStore.getState().updateLabelConfig({
+        variants: [
+          { name: 'US', widthDots: 812, heightDots: 1218, unit: 'in' },
+          { name: 'UK', widthDots: 800, heightDots: 1197, unit: 'mm' },
+        ],
+        activeVariant: 'US',
+      });
+      useEditorStore.getState().setActiveVariant('UK');
+      expect(useEditorStore.getState().document.label.activeVariant).toBe('UK');
+    });
+
+    it('addVariant adds a new variant', () => {
+      useEditorStore.getState().addVariant({ name: 'UK', widthDots: 800, heightDots: 1197, unit: 'mm' });
+      expect(useEditorStore.getState().document.label.variants).toHaveLength(2);
+    });
+
+    it('updateVariant updates an existing variant', () => {
+      useEditorStore.getState().updateVariant('Default', { widthDots: 999 });
+      expect(useEditorStore.getState().document.label.variants[0].widthDots).toBe(999);
+    });
+
+    it('removeVariant removes a variant and switches active if needed', () => {
+      useEditorStore.getState().addVariant({ name: 'UK', widthDots: 800, heightDots: 1197, unit: 'mm' });
+      useEditorStore.getState().setActiveVariant('Default');
+      useEditorStore.getState().removeVariant('Default');
+      expect(useEditorStore.getState().document.label.variants).toHaveLength(1);
+      expect(useEditorStore.getState().document.label.activeVariant).toBe('UK');
+    });
+
+    it('removeVariant does not remove the last variant', () => {
+      useEditorStore.getState().removeVariant('Default');
+      expect(useEditorStore.getState().document.label.variants).toHaveLength(1);
     });
   });
 
@@ -347,12 +385,27 @@ describe('editor store', () => {
       useEditorStore.getState().addComponent('text');
       const newDoc: LabelDocument = {
         version: 1,
-        label: { widthInches: 4, heightInches: 6, dpi: 300 },
+        label: { dpi: 300, activeVariant: 'Default', variants: [{ name: 'Default', widthDots: 1200, heightDots: 1800, unit: 'in' }] },
         components: [],
       };
       useEditorStore.getState().loadDocument(newDoc);
       expect(useEditorStore.getState().document).toEqual(newDoc);
       expect(useEditorStore.getState().selectedComponentIds).toEqual([]);
+    });
+
+    it('migrates legacy label config on load', () => {
+      // Simulate a legacy document with widthInches/heightInches
+      const legacyDoc = {
+        version: 1 as const,
+        label: { widthInches: 4, heightInches: 6, dpi: 203 as const },
+        components: [],
+      };
+      useEditorStore.getState().loadDocument(legacyDoc as unknown as LabelDocument);
+      const label = useEditorStore.getState().document.label;
+      expect(label.variants).toHaveLength(1);
+      expect(label.variants[0].widthDots).toBe(812);
+      expect(label.variants[0].heightDots).toBe(1218);
+      expect(label.activeVariant).toBe('Default');
     });
 
     it('undo after load does not change state', () => {
@@ -361,11 +414,10 @@ describe('editor store', () => {
       useEditorStore.getState().addComponent('rectangle');
       const newDoc: LabelDocument = {
         version: 1,
-        label: { widthInches: 4, heightInches: 6, dpi: 300 },
+        label: { dpi: 300, activeVariant: 'Default', variants: [{ name: 'Default', widthDots: 1200, heightDots: 1800, unit: 'in' }] },
         components: [],
       };
       useEditorStore.getState().loadDocument(newDoc);
-      // Advance past the throttle window so any trailing call would fire
       vi.advanceTimersByTime(1000);
       const docAfterLoad = useEditorStore.getState().document;
       useEditorStore.temporal.getState().undo();
@@ -376,17 +428,15 @@ describe('editor store', () => {
     it('undo after load does not restore a stale drag snapshot', () => {
       vi.useFakeTimers();
       const id = useEditorStore.getState().addComponent('text', { x: 10, y: 20 });
-      // Simulate entering a drag (captures snapshot)
       useEditorStore.getState().setDragState({
         componentId: id,
         startX: 0,
         startY: 0,
         startLayout: defaultLayout({ x: 10, y: 20 }),
       });
-      // Load a new document while drag snapshot exists
       const newDoc: LabelDocument = {
         version: 1,
-        label: { widthInches: 4, heightInches: 6, dpi: 300 },
+        label: { dpi: 300, activeVariant: 'Default', variants: [{ name: 'Default', widthDots: 1200, heightDots: 1800, unit: 'in' }] },
         components: [],
       };
       useEditorStore.getState().loadDocument(newDoc);

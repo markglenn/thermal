@@ -49,15 +49,29 @@ export async function GET(request: NextRequest) {
 
     const result = allLabels.map((label) => {
       const latest = versionByLabelId.get(label.id);
-      const doc = latest?.document as { label?: { widthInches?: number; heightInches?: number } } | undefined;
+      const docLabel = (latest?.document as { label?: Record<string, unknown> } | undefined)?.label;
+      let widthInches: number | null = null;
+      let heightInches: number | null = null;
+      if (docLabel) {
+        if (Array.isArray(docLabel.variants) && docLabel.variants.length > 0) {
+          const variant = (docLabel.variants as Array<{ name: string; widthDots: number; heightDots: number }>)
+            .find((v) => v.name === docLabel.activeVariant) ?? docLabel.variants[0] as { widthDots: number; heightDots: number };
+          const dpi = (docLabel.dpi as number) || 203;
+          widthInches = variant.widthDots / dpi;
+          heightInches = variant.heightDots / dpi;
+        } else if (typeof docLabel.widthInches === 'number' && typeof docLabel.heightInches === 'number') {
+          widthInches = docLabel.widthInches as number;
+          heightInches = docLabel.heightInches as number;
+        }
+      }
       return {
         id: label.id,
         name: label.name,
         hasThumbnail: !!latest?.hasThumbnail,
         latestVersion: latest?.version ?? 0,
         latestStatus: latest?.status ?? null,
-        widthInches: doc?.label?.widthInches ?? null,
-        heightInches: doc?.label?.heightInches ?? null,
+        widthInches,
+        heightInches,
         archivedAt: label.archivedAt?.toISOString() ?? null,
         updatedAt: label.updatedAt.toISOString(),
       };

@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { formatShortcut, useIsMac } from '@/lib/platform';
 
@@ -55,11 +56,18 @@ const groups: ShortcutGroup[] = [
 
 export function KeyboardShortcutsModal({ onClose }: { onClose: () => void }) {
   const mac = useIsMac();
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
+
   return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
     >
       <div className="bg-white rounded-lg shadow-xl w-[540px] max-h-[80vh] flex flex-col overflow-hidden">
         <div className="px-5 py-3 border-b border-gray-200 flex items-center justify-between">

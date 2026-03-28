@@ -176,10 +176,19 @@ export interface LabelVariable {
   counter?: CounterConfig;
 }
 
+export type LabelUnit = 'in' | 'mm';
+
+export interface LabelSizeVariant {
+  name: string;
+  widthDots: number;
+  heightDots: number;
+  unit: LabelUnit;
+}
+
 export interface LabelConfig {
-  widthInches: number;
-  heightInches: number;
   dpi: 203 | 300 | 600;
+  activeVariant: string;
+  variants: LabelSizeVariant[];
 }
 
 export interface LabelDocument {

@@ -1,10 +1,11 @@
-import { pgTable, text, integer, doublePrecision, timestamp, jsonb, unique } from 'drizzle-orm/pg-core';
+import { pgTable, text, integer, timestamp, jsonb, unique } from 'drizzle-orm/pg-core';
 
 export const labelSizes = pgTable('label_sizes', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
-  widthInches: doublePrecision('width_inches').notNull(),
-  heightInches: doublePrecision('height_inches').notNull(),
+  widthDots: integer('width_dots').notNull(),
+  heightDots: integer('height_dots').notNull(),
+  unit: text('unit').notNull().default('in'),
   dpi: integer('dpi').notNull(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });

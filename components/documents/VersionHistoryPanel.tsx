@@ -184,13 +184,17 @@ export function VersionHistoryPanel({ labelId, currentThumbnail, currentLabelSiz
 
   const latestVersion = versions[0]?.version ?? null;
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
+
   return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-      onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
     >
       <div className="bg-white rounded-lg shadow-xl w-96 max-h-[80vh] flex flex-col overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">

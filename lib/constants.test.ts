@@ -1,27 +1,112 @@
 import { describe, it, expect } from 'vitest';
-import { labelWidthDots, labelHeightDots, clampCoord, ZPL_COORD_MIN, ZPL_COORD_MAX } from './constants';
+import { labelWidthDots, labelHeightDots, clampCoord, ZPL_COORD_MIN, ZPL_COORD_MAX, dotsToInches, inchesToDots, dotsToMm, mmToDots, dotsToUnit, unitToDots, getActiveVariant, migrateLabelConfig } from './constants';
+import type { LabelConfig } from './types';
+
+/** Helper to create a LabelConfig from dots values. */
+function makeLabel(widthDots: number, heightDots: number, dpi: 203 | 300 | 600 = 203): LabelConfig {
+  return { dpi, activeVariant: 'Default', variants: [{ name: 'Default', widthDots, heightDots, unit: 'in' }] };
+}
 
 describe('labelWidthDots', () => {
-  it('calculates for 203 DPI', () => {
-    expect(labelWidthDots({ widthInches: 2, heightInches: 1, dpi: 203 })).toBe(406);
+  it('returns widthDots from the active variant', () => {
+    expect(labelWidthDots(makeLabel(406, 203))).toBe(406);
   });
 
-  it('calculates for 300 DPI', () => {
-    expect(labelWidthDots({ widthInches: 4, heightInches: 6, dpi: 300 })).toBe(1200);
+  it('returns widthDots for a different DPI label', () => {
+    expect(labelWidthDots(makeLabel(1200, 1800, 300))).toBe(1200);
   });
 
-  it('calculates for 600 DPI', () => {
-    expect(labelWidthDots({ widthInches: 3, heightInches: 2, dpi: 600 })).toBe(1800);
+  it('falls back to first variant when activeVariant is invalid', () => {
+    const label: LabelConfig = {
+      dpi: 203,
+      activeVariant: 'missing',
+      variants: [{ name: 'Default', widthDots: 406, heightDots: 203, unit: 'in' }],
+    };
+    expect(labelWidthDots(label)).toBe(406);
   });
 });
 
 describe('labelHeightDots', () => {
-  it('calculates for 203 DPI', () => {
-    expect(labelHeightDots({ widthInches: 2, heightInches: 1, dpi: 203 })).toBe(203);
+  it('returns heightDots from the active variant', () => {
+    expect(labelHeightDots(makeLabel(406, 203))).toBe(203);
   });
 
-  it('calculates for standard shipping label', () => {
-    expect(labelHeightDots({ widthInches: 4, heightInches: 6, dpi: 203 })).toBe(1218);
+  it('returns heightDots for shipping label', () => {
+    expect(labelHeightDots(makeLabel(812, 1218))).toBe(1218);
+  });
+});
+
+describe('getActiveVariant', () => {
+  it('returns the matching variant', () => {
+    const label: LabelConfig = {
+      dpi: 203,
+      activeVariant: 'UK',
+      variants: [
+        { name: 'Default', widthDots: 406, heightDots: 203, unit: 'in' },
+        { name: 'UK', widthDots: 400, heightDots: 200, unit: 'mm' },
+      ],
+    };
+    const variant = getActiveVariant(label);
+    expect(variant.name).toBe('UK');
+    expect(variant.widthDots).toBe(400);
+    expect(variant.unit).toBe('mm');
+  });
+});
+
+describe('unit conversion', () => {
+  it('dotsToInches', () => {
+    expect(dotsToInches(406, 203)).toBeCloseTo(2, 2);
+  });
+
+  it('inchesToDots', () => {
+    expect(inchesToDots(2, 203)).toBe(406);
+  });
+
+  it('dotsToMm', () => {
+    expect(dotsToMm(203, 203)).toBeCloseTo(25.4, 1);
+  });
+
+  it('mmToDots', () => {
+    expect(mmToDots(25.4, 203)).toBe(203);
+  });
+
+  it('dotsToUnit for inches', () => {
+    expect(dotsToUnit(406, 203, 'in')).toBeCloseTo(2, 2);
+  });
+
+  it('dotsToUnit for mm', () => {
+    expect(dotsToUnit(203, 203, 'mm')).toBeCloseTo(25.4, 1);
+  });
+
+  it('unitToDots for inches', () => {
+    expect(unitToDots(2, 203, 'in')).toBe(406);
+  });
+
+  it('unitToDots for mm', () => {
+    expect(unitToDots(25.4, 203, 'mm')).toBe(203);
+  });
+});
+
+describe('migrateLabelConfig', () => {
+  it('migrates legacy widthInches/heightInches to variants', () => {
+    const legacy = { widthInches: 4, heightInches: 6, dpi: 203 };
+    const result = migrateLabelConfig(legacy);
+    expect(result.dpi).toBe(203);
+    expect(result.activeVariant).toBe('Default');
+    expect(result.variants).toHaveLength(1);
+    expect(result.variants[0].widthDots).toBe(812);
+    expect(result.variants[0].heightDots).toBe(1218);
+    expect(result.variants[0].unit).toBe('in');
+  });
+
+  it('passes through already-migrated config', () => {
+    const config = {
+      dpi: 300,
+      activeVariant: 'US',
+      variants: [{ name: 'US', widthDots: 1200, heightDots: 1800, unit: 'in' }],
+    };
+    const result = migrateLabelConfig(config as Record<string, unknown>);
+    expect(result).toEqual(config);
   });
 });
 

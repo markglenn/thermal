@@ -4,12 +4,22 @@ import { validateDocument } from './validate';
 describe('validateDocument', () => {
   const validDoc = {
     version: 1,
+    label: { dpi: 203, activeVariant: 'Default', variants: [{ name: 'Default', widthDots: 406, heightDots: 203, unit: 'in' }] },
+    components: [],
+  };
+
+  const legacyDoc = {
+    version: 1,
     label: { widthInches: 2, heightInches: 1, dpi: 203 },
     components: [],
   };
 
-  it('accepts a valid document', () => {
+  it('accepts a valid document with variants', () => {
     expect(validateDocument(validDoc)).toBe(true);
+  });
+
+  it('accepts a legacy document with widthInches/heightInches', () => {
+    expect(validateDocument(legacyDoc)).toBe(true);
   });
 
   it('accepts a document with components', () => {
@@ -35,18 +45,33 @@ describe('validateDocument', () => {
   it('rejects invalid dpi', () => {
     expect(validateDocument({
       ...validDoc,
-      label: { widthInches: 2, heightInches: 1, dpi: 150 },
+      label: { dpi: 150, activeVariant: 'Default', variants: [{ name: 'Default', widthDots: 406, heightDots: 203, unit: 'in' }] },
     })).toBe(false);
   });
 
-  it('rejects non-positive dimensions', () => {
+  it('rejects non-positive legacy dimensions', () => {
     expect(validateDocument({
-      ...validDoc,
+      ...legacyDoc,
       label: { widthInches: 0, heightInches: 1, dpi: 203 },
     })).toBe(false);
     expect(validateDocument({
-      ...validDoc,
+      ...legacyDoc,
       label: { widthInches: 2, heightInches: -1, dpi: 203 },
+    })).toBe(false);
+  });
+
+  it('rejects empty variants array', () => {
+    expect(validateDocument({
+      ...validDoc,
+      label: { dpi: 203, activeVariant: 'Default', variants: [] },
+    })).toBe(false);
+  });
+
+  it('rejects label with no variants and no legacy fields', () => {
+    expect(validateDocument({
+      version: 1,
+      label: { dpi: 203 },
+      components: [],
     })).toBe(false);
   });
 

@@ -1,11 +1,11 @@
-import type { LabelConfig } from './types';
+import type { LabelConfig, LabelSizeVariant } from './types';
 
 export const DPI_VALUES = [203, 300, 600] as const;
 
 export const DEFAULT_LABEL: LabelConfig = {
-  widthInches: 2,
-  heightInches: 1,
   dpi: 203,
+  activeVariant: 'Default',
+  variants: [{ name: 'Default', widthDots: 406, heightDots: 203, unit: 'in' }],
 };
 
 export const DEFAULT_ZOOM = 1;
@@ -109,10 +109,60 @@ export function getZplFontStyle(font: string, fontSize: number, fontWidth: numbe
 export const LABELARY_BASE_URL = 'http://api.labelary.com/v1/printers';
 export const LABELARY_DEBOUNCE_MS = 300;
 
+export function getActiveVariant(label: LabelConfig): LabelSizeVariant {
+  return label.variants.find((v) => v.name === label.activeVariant) ?? label.variants[0];
+}
+
 export function labelWidthDots(label: LabelConfig): number {
-  return Math.round(label.widthInches * label.dpi);
+  return getActiveVariant(label).widthDots;
 }
 
 export function labelHeightDots(label: LabelConfig): number {
-  return Math.round(label.heightInches * label.dpi);
+  return getActiveVariant(label).heightDots;
+}
+
+// Unit conversion helpers — dots are the canonical storage unit
+
+export function dotsToInches(dots: number, dpi: number): number {
+  return dots / dpi;
+}
+
+export function inchesToDots(inches: number, dpi: number): number {
+  return Math.round(inches * dpi);
+}
+
+export function dotsToMm(dots: number, dpi: number): number {
+  return (dots / dpi) * 25.4;
+}
+
+export function mmToDots(mm: number, dpi: number): number {
+  return Math.round((mm / 25.4) * dpi);
+}
+
+/** Convert dots to the given display unit. */
+export function dotsToUnit(dots: number, dpi: number, unit: 'in' | 'mm'): number {
+  return unit === 'mm' ? dotsToMm(dots, dpi) : dotsToInches(dots, dpi);
+}
+
+/** Convert a value in the given display unit to dots. */
+export function unitToDots(value: number, dpi: number, unit: 'in' | 'mm'): number {
+  return unit === 'mm' ? mmToDots(value, dpi) : inchesToDots(value, dpi);
+}
+
+/**
+ * Migrate a legacy LabelConfig (widthInches/heightInches) to the new variants format.
+ * Returns the config unchanged if it already uses variants.
+ */
+export function migrateLabelConfig(label: Record<string, unknown>): LabelConfig {
+  if ('variants' in label && Array.isArray(label.variants)) {
+    return label as unknown as LabelConfig;
+  }
+  const dpi = (label.dpi as number) ?? 203;
+  const widthDots = Math.round(((label.widthInches as number) ?? 2) * dpi);
+  const heightDots = Math.round(((label.heightInches as number) ?? 1) * dpi);
+  return {
+    dpi: dpi as 203 | 300 | 600,
+    activeVariant: 'Default',
+    variants: [{ name: 'Default', widthDots, heightDots, unit: 'in' }],
+  };
 }

@@ -1,15 +1,19 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Trash2, Pencil, Check, X } from 'lucide-react';
-import { DPI_VALUES } from '@/lib/constants';
+import { Trash2, Pencil, Check, X, Plus } from 'lucide-react';
+import { DPI_VALUES, dotsToUnit, unitToDots } from '@/lib/constants';
+import { CreateLabelSizeModal } from './CreateLabelSizeModal';
+import type { LabelSizeInput } from './CreateLabelSizeModal';
+import type { LabelUnit } from '@/lib/types';
 
 export interface LabelSize {
   id: string;
   name: string;
-  widthInches: number;
-  heightInches: number;
+  widthDots: number;
+  heightDots: number;
+  unit: LabelUnit;
   dpi: number;
 }
 
@@ -18,17 +22,46 @@ interface Props {
   onChanged: () => void;
 }
 
+const UNIT_STEP: Record<LabelUnit, number> = { in: 0.25, mm: 1 };
+const UNIT_MAX: Record<LabelUnit, number> = { in: 12, mm: 305 };
+const UNIT_MIN: Record<LabelUnit, number> = { in: 0.5, mm: 10 };
+
 function EditRow({ size, onSave, onCancel }: {
   size: LabelSize;
   onSave: (updated: LabelSize) => void;
   onCancel: () => void;
 }) {
   const [name, setName] = useState(size.name);
-  const [width, setWidth] = useState(size.widthInches);
-  const [height, setHeight] = useState(size.heightInches);
+  const [unit, setUnit] = useState<LabelUnit>(size.unit);
+  const [width, setWidth] = useState(dotsToUnit(size.widthDots, size.dpi, size.unit));
+  const [height, setHeight] = useState(dotsToUnit(size.heightDots, size.dpi, size.unit));
   const [dpi, setDpi] = useState(size.dpi);
 
+  const handleUnitChange = (newUnit: LabelUnit) => {
+    if (newUnit === unit) return;
+    if (newUnit === 'mm') {
+      setWidth(Math.round(width * 25.4));
+      setHeight(Math.round(height * 25.4));
+    } else {
+      setWidth(parseFloat((width / 25.4).toFixed(2)));
+      setHeight(parseFloat((height / 25.4).toFixed(2)));
+    }
+    setUnit(newUnit);
+  };
+
   const valid = name.trim() && width > 0 && height > 0;
+
+  const handleSave = () => {
+    if (!valid) return;
+    onSave({
+      ...size,
+      name: name.trim(),
+      widthDots: unitToDots(width, dpi, unit),
+      heightDots: unitToDots(height, dpi, unit),
+      unit,
+      dpi,
+    });
+  };
 
   return (
     <tr className="bg-blue-50">
@@ -41,16 +74,32 @@ function EditRow({ size, onSave, onCancel }: {
           autoFocus
           onKeyDown={(e) => {
             if (e.key === 'Escape') onCancel();
-            if (e.key === 'Enter' && valid) onSave({ ...size, name: name.trim(), widthInches: width, heightInches: height, dpi });
+            if (e.key === 'Enter') handleSave();
           }}
         />
       </td>
       <td className="px-3 py-2">
+        <div className="flex rounded overflow-hidden border border-blue-300 w-fit">
+          {(['in', 'mm'] as const).map((u) => (
+            <button
+              key={u}
+              type="button"
+              onClick={() => handleUnitChange(u)}
+              className={`px-1.5 py-0.5 text-xs font-medium ${
+                unit === u ? 'bg-blue-600 text-white' : 'bg-white text-gray-600'
+              }`}
+            >
+              {u}
+            </button>
+          ))}
+        </div>
+      </td>
+      <td className="px-3 py-2">
         <input
           type="number"
-          step="0.25"
-          min="0.5"
-          max="12"
+          step={UNIT_STEP[unit]}
+          min={UNIT_MIN[unit]}
+          max={UNIT_MAX[unit]}
           value={width}
           onChange={(e) => setWidth(parseFloat(e.target.value) || 0)}
           className="w-full px-1.5 py-0.5 border border-blue-300 rounded text-sm"
@@ -59,9 +108,9 @@ function EditRow({ size, onSave, onCancel }: {
       <td className="px-3 py-2">
         <input
           type="number"
-          step="0.25"
-          min="0.5"
-          max="12"
+          step={UNIT_STEP[unit]}
+          min={UNIT_MIN[unit]}
+          max={UNIT_MAX[unit]}
           value={height}
           onChange={(e) => setHeight(parseFloat(e.target.value) || 0)}
           className="w-full px-1.5 py-0.5 border border-blue-300 rounded text-sm"
@@ -81,7 +130,7 @@ function EditRow({ size, onSave, onCancel }: {
       <td className="px-3 py-2">
         <div className="flex gap-1">
           <button
-            onClick={() => valid && onSave({ ...size, name: name.trim(), widthInches: width, heightInches: height, dpi })}
+            onClick={handleSave}
             disabled={!valid}
             className="p-1 text-green-600 hover:bg-green-50 rounded disabled:opacity-50"
             title="Save"
@@ -101,11 +150,17 @@ function EditRow({ size, onSave, onCancel }: {
   );
 }
 
+function formatSizeDisplay(dots: number, dpi: number, unit: LabelUnit): string {
+  const val = dotsToUnit(dots, dpi, unit);
+  return unit === 'mm' ? `${Math.round(val)}` : `${parseFloat(val.toFixed(2))}`;
+}
+
 export function ManageLabelSizesModal({ onClose, onChanged }: Props) {
   const [sizes, setSizes] = useState<LabelSize[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
 
   const fetchSizes = useCallback(async () => {
     try {
@@ -150,24 +205,36 @@ export function ManageLabelSizesModal({ onClose, onChanged }: Props) {
     }
   };
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (editingId) setEditingId(null);
-        else if (deletingId) setDeletingId(null);
-        else onClose();
-      }
-    },
-    [onClose, editingId, deletingId]
-  );
+  const handleCreate = async (input: LabelSizeInput) => {
+    const res = await fetch('/api/label-sizes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    });
+    if (!res.ok) return;
+    await fetchSizes();
+    onChanged();
+    setShowCreate(false);
+  };
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (showCreate) return; // let CreateLabelSizeModal handle its own Escape
+      if (editingId) setEditingId(null);
+      else if (deletingId) setDeletingId(null);
+      else onClose();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose, editingId, deletingId, showCreate]);
 
   return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      onKeyDown={handleKeyDown}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+
     >
-      <div className="bg-white rounded-lg shadow-xl w-140 max-h-[80vh] flex flex-col overflow-hidden">
+      <div className="bg-white rounded-lg shadow-xl w-160 max-h-[80vh] flex flex-col overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
           <h2 className="text-sm font-semibold">Manage Label Sizes</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg leading-none">
@@ -187,8 +254,9 @@ export function ManageLabelSizesModal({ onClose, onChanged }: Props) {
               <thead>
                 <tr className="border-b border-gray-200 text-left text-xs text-gray-500">
                   <th className="px-3 py-2 font-medium">Name</th>
-                  <th className="px-3 py-2 font-medium">W (in)</th>
-                  <th className="px-3 py-2 font-medium">H (in)</th>
+                  <th className="px-3 py-2 font-medium">Unit</th>
+                  <th className="px-3 py-2 font-medium">Width</th>
+                  <th className="px-3 py-2 font-medium">Height</th>
                   <th className="px-3 py-2 font-medium">DPI</th>
                   <th className="px-3 py-2 font-medium w-20"></th>
                 </tr>
@@ -205,8 +273,9 @@ export function ManageLabelSizesModal({ onClose, onChanged }: Props) {
                   ) : (
                     <tr key={size.id} className="border-b border-gray-100 hover:bg-gray-50 group">
                       <td className="px-3 py-2 font-medium">{size.name}</td>
-                      <td className="px-3 py-2">{size.widthInches}</td>
-                      <td className="px-3 py-2">{size.heightInches}</td>
+                      <td className="px-3 py-2">{size.unit}</td>
+                      <td className="px-3 py-2">{formatSizeDisplay(size.widthDots, size.dpi, size.unit)}</td>
+                      <td className="px-3 py-2">{formatSizeDisplay(size.heightDots, size.dpi, size.unit)}</td>
                       <td className="px-3 py-2">{size.dpi}</td>
                       <td className="px-3 py-2">
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -238,12 +307,26 @@ export function ManageLabelSizesModal({ onClose, onChanged }: Props) {
           )}
         </div>
 
-        <div className="px-4 py-3 border-t border-gray-200 flex justify-end">
+        <div className="px-4 py-3 border-t border-gray-200 flex justify-between">
+          <button
+            onClick={() => setShowCreate(true)}
+            className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded"
+          >
+            <Plus size={14} />
+            New Size
+          </button>
           <button onClick={onClose} className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded">
             Done
           </button>
         </div>
       </div>
+
+      {showCreate && (
+        <CreateLabelSizeModal
+          onConfirm={handleCreate}
+          onCancel={() => setShowCreate(false)}
+        />
+      )}
     </div>,
     document.body
   );

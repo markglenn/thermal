@@ -4,6 +4,7 @@ import { useMemo, useEffect, useState, useRef } from 'react';
 import { useDocument } from '@/lib/store/editor-context';
 import { generateZpl } from '@/lib/zpl/generator';
 import { fetchLabelaryApiPreview } from '@/lib/labelary/api-client';
+import { labelWidthDots, labelHeightDots, dotsToInches } from '@/lib/constants';
 import { Spinner } from '@/components/ui/Spinner';
 
 export function LabelaryApiPreview() {
@@ -33,8 +34,8 @@ export function LabelaryApiPreview() {
         const url = await fetchLabelaryApiPreview({
           zpl,
           dpi: document.label.dpi,
-          widthInches: document.label.widthInches,
-          heightInches: document.label.heightInches,
+          widthInches: dotsToInches(labelWidthDots(document.label), document.label.dpi),
+          heightInches: dotsToInches(labelHeightDots(document.label), document.label.dpi),
         });
         if (prevUrlRef.current) URL.revokeObjectURL(prevUrlRef.current);
         prevUrlRef.current = url;

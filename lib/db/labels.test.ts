@@ -12,13 +12,13 @@ const TEST_DB_PATH = path.join(__dirname, '../../thermal-test-labels.db');
 
 const sampleDocument: LabelDocument = {
   version: 1,
-  label: { widthInches: 2, heightInches: 1, dpi: 203 },
+  label: { dpi: 203, activeVariant: 'Default', variants: [{ name: 'Default', widthDots: 406, heightDots: 203, unit: 'in' }] },
   components: [],
 };
 
 const sampleDocumentWithText: LabelDocument = {
   version: 1,
-  label: { widthInches: 2, heightInches: 1, dpi: 203 },
+  label: { dpi: 203, activeVariant: 'Default', variants: [{ name: 'Default', widthDots: 406, heightDots: 203, unit: 'in' }] },
   components: [
     {
       id: 'comp_1',

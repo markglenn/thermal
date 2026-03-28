@@ -1,10 +1,11 @@
-import { sqliteTable, text, integer, real, blob, unique } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, blob, unique } from 'drizzle-orm/sqlite-core';
 
 export const labelSizes = sqliteTable('label_sizes', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
-  widthInches: real('width_inches').notNull(),
-  heightInches: real('height_inches').notNull(),
+  widthDots: integer('width_dots').notNull(),
+  heightDots: integer('height_dots').notNull(),
+  unit: text('unit').notNull().default('in'),
   dpi: integer('dpi').notNull(),
   createdAt: integer('created_at', { mode: 'timestamp' })
     .notNull()

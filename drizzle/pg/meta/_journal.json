@@ -8,6 +8,13 @@
       "when": 1773953251527,
       "tag": "0000_steep_goblin_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1774900000000,
+      "tag": "0001_label_sizes_dots_unit",
+      "breakpoints": true
     }
   ]
 }
