@@ -270,6 +270,12 @@ export function Toolbar() {
             <div className="fixed inset-0 z-40" onPointerDown={() => setShowFileMenu(false)} />
             <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 min-w-44">
               <button
+                onClick={() => { setShowFileMenu(false); useTabStore.getState().createTab(); }}
+                className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100"
+              >
+                New
+              </button>
+              <button
                 onClick={() => { setShowFileMenu(false); setShowBrowserModal(true); }}
                 className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 flex items-center justify-between"
               >
@@ -310,6 +316,21 @@ export function Toolbar() {
                   Rename...
                 </button>
               )}
+              <div className="border-t border-gray-200 my-1" />
+              <button
+                onClick={() => {
+                  setShowFileMenu(false);
+                  const state = useTabStore.getState();
+                  const tab = state.tabs.find((t) => t.id === state.activeTabId);
+                  if (tab?.dirty) {
+                    if (!confirm(`"${tab.name}" has unsaved changes. Close anyway?`)) return;
+                  }
+                  state.closeTab(state.activeTabId);
+                }}
+                className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100"
+              >
+                Close
+              </button>
             </div>
             </>
           )}

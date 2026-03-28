@@ -16,6 +16,14 @@ button, select {
   cursor: pointer;
 }
 
+/* Hide scrollbar while keeping scroll functionality */
+.scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* Prevent text selection on canvas components during drag */
 .bg-white.shadow-lg {
   user-select: none;

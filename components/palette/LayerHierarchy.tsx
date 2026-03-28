@@ -36,14 +36,27 @@ function SortableLayerItem({ component, depth }: { component: LabelComponent; de
   const [editText, setEditText] = useState(component.name);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const itemRef = useRef<HTMLDivElement>(null);
+
   const {
     attributes,
     listeners,
-    setNodeRef,
+    setNodeRef: setSortableRef,
     transform,
     transition,
     isDragging,
   } = useSortable({ id: component.id });
+
+  const setNodeRef = useCallback((node: HTMLDivElement | null) => {
+    setSortableRef(node);
+    (itemRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+  }, [setSortableRef]);
+
+  useEffect(() => {
+    if (isSelected && itemRef.current) {
+      itemRef.current.scrollIntoView({ block: 'nearest' });
+    }
+  }, [isSelected]);
 
   const style = {
     transform: CSS.Transform.toString(transform),

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { X, Plus, Circle, FileText } from 'lucide-react';
 import {
   DndContext,
@@ -54,10 +54,24 @@ export function TabBar() {
   }, []);
 
   const tabIds = tabs.map((t) => t.id);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    if (!scrollRef.current) return;
+    // Convert vertical scroll to horizontal
+    if (e.deltaY !== 0) {
+      e.preventDefault();
+      scrollRef.current.scrollLeft += e.deltaY;
+    }
+  }, []);
 
   return (
-    <div className="h-8 bg-gray-50 border-b border-gray-200 flex items-stretch text-xs overflow-x-auto" data-testid="tab-bar">
-      <div className="flex items-stretch">
+    <div className="h-8 bg-gray-50 border-b border-gray-200 flex items-stretch text-xs" data-testid="tab-bar">
+      <div
+        ref={scrollRef}
+        onWheel={handleWheel}
+        className="flex items-stretch min-w-0 overflow-x-auto overflow-y-hidden scrollbar-none"
+      >
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
