@@ -39,6 +39,7 @@ interface TabManagerActions {
   updateTabName: (tabId: string, name: string) => void;
   updateTabLabelId: (tabId: string, labelId: string) => void;
   updateTabVersionMeta: (tabId: string, version: number, status: VersionStatus) => void;
+  reorderTabs: (fromIndex: number, toIndex: number) => void;
 }
 
 type TabStore = TabManagerState & TabManagerActions;
@@ -245,5 +246,14 @@ export const useTabStore = create<TabStore>()((set, get) => ({
         t.id === tabId ? { ...t, latestVersion: version, latestStatus: status } : t
       ),
     }));
+  },
+
+  reorderTabs: (fromIndex, toIndex) => {
+    set((state) => {
+      const tabs = [...state.tabs];
+      const [moved] = tabs.splice(fromIndex, 1);
+      tabs.splice(toIndex, 0, moved);
+      return { tabs };
+    });
   },
 }));

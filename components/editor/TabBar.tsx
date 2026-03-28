@@ -1,35 +1,81 @@
 'use client';
 
+import { useCallback } from 'react';
 import { X, Plus, Circle, FileText } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import { restrictToHorizontalAxis, restrictToParentElement } from '@dnd-kit/modifiers';
+import {
+  SortableContext,
+  horizontalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { useTabStore, type TabInfo } from '@/lib/store/tab-store';
 
 export function TabBar() {
   const tabs = useTabStore((s) => s.tabs);
   const activeTabId = useTabStore((s) => s.activeTabId);
-  const setActiveTab = useTabStore((s) => s.setActiveTab);
   const createTab = useTabStore((s) => s.createTab);
-  const closeTab = useTabStore((s) => s.closeTab);
 
-  const handleClose = (e: React.MouseEvent, tabId: string) => {
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 5 },
+    })
+  );
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const state = useTabStore.getState();
+    const fromIndex = state.tabs.findIndex((t) => t.id === active.id);
+    const toIndex = state.tabs.findIndex((t) => t.id === over.id);
+
+    if (fromIndex !== -1 && toIndex !== -1) {
+      state.reorderTabs(fromIndex, toIndex);
+    }
+  }, []);
+
+  const handleClose = useCallback((e: React.MouseEvent, tabId: string) => {
     e.stopPropagation();
-    const tab = tabs.find((t) => t.id === tabId);
+    const state = useTabStore.getState();
+    const tab = state.tabs.find((t) => t.id === tabId);
     if (tab?.dirty) {
       if (!confirm(`"${tab.name}" has unsaved changes. Close anyway?`)) return;
     }
-    closeTab(tabId);
-  };
+    state.closeTab(tabId);
+  }, []);
+
+  const tabIds = tabs.map((t) => t.id);
 
   return (
     <div className="h-8 bg-gray-50 border-b border-gray-200 flex items-stretch text-xs overflow-x-auto" data-testid="tab-bar">
-      {tabs.map((tab) => (
-        <Tab
-          key={tab.id}
-          tab={tab}
-          isActive={tab.id === activeTabId}
-          onClick={() => setActiveTab(tab.id)}
-          onClose={(e) => handleClose(e, tab.id)}
-        />
-      ))}
+      <div className="flex items-stretch">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+          modifiers={[restrictToHorizontalAxis, restrictToParentElement]}
+        >
+          <SortableContext items={tabIds} strategy={horizontalListSortingStrategy}>
+            {tabs.map((tab) => (
+              <SortableTab
+                key={tab.id}
+                tab={tab}
+                isActive={tab.id === activeTabId}
+                onClose={handleClose}
+              />
+            ))}
+          </SortableContext>
+        </DndContext>
+      </div>
       <button
         onClick={createTab}
         data-testid="new-tab-button"
@@ -42,20 +88,32 @@ export function TabBar() {
   );
 }
 
-function Tab({
+function SortableTab({
   tab,
   isActive,
-  onClick,
   onClose,
 }: {
   tab: TabInfo;
   isActive: boolean;
-  onClick: () => void;
-  onClose: (e: React.MouseEvent) => void;
+  onClose: (e: React.MouseEvent, tabId: string) => void;
 }) {
+  const setActiveTab = useTabStore((s) => s.setActiveTab);
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: tab.id });
+
+  const style = {
+    transform: CSS.Translate.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : undefined,
+  };
+
   return (
     <div
-      onClick={onClick}
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      onClick={() => setActiveTab(tab.id)}
       data-testid={`editor-tab-${tab.id}`}
       className={`flex items-center gap-1.5 px-3 border-r border-gray-200 cursor-pointer shrink-0 max-w-64 ${
         isActive
@@ -79,7 +137,7 @@ function Tab({
         )}
       </span>
       <button
-        onClick={onClose}
+        onClick={(e) => onClose(e, tab.id)}
         className="ml-auto text-gray-400 hover:text-gray-700 shrink-0 w-3 h-3 flex items-center justify-center group/close"
         title="Close tab"
       >
