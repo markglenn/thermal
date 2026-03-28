@@ -34,20 +34,26 @@ export async function GET(
         hasThumbnail: sql<boolean>`${tables.labelVersions.thumbnail} IS NOT NULL`.as('has_thumbnail'),
         archivedAt: tables.labelVersions.archivedAt,
         createdAt: tables.labelVersions.createdAt,
+        document: tables.labelVersions.document,
       })
       .from(tables.labelVersions)
       .where(whereClause)
       .orderBy(desc(tables.labelVersions.version));
 
     return NextResponse.json(
-      versions.map((v) => ({
-        id: v.id,
-        version: v.version,
-        status: v.status,
-        hasThumbnail: !!v.hasThumbnail,
-        archivedAt: v.archivedAt?.toISOString() ?? null,
-        createdAt: v.createdAt.toISOString(),
-      }))
+      versions.map((v) => {
+        const doc = v.document as { label?: { widthInches?: number; heightInches?: number } } | undefined;
+        return {
+          id: v.id,
+          version: v.version,
+          status: v.status,
+          hasThumbnail: !!v.hasThumbnail,
+          widthInches: doc?.label?.widthInches ?? null,
+          heightInches: doc?.label?.heightInches ?? null,
+          archivedAt: v.archivedAt?.toISOString() ?? null,
+          createdAt: v.createdAt.toISOString(),
+        };
+      })
     );
   } catch (e) {
     console.error('GET /api/labels/[id]/versions failed:', e);

@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
             version: tables.labelVersions.version,
             status: tables.labelVersions.status,
             hasThumbnail: sql<boolean>`${tables.labelVersions.thumbnail} IS NOT NULL`.as('has_thumbnail'),
+            document: tables.labelVersions.document,
           })
           .from(tables.labelVersions)
           .where(
@@ -48,12 +49,15 @@ export async function GET(request: NextRequest) {
 
     const result = allLabels.map((label) => {
       const latest = versionByLabelId.get(label.id);
+      const doc = latest?.document as { label?: { widthInches?: number; heightInches?: number } } | undefined;
       return {
         id: label.id,
         name: label.name,
         hasThumbnail: !!latest?.hasThumbnail,
         latestVersion: latest?.version ?? 0,
         latestStatus: latest?.status ?? null,
+        widthInches: doc?.label?.widthInches ?? null,
+        heightInches: doc?.label?.heightInches ?? null,
         archivedAt: label.archivedAt?.toISOString() ?? null,
         updatedAt: label.updatedAt.toISOString(),
       };

@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ShieldCheck, ShieldOff, Archive, ArchiveRestore, Clock } from 'lucide-react';
 import { ConfirmButton } from '../ui/ConfirmButton';
+import { LabelThumbnail, formatSize } from '../ui/LabelThumbnail';
 import { useTabStore } from '@/lib/store/tab-store';
 import type { LabelDocument, VersionStatus } from '@/lib/types';
 
@@ -12,12 +13,16 @@ interface VersionEntry {
   version: number;
   status: VersionStatus;
   hasThumbnail: boolean;
+  widthInches: number | null;
+  heightInches: number | null;
   archivedAt: string | null;
   createdAt: string;
 }
 
 interface Props {
-  labelId: string;
+  labelId: string | null;
+  currentThumbnail: string | null;
+  currentLabelSize: { widthInches: number; heightInches: number } | null;
   onClose: () => void;
 }
 
@@ -33,7 +38,7 @@ function relativeTime(iso: string): string {
   return `${days}d ago`;
 }
 
-export function VersionHistoryPanel({ labelId, onClose }: Props) {
+export function VersionHistoryPanel({ labelId, currentThumbnail, currentLabelSize, onClose }: Props) {
   const [versions, setVersions] = useState<VersionEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -51,6 +56,10 @@ export function VersionHistoryPanel({ labelId, onClose }: Props) {
   });
 
   const fetchVersions = useCallback(async (includeArchived: boolean) => {
+    if (!labelId) {
+      setLoading(false);
+      return;
+    }
     const url = `/api/labels/${labelId}/versions${includeArchived ? '?archived=true' : ''}`;
     const res = await fetch(url);
     if (res.ok) {
@@ -69,6 +78,7 @@ export function VersionHistoryPanel({ labelId, onClose }: Props) {
   };
 
   const handleClickVersion = async (version: number, isLatest: boolean) => {
+    if (!labelId) return;
     const tabState = useTabStore.getState();
     const tab = tabState.tabs.find((t) => t.id === activeTabId);
     if (tab?.dirty) {
@@ -199,6 +209,21 @@ export function VersionHistoryPanel({ labelId, onClose }: Props) {
         <div className="p-4 overflow-y-auto flex-1">
           {loading ? (
             <div className="text-center text-sm text-gray-400 py-8">Loading...</div>
+          ) : !labelId ? (
+            <div className="flex flex-col gap-3">
+              <div className="rounded-lg border border-blue-400 bg-blue-50/50 p-3">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <span className="text-sm font-medium">Draft</span>
+                  <span className="text-[10px] text-gray-400 font-medium">Unsaved</span>
+                </div>
+                <LabelThumbnail
+                  src={currentThumbnail}
+                  alt="Draft"
+                  widthInches={currentLabelSize?.widthInches ?? null}
+                  heightInches={currentLabelSize?.heightInches ?? null}
+                />
+              </div>
+            </div>
           ) : versions.length === 0 ? (
             <div className="text-center text-sm text-gray-400 py-8">No versions saved yet</div>
           ) : (
@@ -252,67 +277,65 @@ export function VersionHistoryPanel({ labelId, onClose }: Props) {
                     </div>
 
                     {/* Thumbnail */}
-                    <div className="aspect-4/3 bg-gray-50 rounded mb-2 flex items-center justify-center overflow-hidden">
-                      {v.hasThumbnail ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={`/api/labels/${labelId}/versions/${v.version}/thumbnail?t=${cacheBust}`}
-                          alt={`v${v.version}`}
-                          loading="lazy"
-                          className="max-w-full max-h-full object-contain"
-                        />
-                      ) : (
-                        <span className="text-xs text-gray-300">No preview</span>
-                      )}
-                    </div>
+                    <LabelThumbnail
+                      src={v.hasThumbnail ? `/api/labels/${labelId}/versions/${v.version}/thumbnail?t=${cacheBust}` : null}
+                      alt={`v${v.version}`}
+                      widthInches={null}
+                      heightInches={null}
+                    />
 
-                    {/* Hover actions */}
-                    <div className="flex items-center gap-1.5 min-h-6">
-                      {/* Publish */}
-                      {!isPublished && !isArchived && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleSetPublished(v.version, true); }}
-                          disabled={busy}
-                          className="flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-50 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <ShieldCheck size={12} />
-                          Publish
-                        </button>
-                      )}
+                    {/* Size + Actions */}
+                    <div className="flex items-center justify-between min-h-6">
+                      {v.widthInches != null && v.heightInches != null ? (
+                        <span className="text-[10px] text-gray-400">{formatSize(v.widthInches, v.heightInches)}</span>
+                      ) : <span />}
+                      <div className="flex items-center gap-1.5">
+                        {/* Publish */}
+                        {!isPublished && !isArchived && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleSetPublished(v.version, true); }}
+                            disabled={busy}
+                            className="flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <ShieldCheck size={12} />
+                            Publish
+                          </button>
+                        )}
 
-                      {/* Unpublish — only if single version */}
-                      {isPublished && versions.length === 1 && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleSetPublished(v.version, false); }}
-                          disabled={busy}
-                          className="flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium bg-amber-50 text-amber-700 hover:bg-amber-100 disabled:opacity-50 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <ShieldOff size={12} />
-                          Unpublish
-                        </button>
-                      )}
+                        {/* Unpublish — only if single version */}
+                        {isPublished && versions.length === 1 && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleSetPublished(v.version, false); }}
+                            disabled={busy}
+                            className="flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium bg-amber-50 text-amber-700 hover:bg-amber-100 disabled:opacity-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <ShieldOff size={12} />
+                            Unpublish
+                          </button>
+                        )}
 
-                      {/* Archive — non-published versions only */}
-                      {!isPublished && !isArchived && (
-                        <ConfirmButton
-                          label="Archive"
-                          icon={<Archive size={12} />}
-                          onConfirm={() => handleSetArchived(v.version, true)}
-                          disabled={busy}
-                        />
-                      )}
+                        {/* Archive — non-published versions only */}
+                        {!isPublished && !isArchived && (
+                          <ConfirmButton
+                            label="Archive"
+                            icon={<Archive size={12} />}
+                            onConfirm={() => handleSetArchived(v.version, true)}
+                            disabled={busy}
+                          />
+                        )}
 
-                      {/* Unarchive */}
-                      {isArchived && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleSetArchived(v.version, false); }}
-                          disabled={busy}
-                          className="flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium text-gray-500 hover:bg-gray-100 disabled:opacity-50 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <ArchiveRestore size={12} />
-                          Unarchive
-                        </button>
-                      )}
+                        {/* Unarchive */}
+                        {isArchived && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleSetArchived(v.version, false); }}
+                            disabled={busy}
+                            className="flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium text-gray-500 hover:bg-gray-100 disabled:opacity-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <ArchiveRestore size={12} />
+                            Unarchive
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -322,17 +345,19 @@ export function VersionHistoryPanel({ labelId, onClose }: Props) {
         </div>
 
         {/* Footer with archived toggle */}
-        <div className="px-4 py-2.5 border-t border-gray-200">
-          <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={showArchived}
-              onChange={(e) => handleToggleArchived(e.target.checked)}
-              className="rounded border-gray-300"
-            />
-            Include archived versions
-          </label>
-        </div>
+        {labelId && (
+          <div className="px-4 py-2.5 border-t border-gray-200">
+            <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showArchived}
+                onChange={(e) => handleToggleArchived(e.target.checked)}
+                className="rounded border-gray-300"
+              />
+              Include archived versions
+            </label>
+          </div>
+        )}
       </div>
     </div>,
     document.body

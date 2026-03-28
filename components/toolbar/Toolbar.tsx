@@ -82,6 +82,8 @@ export function Toolbar() {
   const [showSaveAsModal, setShowSaveAsModal] = useState(false);
   const [showBrowserModal, setShowBrowserModal] = useState(false);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [versionThumbnail, setVersionThumbnail] = useState<string | null>(null);
+  const [versionLabelSize, setVersionLabelSize] = useState<{ widthInches: number; heightInches: number } | null>(null);
   const [showFileMenu, setShowFileMenu] = useState(false);
   const [showViewMenu, setShowViewMenu] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -359,30 +361,28 @@ export function Toolbar() {
         <div className="flex-1" />
 
         {/* Versions */}
-        {currentLabelId && (
-          <button
-            onClick={async () => {
-              const store = storeApi.getState();
-              const labelId = store.currentLabelId;
-              if (labelId && !readOnly) {
-                const thumbnail = await captureThumbnail(store.document);
-                if (thumbnail) {
-                  fetch(`/api/labels/${labelId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ document: store.document, thumbnail }),
-                  });
-                }
-              }
-              setShowVersionHistory(true);
-            }}
-            className="flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 text-xs"
-            title="Version History"
-          >
-            <History size={14} />
-            Versions
-          </button>
-        )}
+        <button
+          onClick={async () => {
+            const store = storeApi.getState();
+            const labelId = store.currentLabelId;
+            const thumbnail = await captureThumbnail(store.document);
+            if (labelId && !readOnly && thumbnail) {
+              fetch(`/api/labels/${labelId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ document: store.document, thumbnail }),
+              });
+            }
+            setVersionThumbnail(thumbnail);
+            setVersionLabelSize({ widthInches: store.document.label.widthInches, heightInches: store.document.label.heightInches });
+            setShowVersionHistory(true);
+          }}
+          className="flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 text-xs"
+          title="Version History"
+        >
+          <History size={14} />
+          Versions
+        </button>
       </div>
 
       {showSaveModal && (
@@ -420,9 +420,11 @@ export function Toolbar() {
         />
       )}
 
-      {showVersionHistory && currentLabelId && (
+      {showVersionHistory && (
         <VersionHistoryPanel
           labelId={currentLabelId}
+          currentThumbnail={versionThumbnail}
+          currentLabelSize={versionLabelSize}
           onClose={() => setShowVersionHistory(false)}
         />
       )}

@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Archive, ArchiveRestore, Search } from 'lucide-react';
 import { ConfirmButton } from '../ui/ConfirmButton';
+import { LabelThumbnail, formatSize } from '../ui/LabelThumbnail';
 
 interface LabelListItem {
   id: string;
@@ -11,6 +12,8 @@ interface LabelListItem {
   hasThumbnail: boolean;
   latestVersion: number;
   latestStatus: 'published' | null;
+  widthInches: number | null;
+  heightInches: number | null;
   archivedAt: string | null;
   updatedAt: string;
 }
@@ -196,22 +199,18 @@ export function LabelBrowserModal({ onSelect, onCancel }: Props) {
                     </div>
 
                     {/* Thumbnail */}
-                    <div className="aspect-4/3 bg-gray-50 rounded mb-2 flex items-center justify-center overflow-hidden">
-                      {label.hasThumbnail ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={`/api/labels/${label.id}/thumbnail?t=${cacheBust}`}
-                          alt={label.name}
-                          loading="lazy"
-                          className="max-w-full max-h-full object-contain"
-                        />
-                      ) : (
-                        <span className="text-xs text-gray-300">No preview</span>
-                      )}
-                    </div>
+                    <LabelThumbnail
+                      src={label.hasThumbnail ? `/api/labels/${label.id}/thumbnail?t=${cacheBust}` : null}
+                      alt={label.name}
+                      widthInches={null}
+                      heightInches={null}
+                    />
 
-                    {/* Actions */}
-                    <div className="flex items-center justify-end min-h-6">
+                    {/* Size + Actions */}
+                    <div className="flex items-center justify-between min-h-6">
+                      {label.widthInches != null && label.heightInches != null ? (
+                        <span className="text-[10px] text-gray-400">{formatSize(label.widthInches, label.heightInches)}</span>
+                      ) : <span />}
                       {isArchived ? (
                         <button
                           onClick={(e) => {
