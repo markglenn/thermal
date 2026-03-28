@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useState } from 'react';
 import type { DataMatrixProperties } from '@/lib/types';
+import { computeDataMatrixSize } from './compute-size';
 
 interface Props {
   props: DataMatrixProperties;
@@ -10,7 +11,7 @@ interface Props {
 
 export function DataMatrixElement({ props }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [displaySize, setDisplaySize] = useState<{ w: number; h: number } | null>(null);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -22,18 +23,10 @@ export function DataMatrixElement({ props }: Props) {
         bwipjs.toCanvas(canvasRef.current, {
           bcid: 'datamatrix',
           text: props.content || ' ',
-          scale: props.moduleSize,
+          scale: 3, // render quality — CSS size controls display dimensions
+          padding: 0,
         });
-
-        // bwip-js sets canvas.width/height accounting for devicePixelRatio,
-        // so the CSS display size must be divided by DPR to get the correct
-        // dot-level dimensions.
-        const dpr = window.devicePixelRatio || 1;
-        const canvas = canvasRef.current;
-        setDisplaySize({
-          w: Math.round(canvas.width / dpr),
-          h: Math.round(canvas.height / dpr),
-        });
+        setReady(true);
       } catch (err) {
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -44,21 +37,24 @@ export function DataMatrixElement({ props }: Props) {
         ctx.fillStyle = '#dc2626';
         ctx.font = '12px sans-serif';
         ctx.fillText(err instanceof Error ? err.message : 'Invalid', 4, 14);
-        setDisplaySize({ w: 100, h: 20 });
+        setReady(true);
       }
     });
 
     return () => { cancelled = true; };
   }, [props.content, props.moduleSize]);
 
+  // Use the computed ZPL size for display, not the canvas pixel dimensions
+  const zplSize = computeDataMatrixSize(props);
+
   return (
     <canvas
       ref={canvasRef}
       width={0}
       height={0}
-      style={displaySize ? {
-        width: displaySize.w,
-        height: displaySize.h,
+      style={ready ? {
+        width: zplSize.width,
+        height: zplSize.height,
         imageRendering: 'pixelated',
       } : { width: 0, height: 0 }}
     />
