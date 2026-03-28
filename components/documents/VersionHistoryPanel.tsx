@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ShieldCheck, ShieldOff, Archive, ArchiveRestore, Clock } from 'lucide-react';
 import { ConfirmButton } from '../ui/ConfirmButton';
@@ -59,11 +59,9 @@ export function VersionHistoryPanel({ labelId, onClose }: Props) {
     setLoading(false);
   }, [labelId]);
 
-  const initialized = useRef<boolean | null>(null);
-  if (initialized.current === null) {
-    initialized.current = true;
+  useEffect(() => {
     fetchVersions(false);
-  }
+  }, [fetchVersions]);
 
   const handleToggleArchived = (checked: boolean) => {
     setShowArchived(checked);

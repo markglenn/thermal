@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
-import { Save, FolderOpen, Flame, History, FilePlus, ChevronDown } from 'lucide-react';
+import { useState, useCallback, useEffect } from 'react';
+import { Flame, History, ChevronDown, Undo2, Redo2, Check } from 'lucide-react';
 import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
 import { EDITOR_EVENTS } from '@/hooks/use-keyboard-shortcuts';
 import { useTabStore } from '@/lib/store/tab-store';
@@ -10,6 +10,56 @@ import { SaveNameModal } from '@/components/documents/SaveNameModal';
 import { LabelBrowserModal } from '@/components/documents/LabelBrowserModal';
 import { VersionHistoryPanel } from '@/components/documents/VersionHistoryPanel';
 import type { LabelDocument } from '@/lib/types';
+
+function ToolbarSeparator() {
+  return <div className="w-px h-5 bg-gray-200 mx-1" />;
+}
+
+function UndoRedoButtons() {
+  const storeApi = useEditorStoreApi();
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+
+  useEffect(() => {
+    const temporal = storeApi.temporal;
+    const update = () => {
+      const { pastStates, futureStates } = temporal.getState();
+      setCanUndo(pastStates.length > 0);
+      setCanRedo(futureStates.length > 0);
+    };
+    update();
+    return temporal.subscribe(update);
+  }, [storeApi]);
+
+  const handleUndo = useCallback(() => {
+    storeApi.temporal.getState().undo();
+  }, [storeApi]);
+
+  const handleRedo = useCallback(() => {
+    storeApi.temporal.getState().redo();
+  }, [storeApi]);
+
+  return (
+    <div className="flex items-center gap-0.5">
+      <button
+        onClick={handleUndo}
+        disabled={!canUndo}
+        className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-default"
+        title="Undo (⌘Z)"
+      >
+        <Undo2 size={14} />
+      </button>
+      <button
+        onClick={handleRedo}
+        disabled={!canRedo}
+        className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-default"
+        title="Redo (⌘⇧Z)"
+      >
+        <Redo2 size={14} />
+      </button>
+    </div>
+  );
+}
 
 export function Toolbar() {
   const showGrid = useEditorStoreContext((s) => s.showGrid);
@@ -32,9 +82,9 @@ export function Toolbar() {
   const [showSaveAsModal, setShowSaveAsModal] = useState(false);
   const [showBrowserModal, setShowBrowserModal] = useState(false);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
-  const [showSaveMenu, setShowSaveMenu] = useState(false);
+  const [showFileMenu, setShowFileMenu] = useState(false);
+  const [showViewMenu, setShowViewMenu] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const saveMenuRef = useRef<HTMLDivElement>(null);
 
   const saveLabel = useCallback(async (name: string) => {
     setIsSaving(true);
@@ -99,9 +149,9 @@ export function Toolbar() {
     }
   }, [storeApi]);
 
-  const handleSaveClick = useCallback((e: React.MouseEvent) => {
+  const handleSaveClick = useCallback(() => {
     const store = storeApi.getState();
-    if (e.shiftKey || !store.currentLabelId) {
+    if (!store.currentLabelId) {
       setShowSaveModal(true);
     } else {
       saveLabel(store.currentLabelName || 'Untitled Label');
@@ -166,18 +216,6 @@ export function Toolbar() {
     }
   }, [storeApi]);
 
-  // Close save menu on outside click
-  useEffect(() => {
-    if (!showSaveMenu) return;
-    const handleClick = (e: MouseEvent) => {
-      if (saveMenuRef.current && !saveMenuRef.current.contains(e.target as Node)) {
-        setShowSaveMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [showSaveMenu]);
-
   // Listen for keyboard shortcut events
   useEffect(() => {
     const onSave = () => {
@@ -207,89 +245,120 @@ export function Toolbar() {
 
   return (
     <>
-      <div className="h-10 border-b border-gray-200 bg-white flex items-center px-3 gap-2 text-sm" data-testid="toolbar">
-        <div className="flex items-center gap-1.5">
+      <div className="h-10 border-b border-gray-200 bg-white flex items-center px-3 gap-1 text-sm" data-testid="toolbar">
+        {/* Logo */}
+        <div className="flex items-center gap-1.5 mr-1">
           <Flame size={18} className="text-orange-500" />
           <span className="font-bold text-base tracking-tight text-gray-900">Thermal</span>
         </div>
-        <span className="mr-2" />
 
-        <button
-          onClick={toggleGrid}
-          className={`px-2 py-0.5 rounded text-xs ${showGrid ? 'bg-gray-200' : 'hover:bg-gray-100'}`}
-        >
-          Grid
-        </button>
-        <button
-          onClick={toggleRulers}
-          className={`px-2 py-0.5 rounded text-xs ${showRulers ? 'bg-gray-200' : 'hover:bg-gray-100'}`}
-        >
-          Rulers
-        </button>
+        <ToolbarSeparator />
 
-        <div className="flex items-center gap-1 border-l border-gray-200 pl-2 ml-2">
-          <div className="relative" ref={saveMenuRef}>
-            <div className="flex items-center">
+        {/* File menu */}
+        <div className="relative">
+          <button
+            onClick={() => setShowFileMenu((v) => !v)}
+            className="flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 text-xs"
+          >
+            File
+            <ChevronDown size={12} />
+          </button>
+          {showFileMenu && (
+            <>
+            <div className="fixed inset-0 z-40" onPointerDown={() => setShowFileMenu(false)} />
+            <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 min-w-44">
+              <button
+                onClick={() => { setShowFileMenu(false); setShowBrowserModal(true); }}
+                className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 flex items-center justify-between"
+              >
+                Open...
+                <span className="text-gray-400 ml-4">⌘O</span>
+              </button>
+              <div className="border-t border-gray-200 my-1" />
               {isPublished && !readOnly ? (
                 <button
-                  onClick={createNewDraft}
+                  onClick={() => { setShowFileMenu(false); createNewDraft(); }}
                   disabled={isSaving}
-                  className="flex items-center gap-1 px-2 py-0.5 rounded-l hover:bg-blue-50 text-blue-600 text-xs disabled:opacity-50"
-                  title="Create a new version to continue editing"
+                  className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 text-blue-600 disabled:opacity-50"
                 >
-                  <FilePlus size={14} />
                   {isSaving ? 'Creating...' : 'New Version'}
                 </button>
               ) : (
                 <button
-                  onClick={handleSaveClick}
+                  onClick={() => { setShowFileMenu(false); handleSaveClick(); }}
                   disabled={isSaving || readOnly}
-                  className="flex items-center gap-1 px-2 py-0.5 rounded-l hover:bg-gray-100 text-xs disabled:opacity-50"
-                  title="Save"
+                  className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 flex items-center justify-between disabled:opacity-50"
                 >
-                  <Save size={14} />
-                  {isSaving ? 'Saving...' : 'Save'}
+                  Save
+                  <span className="text-gray-400 ml-4">⌘S</span>
                 </button>
               )}
               <button
-                onClick={() => setShowSaveMenu((v) => !v)}
-                className="px-0.5 py-0.5 rounded-r hover:bg-gray-100 text-xs border-l border-gray-200"
-                title="More save options"
+                onClick={() => { setShowFileMenu(false); setShowSaveAsModal(true); }}
+                className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 flex items-center justify-between"
               >
-                <ChevronDown size={12} />
+                Save As...
+                <span className="text-gray-400 ml-4">⌘⇧S</span>
               </button>
-            </div>
-            {showSaveMenu && (
-              <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 min-w-36">
-                {currentLabelId && (
-                  <button
-                    onClick={() => { setShowSaveMenu(false); setShowRenameModal(true); }}
-                    className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100"
-                  >
-                    Rename...
-                  </button>
-                )}
+              {currentLabelId && (
                 <button
-                  onClick={() => { setShowSaveMenu(false); setShowSaveAsModal(true); }}
+                  onClick={() => { setShowFileMenu(false); setShowRenameModal(true); }}
                   className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100"
                 >
-                  Save As...
+                  Rename...
                 </button>
-              </div>
-            )}
-          </div>
-          <button
-            onClick={() => setShowBrowserModal(true)}
-            className="flex items-center gap-1 px-2 py-0.5 rounded hover:bg-gray-100 text-xs"
-            title="Open"
-          >
-            <FolderOpen size={14} />
-            Open
-          </button>
+              )}
+            </div>
+            </>
+          )}
         </div>
 
+        <ToolbarSeparator />
+
+        {/* Undo / Redo */}
+        <UndoRedoButtons />
+
+        {/* View menu */}
+        <div className="relative">
+          <button
+            onClick={() => setShowViewMenu((v) => !v)}
+            className="flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 text-xs"
+          >
+            View
+            <ChevronDown size={12} />
+          </button>
+          {showViewMenu && (
+            <>
+            <div className="fixed inset-0 z-40" onPointerDown={() => setShowViewMenu(false)} />
+            <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 min-w-44">
+              <button
+                onClick={() => { toggleGrid(); setShowViewMenu(false); }}
+                className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 flex items-center justify-between"
+              >
+                <span className="flex items-center gap-2">
+                  <Check size={12} className={showGrid ? 'opacity-100' : 'opacity-0'} />
+                  Grid
+                </span>
+              </button>
+              <button
+                onClick={() => { toggleRulers(); setShowViewMenu(false); }}
+                className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 flex items-center justify-between"
+              >
+                <span className="flex items-center gap-2">
+                  <Check size={12} className={showRulers ? 'opacity-100' : 'opacity-0'} />
+                  Rulers
+                </span>
+                <span className="text-gray-400 ml-4">⇧R</span>
+              </button>
+            </div>
+            </>
+          )}
+        </div>
+
+        {/* Spacer */}
         <div className="flex-1" />
 
+        {/* Versions */}
         {currentLabelId && (
           <button
             onClick={async () => {
@@ -307,8 +376,8 @@ export function Toolbar() {
               }
               setShowVersionHistory(true);
             }}
-            className="flex items-center gap-1 px-2 py-0.5 rounded hover:bg-gray-100 text-xs"
-            title="Versions"
+            className="flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 text-xs"
+            title="Version History"
           >
             <History size={14} />
             Versions

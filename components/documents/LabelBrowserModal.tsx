@@ -73,7 +73,6 @@ export function LabelBrowserModal({ onSelect, onCancel }: Props) {
     setLoading(false);
   }, []);
 
-  // Kick off initial fetch without triggering synchronous setState in effect
   const initialized = useRef<boolean | null>(null);
   if (initialized.current === null) {
     initialized.current = true;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 interface Props {
   /** Label shown before confirmation */
@@ -32,22 +32,20 @@ export function ConfirmButton({
   confirmClassName = 'flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium bg-amber-100 text-amber-700 hover:bg-amber-200 disabled:opacity-50 transition-colors',
 }: Props) {
   const [confirming, setConfirming] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    return () => { if (timer.current) clearTimeout(timer.current); };
-  }, []);
+    if (!confirming) return;
+    const id = setTimeout(() => setConfirming(false), timeout);
+    return () => clearTimeout(id);
+  }, [confirming, timeout]);
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (confirming) {
       setConfirming(false);
-      if (timer.current) clearTimeout(timer.current);
       onConfirm();
     } else {
       setConfirming(true);
-      if (timer.current) clearTimeout(timer.current);
-      timer.current = setTimeout(() => setConfirming(false), timeout);
     }
   };
 
