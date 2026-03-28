@@ -1,7 +1,7 @@
 'use client';
 
 import { createPortal } from 'react-dom';
-import { formatShortcut } from '@/lib/platform';
+import { formatShortcut, useIsMac } from '@/lib/platform';
 
 interface ShortcutGroup {
   title: string;
@@ -54,6 +54,7 @@ const groups: ShortcutGroup[] = [
 ];
 
 export function KeyboardShortcutsModal({ onClose }: { onClose: () => void }) {
+  const mac = useIsMac();
   return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
@@ -78,7 +79,7 @@ export function KeyboardShortcutsModal({ onClose }: { onClose: () => void }) {
                 {group.shortcuts.map((s) => (
                   <div key={s.keys} className="flex items-center justify-between text-xs py-0.5">
                     <span className="text-gray-700">{s.label}</span>
-                    <kbd className="px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 font-mono text-[11px]">{formatShortcut(s.keys)}</kbd>
+                    <kbd className="px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 font-mono text-[11px]">{formatShortcut(s.keys, mac)}</kbd>
                   </div>
                 ))}
               </div>

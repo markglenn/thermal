@@ -5,7 +5,7 @@ import { Flame, History, ChevronDown, Undo2, Redo2, Check } from 'lucide-react';
 import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
 import { EDITOR_EVENTS } from '@/hooks/use-keyboard-shortcuts';
 import { MIN_ZOOM, MAX_ZOOM } from '@/lib/constants';
-import { formatShortcut } from '@/lib/platform';
+import { formatShortcut, useIsMac } from '@/lib/platform';
 import { useTabStore } from '@/lib/store/tab-store';
 import { captureThumbnail } from '@/lib/documents/thumbnail';
 import { SaveNameModal } from '@/components/documents/SaveNameModal';
@@ -33,6 +33,7 @@ function MenuItem({
   className?: string;
   onClick: () => void;
 }) {
+  const mac = useIsMac();
   return (
     <button
       onClick={onClick}
@@ -43,7 +44,7 @@ function MenuItem({
         {checked !== undefined && <Check size={12} className={checked ? 'opacity-100' : 'opacity-0'} />}
       </span>
       <span className="flex-1">{label}</span>
-      {shortcut && <span className="text-gray-400 ml-4 shrink-0">{formatShortcut(shortcut)}</span>}
+      {shortcut && <span className="text-gray-400 ml-4 shrink-0">{formatShortcut(shortcut, mac)}</span>}
     </button>
   );
 }
@@ -53,6 +54,7 @@ function MenuDivider() {
 }
 
 function UndoRedoButtons() {
+  const mac = useIsMac();
   const storeApi = useEditorStoreApi();
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
@@ -82,7 +84,7 @@ function UndoRedoButtons() {
         onClick={handleUndo}
         disabled={!canUndo}
         className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-default"
-        title={`Undo (${formatShortcut('⌘Z')})`}
+        title={`Undo (${formatShortcut('⌘Z', mac)})`}
       >
         <Undo2 size={14} />
       </button>
@@ -90,7 +92,7 @@ function UndoRedoButtons() {
         onClick={handleRedo}
         disabled={!canRedo}
         className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-default"
-        title={`Redo (${formatShortcut('⌘⇧Z')})`}
+        title={`Redo (${formatShortcut('⌘⇧Z', mac)})`}
       >
         <Redo2 size={14} />
       </button>
