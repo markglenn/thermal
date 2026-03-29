@@ -4,6 +4,7 @@ import { useRef, useEffect, useCallback, memo } from 'react';
 import type { LabelComponent, ResolvedBounds } from '@/lib/types';
 import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
 import { getDefinition, getSizingMode } from '@/lib/components';
+import { formatOperator } from '@/lib/utils';
 import { Eye } from 'lucide-react';
 import { showComponentContextMenu } from '../shared/component-context-menu';
 import { useFlashIds } from '@/lib/undo-flash-store';
@@ -96,9 +97,7 @@ export const CanvasComponent = memo(function CanvasComponent({ component, bounds
           </div>
           <div className="hidden group-hover/badge:block absolute top-full right-0 mt-1 px-2 py-1 bg-gray-800 text-white text-[10px] rounded shadow-lg whitespace-nowrap z-50">
             Show when <span className="font-mono">{component.visibilityCondition!.field || '?'}</span>
-            {' '}{component.visibilityCondition!.operator === '==' ? 'equals' :
-              component.visibilityCondition!.operator === '!=' ? 'does not equal' :
-              component.visibilityCondition!.operator === 'isEmpty' ? 'is empty' : 'is not empty'}
+            {' '}{formatOperator(component.visibilityCondition!.operator)}
             {(component.visibilityCondition!.operator === '==' || component.visibilityCondition!.operator === '!=') && (
               <> <span className="font-mono">&quot;{component.visibilityCondition!.value ?? ''}&quot;</span></>
             )}

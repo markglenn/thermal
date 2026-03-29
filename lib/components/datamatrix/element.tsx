@@ -24,7 +24,8 @@ export function DataMatrixElement({ props }: Props) {
           bcid: 'datamatrix',
           text: props.content || ' ',
           scale: 3, // render quality — CSS size controls display dimensions
-          padding: 0,
+          paddingwidth: 0,
+          paddingheight: 0,
         });
         setReady(true);
       } catch (err) {

@@ -17,6 +17,7 @@ import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { useUndoFlash } from '@/hooks/use-undo-flash';
 import { DragGhost } from './DragGhost';
 import { ContextMenuProvider } from '../ui/ContextMenu';
+import { Toasts } from '../ui/Toasts';
 import { ReadOnlyBanner } from './ReadOnlyBanner';
 import { LabelBrowserModal } from '../documents/LabelBrowserModal';
 import { PanelLeftOpen, PanelRightOpen, PanelBottomClose, PanelBottomOpen, FilePlus, FolderOpen, Flame } from 'lucide-react';
@@ -57,6 +58,7 @@ export function Editor() {
       <ContextMenuProvider>
         <EditorInner />
       </ContextMenuProvider>
+      <Toasts />
     </EditorStoreProvider>
   );
 }

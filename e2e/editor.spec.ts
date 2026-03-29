@@ -143,6 +143,70 @@ test.describe('ZPL output', () => {
   });
 });
 
+test.describe('import JSON', () => {
+  test('importing a valid JSON file opens it in a new tab', async ({ page }) => {
+    const doc = {
+      version: 1,
+      label: {
+        dpi: 203,
+        variants: [{ name: 'Default', widthDots: 406, heightDots: 203, unit: 'in' }],
+      },
+      components: [
+        {
+          id: 'test-rect',
+          name: 'Rectangle 1',
+          layout: {
+            x: 10, y: 10, width: 100, height: 50,
+            horizontalAnchor: 'left', verticalAnchor: 'top',
+          },
+          typeData: { type: 'rectangle', props: { borderThickness: 2, cornerRadius: 0, filled: false } },
+        },
+      ],
+    };
+
+    // Open File menu and click Import JSON, catching the file chooser
+    const [fileChooser] = await Promise.all([
+      page.waitForEvent('filechooser'),
+      page.getByText('File').click().then(() => page.getByText('Import JSON...').click()),
+    ]);
+
+    await fileChooser.setFiles({
+      name: 'My Test Label.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(doc)),
+    });
+
+    // Should open a second tab named after the file
+    const tabs = page.locator('[data-testid^="editor-tab-"]');
+    await expect(tabs).toHaveCount(2);
+
+    // The imported label should have the rectangle component
+    await expect(page.locator('[data-component-type="rectangle"]').first()).toBeVisible();
+    await expect(page.locator('[data-testid^="layer-item-"]')).toHaveCount(1);
+  });
+
+  test('importing an invalid JSON file shows an error toast', async ({ page }) => {
+    const [fileChooser] = await Promise.all([
+      page.waitForEvent('filechooser'),
+      page.getByText('File').click().then(() => page.getByText('Import JSON...').click()),
+    ]);
+
+    await fileChooser.setFiles({
+      name: 'bad.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from('{"not": "a label"}'),
+    });
+
+    // Should show an error toast
+    await expect(page.getByText('Invalid label document.')).toBeVisible();
+
+    // Should remain on the original tab with no new components
+    const tabs = page.locator('[data-testid^="editor-tab-"]');
+    await expect(tabs).toHaveCount(1);
+    await expect(page.getByTestId('layers-empty')).toBeVisible();
+  });
+});
+
 test.describe('tabs', () => {
   test('starts with one tab', async ({ page }) => {
     const tabs = page.locator('[data-testid^="editor-tab-"]');

@@ -7,6 +7,7 @@ import { buildSnapAxis, computeSnap } from '@/lib/snap';
 import type { SnapAxis } from '@/lib/snap';
 import { setSnapGuides } from '@/lib/snap-guides-store';
 import type { ComponentLayout, ResolvedBounds } from '@/lib/types';
+import { useRef } from 'react';
 
 interface SnapCache {
   xAxis: SnapAxis;
@@ -15,11 +16,10 @@ interface SnapCache {
   lh: number;
 }
 
-let snapCache: SnapCache | null = null;
-
 export function useCanvasDrag() {
   const dragState = useEditorStoreContext((s) => s.dragState);
   const storeApi = useEditorStoreApi();
+  const snapCacheRef = useRef<SnapCache | null>(null);
 
   const startDrag = useCallback(
     (e: React.PointerEvent, componentId: string, selectedIds: string[]) => {
@@ -44,7 +44,7 @@ export function useCanvasDrag() {
         boundsMap.set(c.id, resolveLayout(c.layout, lw, lh));
       }
 
-      snapCache = {
+      snapCacheRef.current = {
         xAxis: buildSnapAxis(boundsMap, draggedIds, lw, 'x'),
         yAxis: buildSnapAxis(boundsMap, draggedIds, lh, 'y'),
         lw,
@@ -103,6 +103,7 @@ export function useCanvasDrag() {
       let dy = (e.clientY - ds.startY) / zoom;
 
       // Compute snap unless Alt/Option is held
+      const snapCache = snapCacheRef.current;
       if (!e.altKey && snapCache) {
         const { lw, lh } = snapCache;
 
@@ -148,8 +149,8 @@ export function useCanvasDrag() {
         setSnapGuides([]);
       }
 
-      const lw = snapCache?.lw ?? labelWidthDots(state.document.label, state.activeVariant);
-      const lh = snapCache?.lh ?? labelHeightDots(state.document.label, state.activeVariant);
+      const lw = snapCacheRef.current?.lw ?? labelWidthDots(state.document.label, state.activeVariant);
+      const lh = snapCacheRef.current?.lh ?? labelHeightDots(state.document.label, state.activeVariant);
 
       const updates: { id: string; layout: Partial<ComponentLayout> }[] = [];
       updates.push({ id: ds.componentId, layout: computeMove(ds.startLayout, dx, dy, lw, lh) });

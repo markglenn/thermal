@@ -10,12 +10,15 @@ import { formatShortcut, useIsMac } from '@/lib/platform';
 import { copyToClipboard, readClipboard } from '@/lib/store/clipboard';
 import { useTabStore } from '@/lib/store/tab-store';
 import { captureThumbnail } from '@/lib/documents/thumbnail';
+import { validateDocument } from '@/lib/documents/validate';
+import { exportDocument, importDocument } from '@/lib/documents/file-io';
+import { toast } from '@/lib/toast-store';
 import { SaveNameModal } from '@/components/documents/SaveNameModal';
 import { LabelBrowserModal } from '@/components/documents/LabelBrowserModal';
 import { VersionHistoryPanel } from '@/components/documents/VersionHistoryPanel';
 import { KeyboardShortcutsModal } from '@/components/editor/KeyboardShortcutsModal';
 import { ManageLabelSizesModal } from '@/components/label-sizes/ManageLabelSizesModal';
-import type { LabelDocument } from '@/lib/types';
+import type { LabelComponent, LabelDocument } from '@/lib/types';
 
 const triggerClass = 'px-2 py-1 text-xs rounded outline-none select-none data-[highlighted]:bg-gray-100 data-[state=open]:bg-gray-100';
 const contentClass = 'bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 min-w-44';
@@ -89,8 +92,8 @@ export function Toolbar() {
         tabState.updateTabVersionMeta(activeTabId, data.version, data.status);
       }
       setShowSaveModal(false);
-    } catch (e) {
-      console.error('Save failed:', e);
+    } catch {
+      toast('Save failed. Please try again.', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -118,8 +121,8 @@ export function Toolbar() {
         tabState.markClean(activeTabId);
         tabState.updateTabVersionMeta(activeTabId, data.version, data.status);
       }
-    } catch (e) {
-      console.error('New draft failed:', e);
+    } catch {
+      toast('Failed to create new version. Please try again.', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -185,8 +188,8 @@ export function Toolbar() {
         tabState.updateTabVersionMeta(activeTabId, data.version, data.status);
       }
       setShowSaveAsModal(false);
-    } catch (e) {
-      console.error('Save As failed:', e);
+    } catch {
+      toast('Save failed. Please try again.', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -266,6 +269,26 @@ export function Toolbar() {
                 </Menubar.Item>
                 <Menubar.Separator className={separatorClass} />
                 <Menubar.Item className={itemClass} onSelect={() => {
+                  const store = storeApi.getState();
+                  exportDocument(store.document, store.currentLabelName || 'Untitled Label');
+                }}>
+                  Export JSON...
+                </Menubar.Item>
+                <Menubar.Item className={itemClass} onSelect={() => {
+                  importDocument(validateDocument).then((result) => {
+                    if (!result) return;
+                    const tabId = useTabStore.getState().createTab();
+                    const tab = useTabStore.getState().tabs.find((t) => t.id === tabId);
+                    if (tab) {
+                      tab.store.getState().loadDocument(result.document);
+                      useTabStore.getState().updateTabName(tabId, result.name);
+                    }
+                  });
+                }}>
+                  Import JSON...
+                </Menubar.Item>
+                <Menubar.Separator className={separatorClass} />
+                <Menubar.Item className={itemClass} onSelect={() => {
                   const state = useTabStore.getState();
                   const tab = state.tabs.find((t) => t.id === state.activeTabId);
                   if (tab?.dirty) {
@@ -295,7 +318,7 @@ export function Toolbar() {
                   const state = storeApi.getState();
                   const comps = state.selectedComponentIds
                     .map((id) => state.document.components.find((c) => c.id === id))
-                    .filter(Boolean);
+                    .filter((c): c is LabelComponent => c != null);
                   if (comps.length > 0) copyToClipboard(comps);
                 }}>
                   Copy<Shortcut keys="⌘C" />
@@ -304,7 +327,7 @@ export function Toolbar() {
                   const state = storeApi.getState();
                   const comps = state.selectedComponentIds
                     .map((id) => state.document.components.find((c) => c.id === id))
-                    .filter(Boolean);
+                    .filter((c): c is LabelComponent => c != null);
                   if (comps.length > 0) {
                     copyToClipboard(comps);
                     state.selectedComponentIds.forEach((id) => state.removeComponent(id));
