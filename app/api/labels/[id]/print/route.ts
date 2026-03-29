@@ -136,7 +136,8 @@ export async function POST(
 
     // Queue to SQS for remote printing
     const jobId = crypto.randomUUID();
-    const totalChunks = await publishPrintJob(jobId, zplBlocks, printer, copyCount, {
+    const zpl = zplBlocks.join('\n');
+    await publishPrintJob(jobId, zpl, printer, copyCount, {
       labelId: id,
       labelVersion,
       labelName: labelRows[0].name,
@@ -150,7 +151,7 @@ export async function POST(
       printer,
       status: 'queued',
       copies: copyCount,
-      totalChunks,
+      totalChunks: 1,
       createdAt: new Date(),
     });
 
@@ -158,7 +159,6 @@ export async function POST(
       jobId,
       status: 'queued',
       printer,
-      chunks: totalChunks,
     }, { status: 202 });
   } catch (e) {
     console.error('POST /api/labels/[id]/print failed:', e);

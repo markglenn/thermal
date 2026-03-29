@@ -6,19 +6,17 @@ function getSecret(): string {
   return secret;
 }
 
-/** Sign a print job chunk. Returns a hex-encoded HMAC-SHA256 signature. */
-export function signChunk(jobId: string, chunkIndex: number, zpl: string): string {
+/** Sign a print job message. The payload is either an S3 key or inline ZPL data. */
+export function signJob(jobId: string, payload: string): string {
   return createHmac('sha256', getSecret())
     .update(jobId)
-    .update(String(chunkIndex))
-    .update(zpl)
+    .update(payload)
     .digest('hex');
 }
 
-/** Verify a print job chunk signature. */
-export function verifyChunk(jobId: string, chunkIndex: number, zpl: string, signature: string): boolean {
-  const expected = signChunk(jobId, chunkIndex, zpl);
-  // Constant-time comparison to prevent timing attacks
+/** Verify a print job message signature. */
+export function verifyJob(jobId: string, payload: string, signature: string): boolean {
+  const expected = signJob(jobId, payload);
   if (expected.length !== signature.length) return false;
   let result = 0;
   for (let i = 0; i < expected.length; i++) {

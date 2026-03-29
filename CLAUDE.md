@@ -167,7 +167,16 @@ Text rendering accounts for:
 
 ## Print System
 
-Print jobs are sent to a separate Elixir print server (thermal-printer) via SQS. ZPL is gzip-compressed and base64-encoded before sending (`compressed: true` flag in the message). The print server must base64-decode then gunzip to recover the original ZPL. See `lib/print/` for the SQS client, signing, and compression modules.
+Print jobs are sent to a separate Elixir print server (thermal-printer) via SQS with a hybrid delivery model:
+
+- **Small jobs (< 200 KB raw ZPL):** sent as raw ZPL inline in the SQS message. One AWS API call, fastest path.
+- **Large jobs (≥ 200 KB, e.g. labels with `^GFA` images):** gzip-compressed and uploaded to S3 (`print-jobs/{jobId}.zpl.gz`), then a small SQS message with the S3 key is sent. Gzip only on this path where it matters — image hex data compresses 70%+. The S3 bucket should have a lifecycle rule to auto-delete objects after 24 hours.
+
+The print server checks for `s3Key` in the message — if present, fetch from S3 and gunzip. Otherwise, use the `zpl` field directly. All messages include an HMAC-SHA256 signature.
+
+**Environment variables:** `PRINT_QUEUE_URL`, `PRINT_BUCKET`, `PRINT_SIGNING_SECRET`
+
+See `lib/print/` for the S3/SQS client, signing, and compression modules.
 
 ## What's Not Yet Implemented
 

@@ -1,17 +1,29 @@
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
-import { signChunk } from './signing';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { signJob } from './signing';
 import { compressZpl } from './compress';
 import type { PrintJobMessage, PrintJobMessageMetadata } from './types';
 
-const MAX_MESSAGE_BYTES = 240 * 1024; // 240 KB — headroom below SQS's 256 KB limit
+// Inline threshold: raw ZPL under this size is sent directly in the SQS
+// message. Above this, it's gzipped and uploaded to S3. 200 KB leaves
+// headroom within SQS's 256 KB limit after the JSON envelope.
+const INLINE_THRESHOLD_BYTES = 200 * 1024;
 
-let _client: SQSClient | null = null;
+let _sqsClient: SQSClient | null = null;
+let _s3Client: S3Client | null = null;
 
-function getClient(): SQSClient {
-  if (!_client) {
-    _client = new SQSClient({});
+function getSqsClient(): SQSClient {
+  if (!_sqsClient) {
+    _sqsClient = new SQSClient({});
   }
-  return _client;
+  return _sqsClient;
+}
+
+function getS3Client(): S3Client {
+  if (!_s3Client) {
+    _s3Client = new S3Client({});
+  }
+  return _s3Client;
 }
 
 function getQueueUrl(): string {
@@ -20,118 +32,61 @@ function getQueueUrl(): string {
   return url;
 }
 
-/** Build a message envelope (without ZPL) to measure the fixed overhead. */
-function envelopeSize(
-  jobId: string,
-  chunkIndex: number,
-  totalChunks: number,
-  printer: string,
-  copies: number,
-  metadata: PrintJobMessageMetadata
-): number {
-  const envelope: PrintJobMessage = {
-    jobId,
-    chunkIndex,
-    totalChunks,
-    printer,
-    zpl: '',
-    copies,
-    signature: '0'.repeat(64), // HMAC-SHA256 hex is always 64 chars
-    metadata,
-  };
-  return Buffer.byteLength(JSON.stringify(envelope), 'utf-8');
+function getBucket(): string {
+  const bucket = process.env.PRINT_BUCKET;
+  if (!bucket) throw new Error('PRINT_BUCKET environment variable is not set');
+  return bucket;
 }
 
 /**
- * Split ZPL blocks into chunks that fit within the SQS message size limit.
- * Each block is a complete label (^XA...^XZ). Returns an array of ZPL strings,
- * where each string may contain multiple blocks joined by newlines.
+ * Publish a print job.
+ *
+ * Small jobs (< 200 KB raw): raw ZPL inline in the SQS message.
+ * Large jobs (≥ 200 KB raw): gzip to S3, send pointer via SQS.
+ *
+ * The print server checks for `s3Key` — if present, fetch from S3 and gunzip.
+ * Otherwise, use `zpl` directly.
  */
-export function chunkZplBlocks(
-  blocks: string[],
-  jobId: string,
-  printer: string,
-  copies: number,
-  metadata: PrintJobMessageMetadata
-): string[] {
-  if (blocks.length === 0) return [];
-
-  const overhead = envelopeSize(jobId, 0, 1, printer, copies, metadata);
-  const maxZplBytes = MAX_MESSAGE_BYTES - overhead;
-
-  const chunks: string[] = [];
-  let currentBlocks: string[] = [];
-  let currentSize = 0;
-
-  for (const block of blocks) {
-    const blockSize = Buffer.byteLength(block, 'utf-8');
-
-    // If a single block exceeds the limit, it gets its own chunk (best effort)
-    if (blockSize > maxZplBytes && currentBlocks.length === 0) {
-      chunks.push(block);
-      continue;
-    }
-
-    // Account for the newline separator between blocks
-    const separatorSize = currentBlocks.length > 0 ? 1 : 0;
-    const newSize = currentSize + separatorSize + blockSize;
-
-    if (newSize > maxZplBytes && currentBlocks.length > 0) {
-      chunks.push(currentBlocks.join('\n'));
-      currentBlocks = [block];
-      currentSize = blockSize;
-    } else {
-      currentBlocks.push(block);
-      currentSize = newSize;
-    }
-  }
-
-  if (currentBlocks.length > 0) {
-    chunks.push(currentBlocks.join('\n'));
-  }
-
-  return chunks;
-}
-
-/** Publish print job chunks to SQS. Returns the number of chunks sent. */
 export async function publishPrintJob(
   jobId: string,
-  zplBlocks: string[],
+  zpl: string,
   printer: string,
   copies: number,
   metadata: PrintJobMessageMetadata
-): Promise<number> {
-  const chunks = chunkZplBlocks(zplBlocks, jobId, printer, copies, metadata);
-  const totalChunks = chunks.length;
-  const queueUrl = getQueueUrl();
-  const client = getClient();
+): Promise<void> {
+  const rawSize = Buffer.byteLength(zpl, 'utf-8');
 
-  for (let i = 0; i < chunks.length; i++) {
-    const signature = signChunk(jobId, i, chunks[i]);
-    const compressed = compressZpl(chunks[i]);
+  let message: PrintJobMessage;
 
-    const message: PrintJobMessage = {
-      jobId,
-      chunkIndex: i,
-      totalChunks,
-      printer,
-      zpl: compressed,
-      copies,
-      signature,
-      metadata,
-      compressed: true,
-    };
-
-    await client.send(new SendMessageCommand({
-      QueueUrl: queueUrl,
-      MessageBody: JSON.stringify(message),
+  if (rawSize < INLINE_THRESHOLD_BYTES) {
+    // Inline: raw ZPL directly in the message
+    const signature = signJob(jobId, zpl);
+    message = { jobId, printer, copies, zpl, signature, metadata };
+  } else {
+    // S3: gzip and upload, send pointer
+    const s3Key = `print-jobs/${jobId}.zpl.gz`;
+    const compressed = compressZpl(zpl);
+    await getS3Client().send(new PutObjectCommand({
+      Bucket: getBucket(),
+      Key: s3Key,
+      Body: compressed,
+      ContentType: 'application/gzip',
     }));
+    const signature = signJob(jobId, s3Key);
+    message = { jobId, printer, copies, s3Key, signature, metadata };
   }
 
-  return totalChunks;
+  await getSqsClient().send(new SendMessageCommand({
+    QueueUrl: getQueueUrl(),
+    MessageBody: JSON.stringify(message),
+  }));
 }
 
-/** Reset client — for tests only. */
-export function resetSqsClient() {
-  _client = null;
+/** Exported for tests. */
+export const INLINE_THRESHOLD = INLINE_THRESHOLD_BYTES;
+
+/** Reset clients — for tests only. */
+export function resetClients() {
+  _sqsClient = null;
+  _s3Client = null;
 }
