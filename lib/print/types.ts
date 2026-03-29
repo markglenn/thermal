@@ -27,4 +27,6 @@ export interface PrintJobMessage {
   copies: number;
   signature: string;
   metadata: PrintJobMessageMetadata;
+  /** When true, `zpl` contains base64-encoded gzipped data. */
+  compressed?: boolean;
 }

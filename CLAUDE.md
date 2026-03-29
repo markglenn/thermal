@@ -165,6 +165,10 @@ Text rendering accounts for:
 - ZPL renders later fields on top of earlier ones (z-order matters)
 - All coordinates are in dots (1 dot = 1/DPI inches)
 
+## Print System
+
+Print jobs are sent to a separate Elixir print server (thermal-printer) via SQS. ZPL is gzip-compressed and base64-encoded before sending (`compressed: true` flag in the message). The print server must base64-decode then gunzip to recover the original ZPL. See `lib/print/` for the SQS client, signing, and compression modules.
+
 ## What's Not Yet Implemented
 
 - Export/import document as JSON file

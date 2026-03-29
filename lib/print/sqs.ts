@@ -1,5 +1,6 @@
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
 import { signChunk } from './signing';
+import { compressZpl } from './compress';
 import type { PrintJobMessage, PrintJobMessageMetadata } from './types';
 
 const MAX_MESSAGE_BYTES = 240 * 1024; // 240 KB — headroom below SQS's 256 KB limit
@@ -107,16 +108,18 @@ export async function publishPrintJob(
 
   for (let i = 0; i < chunks.length; i++) {
     const signature = signChunk(jobId, i, chunks[i]);
+    const compressed = compressZpl(chunks[i]);
 
     const message: PrintJobMessage = {
       jobId,
       chunkIndex: i,
       totalChunks,
       printer,
-      zpl: chunks[i],
+      zpl: compressed,
       copies,
       signature,
       metadata,
+      compressed: true,
     };
 
     await client.send(new SendMessageCommand({
