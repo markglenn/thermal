@@ -263,10 +263,11 @@ export function ImageUploadModal({ initialProps, onConfirm, onCancel }: Props) {
                   >
                     <option value="threshold">Closest Color</option>
                     <option value="dither">Dither (Floyd-Steinberg)</option>
+                    <option value="ordered">Dither (Ordered)</option>
                   </select>
                 </label>
 
-                {method === 'threshold' && (
+                {(method === 'threshold' || method === 'ordered') && (
                   <label>
                     <span className="text-xs text-gray-500">Threshold ({threshold})</span>
                     <input

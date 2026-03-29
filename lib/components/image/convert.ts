@@ -5,7 +5,8 @@
 import {
   applyThreshold,
   applyFloydSteinberg,
-  pixelsToHex,
+  applyOrderedDither,
+  convertPixelsToMonochrome,
   type PixelData,
 } from './monochrome';
 
@@ -37,37 +38,31 @@ export async function convertImageToMonochrome(
   height: number,
   threshold: number,
   invert: boolean,
-  method: 'threshold' | 'dither'
+  method: 'threshold' | 'dither' | 'ordered'
 ): Promise<{ hex: string; bytesPerRow: number; width: number; height: number }> {
   const imageData = await getPixelData(base64, width, height);
-
-  const pixels =
-    method === 'dither'
-      ? applyFloydSteinberg(imageData, threshold, invert)
-      : applyThreshold(imageData, threshold, invert);
-
-  const { hex, bytesPerRow } = pixelsToHex(pixels, width, height);
-
-  return { hex, bytesPerRow, width, height };
+  return convertPixelsToMonochrome(imageData, threshold, invert, method);
 }
 
 /**
  * Generate a monochrome preview as a data URI for display purposes.
  */
+function applyMethod(imageData: PixelData, threshold: number, invert: boolean, method: 'threshold' | 'dither' | 'ordered'): boolean[] {
+  if (method === 'dither') return applyFloydSteinberg(imageData, threshold, invert);
+  if (method === 'ordered') return applyOrderedDither(imageData, threshold, invert);
+  return applyThreshold(imageData, threshold, invert);
+}
+
 export async function generateMonochromePreview(
   base64: string,
   width: number,
   height: number,
   threshold: number,
   invert: boolean,
-  method: 'threshold' | 'dither'
+  method: 'threshold' | 'dither' | 'ordered'
 ): Promise<string> {
   const imageData = await getPixelData(base64, width, height);
-
-  const pixels =
-    method === 'dither'
-      ? applyFloydSteinberg(imageData, threshold, invert)
-      : applyThreshold(imageData, threshold, invert);
+  const pixels = applyMethod(imageData, threshold, invert, method);
 
   const canvas = document.createElement('canvas');
   canvas.width = width;

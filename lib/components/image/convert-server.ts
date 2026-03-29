@@ -12,7 +12,7 @@ export async function convertImageUrlToMonochrome(
   height: number,
   threshold: number,
   invert: boolean,
-  method: 'threshold' | 'dither'
+  method: 'threshold' | 'dither' | 'ordered'
 ): Promise<MonochromeResult> {
   const response = await fetch(url);
   if (!response.ok) {

@@ -94,7 +94,7 @@ export interface Pdf417Properties {
   rowHeight: number;
 }
 
-export type MonochromeMethod = 'threshold' | 'dither';
+export type MonochromeMethod = 'threshold' | 'dither' | 'ordered';
 export type ImageObjectFit = 'fit' | 'fill' | 'stretch';
 export type ImageObjectPosition = 'top-left' | 'top' | 'top-right' | 'left' | 'center' | 'right' | 'bottom-left' | 'bottom' | 'bottom-right';
 

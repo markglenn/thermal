@@ -194,10 +194,11 @@ export function ImagePropertiesPanel({ componentId, props }: Props) {
               >
                 <option value="threshold">Closest Color</option>
                 <option value="dither">Dither (Floyd-Steinberg)</option>
+                <option value="ordered">Dither (Ordered)</option>
               </select>
             </label>
 
-            {props.monochromeMethod === 'threshold' && (
+            {(props.monochromeMethod === 'threshold' || props.monochromeMethod === 'ordered') && (
               <label>
                 <span className="text-xs text-gray-500">Threshold ({props.threshold})</span>
                 <input
