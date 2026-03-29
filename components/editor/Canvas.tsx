@@ -138,13 +138,15 @@ export function Canvas() {
       onPointerUp={handlePointerUp}
       onContextMenu={(e) => e.preventDefault()}
     >
-      {/* Transform wrapper */}
+      {/* Transform wrapper — use rounded pixel offsets instead of translate(-50%, -50%)
+           to prevent half-pixel positioning when label dimensions are odd. */}
       <div
         style={{
           position: 'absolute',
           left: '50%',
           top: '50%',
-          transform: `translate(${viewport.panX}px, ${viewport.panY}px) translate(-50%, -50%) scale(${viewport.zoom})`,
+          transform: `translate(${Math.round(viewport.panX - widthDots / 2)}px, ${Math.round(viewport.panY - heightDots / 2)}px) scale(${viewport.zoom})`,
+          transformOrigin: `${Math.round(widthDots / 2)}px ${Math.round(heightDots / 2)}px`,
         }}
       >
         {/* Label surface */}
