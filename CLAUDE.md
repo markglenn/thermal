@@ -178,6 +178,10 @@ The print server checks for `s3Key` in the message — if present, fetch from S3
 
 See `lib/print/` for the S3/SQS client, signing, and compression modules.
 
+## TODO
+
+- **Variables and boolean logic** — Think about how variables could support conditional visibility or content switching (e.g. show/hide a component based on a variable value, conditional text). This would enable a single label template to handle different product types or regional requirements.
+
 ## What's Not Yet Implemented
 
 - Export/import document as JSON file
