@@ -68,6 +68,7 @@ export function useActiveVariant() {
   return useEditorStoreContext((s) => s.activeVariant);
 }
 
+
 /** Pause undo tracking for the active tab's store */
 export function usePauseTracking() {
   const store = useEditorStoreApi();

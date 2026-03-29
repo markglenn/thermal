@@ -1,4 +1,4 @@
-import type { LabelVariable } from '../types';
+import type { LabelVariable, VisibilityCondition } from '../types';
 
 /**
  * Format a date using a simple format string.
@@ -64,6 +64,23 @@ export function resolveVariables(
     }
   }
   return result;
+}
+
+/**
+ * Evaluate a visibility condition against field data.
+ * Returns true if the component should be visible.
+ */
+export function evaluateCondition(
+  condition: VisibilityCondition,
+  fieldData: Record<string, string>
+): boolean {
+  const val = fieldData[condition.field] ?? '';
+  switch (condition.operator) {
+    case '==': return val === (condition.value ?? '');
+    case '!=': return val !== (condition.value ?? '');
+    case 'isEmpty': return val === '';
+    case 'isNotEmpty': return val !== '';
+  }
 }
 
 /**

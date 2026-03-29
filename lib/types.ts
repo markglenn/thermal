@@ -145,6 +145,14 @@ export type ComponentProperties =
 
 export type PinnableEdge = 'top' | 'bottom' | 'left' | 'right';
 
+export type ConditionOperator = '==' | '!=' | 'isEmpty' | 'isNotEmpty';
+
+export interface VisibilityCondition {
+  field: string;
+  operator: ConditionOperator;
+  value?: string;
+}
+
 export interface LabelComponent {
   id: string;
   name: string;
@@ -154,6 +162,7 @@ export interface LabelComponent {
   /** @deprecated Use layout.horizontalAnchor/verticalAnchor instead. */
   pins?: PinnableEdge[];
   fieldBinding?: string;
+  visibilityCondition?: VisibilityCondition;
   // Discriminated union for type + props
   typeData: ComponentProperties;
 }

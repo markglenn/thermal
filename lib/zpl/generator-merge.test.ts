@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { applyFieldData } from './generator-merge';
+import { applyFieldData, generateZplMerge } from './generator-merge';
 import type { LabelDocument, LabelComponent, ComponentLayout } from '../types';
 // Register all components
 import '../components';
@@ -194,5 +194,67 @@ describe('applyFieldData', () => {
 
     // Original should be unchanged
     expect((doc.components[0].typeData.props as { content: string }).content).toBe(originalContent);
+  });
+});
+
+describe('generateZplMerge visibility conditions', () => {
+  it('excludes components with failing visibility condition', async () => {
+    const comp: LabelComponent = {
+      id: 'warn1',
+      name: 'Warning',
+      layout: makeLayout({ width: 200, height: 30 }),
+      visibilityCondition: { field: 'hasWarning', operator: 'isNotEmpty' },
+      typeData: {
+        type: 'text',
+        props: { content: 'WARNING', font: '0', fontSize: 30, fontWidth: 12, rotation: 0 },
+      },
+    };
+
+    const doc = makeDoc([comp]);
+
+    // No hasWarning field — component should be hidden
+    const zplHidden = await generateZplMerge(doc, {});
+    expect(zplHidden).not.toContain('WARNING');
+
+    // hasWarning provided — component should appear
+    const zplVisible = await generateZplMerge(doc, { hasWarning: 'yes' });
+    expect(zplVisible).toContain('WARNING');
+  });
+
+  it('includes components without visibility condition', async () => {
+    const comp: LabelComponent = {
+      id: 'text1',
+      name: 'Always',
+      layout: makeLayout({ width: 200, height: 30 }),
+      typeData: {
+        type: 'text',
+        props: { content: 'Always Visible', font: '0', fontSize: 30, fontWidth: 12, rotation: 0 },
+      },
+    };
+
+    const doc = makeDoc([comp]);
+    const zpl = await generateZplMerge(doc, {});
+    expect(zpl).toContain('Always Visible');
+  });
+
+  it('supports == operator for conditional visibility', async () => {
+    const comp: LabelComponent = {
+      id: 'uk1',
+      name: 'UK Only',
+      layout: makeLayout({ width: 200, height: 30 }),
+      visibilityCondition: { field: 'region', operator: '==', value: 'UK' },
+      typeData: {
+        type: 'text',
+        props: { content: 'Best Before', font: '0', fontSize: 30, fontWidth: 12, rotation: 0 },
+      },
+    };
+
+    const doc = makeDoc([comp]);
+
+    const zplUK = await generateZplMerge(doc, { region: 'UK' });
+    expect(zplUK).toContain('Best Before');
+
+    const zplUS = await generateZplMerge(doc, { region: 'US' });
+    expect(zplUS).not.toContain('Best Before');
   });
 });

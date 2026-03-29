@@ -1,6 +1,6 @@
 'use client';
 
-import { PanelRightClose, Link } from 'lucide-react';
+import { PanelRightClose, Link, Eye } from 'lucide-react';
 import { useSelectedComponent, useEditorStoreContext, useDocument, usePauseTracking, useResumeTracking } from '@/lib/store/editor-context';
 import { getDefinition } from '@/lib/components';
 import { resolveVariables } from '@/lib/variables/resolve';
@@ -8,7 +8,7 @@ import { LabelSettings } from '../toolbar/LabelSettings';
 import { ConstraintEditor } from './ConstraintEditor';
 import { CollapsibleSection } from '../ui/CollapsibleSection';
 import { NumberInput } from './NumberInput';
-import type { VariableType, CounterConfig, LabelVariable } from '@/lib/types';
+import type { VariableType, CounterConfig, LabelVariable, VisibilityCondition, ConditionOperator } from '@/lib/types';
 
 interface Props {
   onCollapse?: () => void;
@@ -61,6 +61,8 @@ export function PropertiesPanel({ onCollapse }: Props) {
           {def?.traits.bindable && (
             <FieldBindingEditor componentId={selected.id} binding={selected.fieldBinding} />
           )}
+
+          <VisibilityConditionEditor componentId={selected.id} condition={selected.visibilityCondition} />
         </div>
       ) : (
         <MultiSelectOrEmptyMessage />
@@ -230,6 +232,107 @@ function FieldBindingEditor({ componentId, binding }: { componentId: string; bin
         {binding && preview && variableType !== 'text' && (
           <div className="text-[10px] text-gray-400">
             Preview: <span className="font-mono">{preview}</span>
+          </div>
+        )}
+      </div>
+    </CollapsibleSection>
+  );
+}
+
+const OPERATORS: { value: ConditionOperator; label: string; needsValue: boolean }[] = [
+  { value: 'isNotEmpty', label: 'is not empty', needsValue: false },
+  { value: 'isEmpty', label: 'is empty', needsValue: false },
+  { value: '==', label: 'equals', needsValue: true },
+  { value: '!=', label: 'does not equal', needsValue: true },
+];
+
+function VisibilityConditionEditor({ componentId, condition }: { componentId: string; condition?: VisibilityCondition }) {
+  const updateVisibilityCondition = useEditorStoreContext((s) => s.updateVisibilityCondition);
+  const pauseTracking = usePauseTracking();
+  const resumeTracking = useResumeTracking();
+
+  const isConditional = !!condition;
+  const operator = OPERATORS.find((o) => o.value === condition?.operator) ?? OPERATORS[0];
+
+  const handleToggle = (enabled: boolean) => {
+    if (enabled) {
+      updateVisibilityCondition(componentId, { field: '', operator: 'isNotEmpty' });
+    } else {
+      updateVisibilityCondition(componentId, undefined);
+    }
+  };
+
+  const handleFieldChange = (field: string) => {
+    if (!condition) return;
+    const sanitized = field.replace(/[^a-zA-Z0-9_-]/g, '').replace(/^[^a-zA-Z]+/, '');
+    updateVisibilityCondition(componentId, { ...condition, field: sanitized });
+  };
+
+  const handleOperatorChange = (op: ConditionOperator) => {
+    if (!condition) return;
+    updateVisibilityCondition(componentId, { ...condition, operator: op });
+  };
+
+  const handleValueChange = (value: string) => {
+    if (!condition) return;
+    updateVisibilityCondition(componentId, { ...condition, value });
+  };
+
+  return (
+    <CollapsibleSection title="Visibility" icon={<Eye size={12} />}>
+      <div className="px-3 pb-3 space-y-2">
+        <div className="flex items-center gap-2">
+          <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+            <input
+              type="radio"
+              name={`vis-${componentId}`}
+              checked={!isConditional}
+              onChange={() => handleToggle(false)}
+              className="accent-gray-600"
+            />
+            Always visible
+          </label>
+          <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+            <input
+              type="radio"
+              name={`vis-${componentId}`}
+              checked={isConditional}
+              onChange={() => handleToggle(true)}
+              className="accent-gray-600"
+            />
+            Show when...
+          </label>
+        </div>
+
+        {isConditional && condition && (
+          <div className="space-y-1.5">
+            <input
+              value={condition.field}
+              onChange={(e) => handleFieldChange(e.target.value)}
+              onFocus={pauseTracking}
+              onBlur={resumeTracking}
+              placeholder="field name"
+              className="w-full px-2 py-1 border border-gray-300 rounded text-xs font-mono"
+            />
+            <select
+              value={condition.operator}
+              onChange={(e) => handleOperatorChange(e.target.value as ConditionOperator)}
+              className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+            >
+              {OPERATORS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+            {operator.needsValue && (
+              <input
+                value={condition.value ?? ''}
+                onChange={(e) => handleValueChange(e.target.value)}
+                onFocus={pauseTracking}
+                onBlur={resumeTracking}
+                placeholder="value"
+                className="w-full px-2 py-1 border border-gray-300 rounded text-xs font-mono"
+              />
+            )}
           </div>
         )}
       </div>

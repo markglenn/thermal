@@ -4,6 +4,7 @@ import { useRef, useEffect, useCallback, memo } from 'react';
 import type { LabelComponent, ResolvedBounds } from '@/lib/types';
 import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
 import { getDefinition, getSizingMode } from '@/lib/components';
+import { Eye } from 'lucide-react';
 import { showComponentContextMenu } from '../shared/component-context-menu';
 import { useFlashIds } from '@/lib/undo-flash-store';
 
@@ -23,6 +24,8 @@ export const CanvasComponent = memo(function CanvasComponent({ component, bounds
   const isSelected = useEditorStoreContext((s) => s.selectedComponentIds.includes(component.id));
   const isFlashing = useFlashIds().has(component.id);
   const storeApi = useEditorStoreApi();
+
+  const hasCondition = !!component.visibilityCondition;
 
   const def = getDefinition(component.typeData.type);
   const sizing = getSizingMode(component);
@@ -86,6 +89,22 @@ export const CanvasComponent = memo(function CanvasComponent({ component, bounds
       onContextMenu={handleContextMenu}
     >
       <Element props={component.typeData.props} isSelected={isSelected} />
+      {hasCondition && (
+        <div className="absolute -top-1 -right-1 group/badge pointer-events-auto">
+          <div className="w-3.5 h-3.5 rounded-full bg-amber-400 flex items-center justify-center">
+            <Eye size={8} className="text-white" />
+          </div>
+          <div className="hidden group-hover/badge:block absolute top-full right-0 mt-1 px-2 py-1 bg-gray-800 text-white text-[10px] rounded shadow-lg whitespace-nowrap z-50">
+            Show when <span className="font-mono">{component.visibilityCondition!.field || '?'}</span>
+            {' '}{component.visibilityCondition!.operator === '==' ? 'equals' :
+              component.visibilityCondition!.operator === '!=' ? 'does not equal' :
+              component.visibilityCondition!.operator === 'isEmpty' ? 'is empty' : 'is not empty'}
+            {(component.visibilityCondition!.operator === '==' || component.visibilityCondition!.operator === '!=') && (
+              <> <span className="font-mono">&quot;{component.visibilityCondition!.value ?? ''}&quot;</span></>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }, (prev, next) =>

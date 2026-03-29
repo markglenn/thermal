@@ -6,7 +6,7 @@ import { recomputeContentSize } from '../components/recompute-size';
 import { fieldOrigin } from './commands';
 import { convertImageUrlToMonochrome } from '@/lib/components/image/convert-server';
 import { resolveImageLayout } from '@/lib/components/image/fit';
-import { mergeFieldData } from '../variables/resolve';
+import { mergeFieldData, evaluateCondition } from '../variables/resolve';
 
 /**
  * Deep-clone a document and substitute field data into bound component props.
@@ -65,6 +65,9 @@ export async function generateZplMerge(document: LabelDocument, fieldData: Recor
   lines.push(`^LL${heightDots}`);
 
   for (const comp of reflowed.components) {
+    // Evaluate visibility condition — skip hidden components
+    if (comp.visibilityCondition && !evaluateCondition(comp.visibilityCondition, merged)) continue;
+
     const bounds = boundsMap.get(comp.id);
     if (!bounds) continue;
 

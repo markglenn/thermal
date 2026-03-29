@@ -12,6 +12,7 @@ import type {
   LabelConfig,
   HorizontalAnchor,
   VerticalAnchor,
+  VisibilityCondition,
 } from '../types';
 import { DEFAULT_LABEL, DEFAULT_ACTIVE_VARIANT, DEFAULT_ZOOM, GRID_SIZE, DUPLICATE_OFFSET, UNDO_THROTTLE_MS, labelWidthDots, labelHeightDots, migrateLabelConfig } from '../constants';
 import { createComponent, generateId } from './editor-actions';
@@ -67,6 +68,7 @@ export interface EditorActions {
   setAnchor: (id: string, horizontal?: HorizontalAnchor, vertical?: VerticalAnchor) => void;
   reorderComponents: (fromIndex: number, toIndex: number) => void;
   updateFieldBinding: (id: string, binding: string | undefined) => void;
+  updateVisibilityCondition: (id: string, condition: VisibilityCondition | undefined) => void;
   toggleLock: (id: string, axis: 'x' | 'y') => void;
 
   // Selection
@@ -288,6 +290,19 @@ export function createEditorStore() {
           });
         },
 
+        updateVisibilityCondition: (id, condition) => {
+          set((state) => {
+            const comp = findComponent(state.document.components, id);
+            if (comp) {
+              if (condition) {
+                comp.visibilityCondition = condition;
+              } else {
+                delete comp.visibilityCondition;
+              }
+            }
+          });
+        },
+
         toggleLock: (id, axis) => {
           set((state) => {
             const comp = findComponent(state.document.components, id);
@@ -471,6 +486,7 @@ export function createEditorStore() {
         toggleRulers: () => {
           set((state) => { state.showRulers = !state.showRulers; });
         },
+
 
         loadDocument: (doc) => {
           cancelThrottledHandleSet?.();

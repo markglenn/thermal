@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveVariables, mergeFieldData } from './resolve';
+import { resolveVariables, mergeFieldData, evaluateCondition } from './resolve';
 import type { LabelVariable } from '../types';
 
 describe('resolveVariables', () => {
@@ -89,5 +89,39 @@ describe('mergeFieldData', () => {
     const vars: LabelVariable[] = [];
     const result = mergeFieldData(vars, { custom: 'value' });
     expect(result).toEqual({ custom: 'value' });
+  });
+});
+
+describe('evaluateCondition', () => {
+  it('== matches equal values', () => {
+    expect(evaluateCondition({ field: 'region', operator: '==', value: 'UK' }, { region: 'UK' })).toBe(true);
+    expect(evaluateCondition({ field: 'region', operator: '==', value: 'UK' }, { region: 'US' })).toBe(false);
+  });
+
+  it('!= matches unequal values', () => {
+    expect(evaluateCondition({ field: 'region', operator: '!=', value: 'UK' }, { region: 'US' })).toBe(true);
+    expect(evaluateCondition({ field: 'region', operator: '!=', value: 'UK' }, { region: 'UK' })).toBe(false);
+  });
+
+  it('isEmpty matches empty or missing fields', () => {
+    expect(evaluateCondition({ field: 'notes', operator: 'isEmpty' }, { notes: '' })).toBe(true);
+    expect(evaluateCondition({ field: 'notes', operator: 'isEmpty' }, {})).toBe(true);
+    expect(evaluateCondition({ field: 'notes', operator: 'isEmpty' }, { notes: 'hello' })).toBe(false);
+  });
+
+  it('isNotEmpty matches non-empty fields', () => {
+    expect(evaluateCondition({ field: 'allergens', operator: 'isNotEmpty' }, { allergens: 'peanuts' })).toBe(true);
+    expect(evaluateCondition({ field: 'allergens', operator: 'isNotEmpty' }, { allergens: '' })).toBe(false);
+    expect(evaluateCondition({ field: 'allergens', operator: 'isNotEmpty' }, {})).toBe(false);
+  });
+
+  it('== with missing value defaults to empty string comparison', () => {
+    expect(evaluateCondition({ field: 'x', operator: '==' }, { x: '' })).toBe(true);
+    expect(evaluateCondition({ field: 'x', operator: '==' }, { x: 'a' })).toBe(false);
+  });
+
+  it('missing field treated as empty string', () => {
+    expect(evaluateCondition({ field: 'missing', operator: '==', value: '' }, {})).toBe(true);
+    expect(evaluateCondition({ field: 'missing', operator: '==', value: 'x' }, {})).toBe(false);
   });
 });
