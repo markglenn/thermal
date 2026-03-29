@@ -25,7 +25,7 @@ export function ZplPreview() {
 
   useEffect(() => {
     if (firstHighlightRef.current) {
-      firstHighlightRef.current.scrollIntoView({ block: 'nearest' });
+      firstHighlightRef.current.scrollIntoView({ block: 'start', behavior: 'smooth' });
     }
   }, [highlightedLines]);
 

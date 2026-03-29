@@ -72,7 +72,7 @@ export function useCanvasZoomPan(
     const padding = FIT_PADDING;
     const scaleX = (rect.width - padding * 2) / widthDots;
     const scaleY = (rect.height - padding * 2) / heightDots;
-    const fitZoom = Math.max(MIN_ZOOM, Math.min(scaleX, scaleY, 1));
+    const fitZoom = Math.max(MIN_ZOOM, Math.min(scaleX, scaleY, MAX_ZOOM));
     storeApi.getState().setViewport(fitZoom, 0, 0);
   }, [storeApi, canvasRef, widthDots, heightDots]);
 

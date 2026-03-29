@@ -1,6 +1,7 @@
 'use client';
 
-import { useRef, useCallback, useMemo, useEffect } from 'react';
+import { useRef, useCallback, useMemo, useEffect, useState } from 'react';
+import { MIN_ZOOM, MAX_ZOOM } from '@/lib/constants';
 import { useEditorStoreContext, useEditorStoreApi, useDocument, useViewport, useActiveVariant } from '@/lib/store/editor-context';
 import { EDITOR_EVENTS } from '@/hooks/use-keyboard-shortcuts';
 import { labelWidthDots, labelHeightDots } from '@/lib/constants';
@@ -205,15 +206,65 @@ export function Canvas() {
       {/* Rulers */}
       {showRulers && <Ruler canvasRef={canvasRef} selectionBounds={selectionBounds} />}
 
-      {/* Zoom indicator — click to fit */}
+      {/* Zoom indicator — click to fit, right-click for zoom menu */}
+      <ZoomIndicator zoom={viewport.zoom} onFitToView={fitToView} storeApi={storeApi} />
+    </div>
+  );
+}
+
+const ZOOM_PRESETS = [25, 50, 75, 100, 150, 200, 300, 400];
+
+function ZoomIndicator({ zoom, onFitToView, storeApi }: {
+  zoom: number;
+  onFitToView: () => void;
+  storeApi: ReturnType<typeof useEditorStoreApi>;
+}) {
+  const [showMenu, setShowMenu] = useState(false);
+  const currentPct = Math.round(zoom * 100);
+
+  useEffect(() => {
+    if (!showMenu) return;
+    const handler = () => setShowMenu(false);
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, [showMenu]);
+
+  return (
+    <div className="absolute bottom-4 right-4">
+      {showMenu && (
+        <div className="absolute bottom-full right-0 mb-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-32 z-50">
+          <button
+            onClick={() => { onFitToView(); setShowMenu(false); }}
+            className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100"
+          >
+            Fit to View
+          </button>
+          <div className="border-t border-gray-200 my-1" />
+          {ZOOM_PRESETS.map((pct) => (
+            <button
+              key={pct}
+              onClick={() => {
+                storeApi.getState().setZoom(Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, pct / 100)));
+                setShowMenu(false);
+              }}
+              className={`w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 ${
+                currentPct === pct ? 'font-semibold text-blue-600' : ''
+              }`}
+            >
+              {pct}%
+            </button>
+          ))}
+        </div>
+      )}
       <button
         type="button"
         data-testid="zoom-indicator"
-        className="absolute bottom-4 right-4 bg-white/80 hover:bg-blue-500 hover:text-white rounded px-2 py-1 text-sm text-gray-600 font-mono cursor-pointer transition-colors"
-        title="Fit to view"
-        onClick={fitToView}
+        className="bg-white/80 hover:bg-blue-500 hover:text-white rounded px-2 py-1 text-sm text-gray-600 font-mono cursor-pointer transition-colors"
+        title="Reset to 100%"
+        onClick={() => storeApi.getState().setViewport(1, 0, 0)}
+        onContextMenu={(e) => { e.preventDefault(); setShowMenu(!showMenu); }}
       >
-        {Math.round(viewport.zoom * 100)}%
+        {currentPct}%
       </button>
     </div>
   );
