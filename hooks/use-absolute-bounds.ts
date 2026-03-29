@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { useDocument, useEditorStoreApi } from '@/lib/store/editor-context';
+import { useDocument, useEditorStoreApi, useActiveVariant } from '@/lib/store/editor-context';
 import { resolveDocument } from '@/lib/constraints/resolver';
 import { getDefinition, getSizingMode } from '@/lib/components';
 import { findComponent } from '@/lib/utils';
@@ -7,6 +7,7 @@ import type { LabelComponent, ResolvedBounds } from '@/lib/types';
 
 export function useAbsoluteBounds() {
   const document = useDocument();
+  const activeVariant = useActiveVariant();
   const storeApi = useEditorStoreApi();
 
   // DOM-measured sizes for components without computeContentSize (e.g. text)
@@ -53,7 +54,7 @@ export function useAbsoluteBounds() {
     }
   }, [storeApi]);
 
-  const boundsMap = useMemo(() => resolveDocument(document), [document]);
+  const boundsMap = useMemo(() => resolveDocument(document, activeVariant), [document, activeVariant]);
 
   const absoluteBoundsMap = useMemo(() => {
     const result = new Map<string, ResolvedBounds>();

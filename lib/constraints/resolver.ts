@@ -44,10 +44,10 @@ export function resolveComponentTree(
 /**
  * Resolve the full document tree.
  */
-export function resolveDocument(doc: { label: LabelConfig; components: LabelComponent[] }): Map<string, ResolvedBounds> {
+export function resolveDocument(doc: { label: LabelConfig; components: LabelComponent[] }, activeVariant?: string): Map<string, ResolvedBounds> {
   return resolveComponentTree(
     doc.components,
-    labelWidthDots(doc.label),
-    labelHeightDots(doc.label)
+    labelWidthDots(doc.label, activeVariant),
+    labelHeightDots(doc.label, activeVariant)
   );
 }
