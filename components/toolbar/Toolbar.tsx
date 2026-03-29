@@ -1,102 +1,37 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { Flame, History, ChevronDown, Undo2, Redo2, Check } from 'lucide-react';
+import * as Menubar from '@radix-ui/react-menubar';
+import { Flame, History, Check } from 'lucide-react';
 import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
 import { EDITOR_EVENTS } from '@/hooks/use-keyboard-shortcuts';
 import { MIN_ZOOM, MAX_ZOOM, labelWidthDots, labelHeightDots, dotsToInches } from '@/lib/constants';
 import { formatShortcut, useIsMac } from '@/lib/platform';
+import { copyToClipboard, readClipboard } from '@/lib/store/clipboard';
 import { useTabStore } from '@/lib/store/tab-store';
 import { captureThumbnail } from '@/lib/documents/thumbnail';
 import { SaveNameModal } from '@/components/documents/SaveNameModal';
 import { LabelBrowserModal } from '@/components/documents/LabelBrowserModal';
 import { VersionHistoryPanel } from '@/components/documents/VersionHistoryPanel';
 import { KeyboardShortcutsModal } from '@/components/editor/KeyboardShortcutsModal';
+import { ManageLabelSizesModal } from '@/components/label-sizes/ManageLabelSizesModal';
 import type { LabelDocument } from '@/lib/types';
 
-function ToolbarSeparator() {
-  return <div className="w-px h-5 bg-gray-200 mx-1" />;
-}
+const triggerClass = 'px-2 py-1 text-xs rounded outline-none select-none data-[highlighted]:bg-gray-100 data-[state=open]:bg-gray-100';
+const contentClass = 'bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 min-w-44';
+const itemClass = 'relative pl-6 pr-3 py-1.5 text-xs outline-none select-none data-[highlighted]:bg-gray-100 data-[disabled]:opacity-50 flex items-center';
+const separatorClass = 'border-t border-gray-200 my-1';
 
-function MenuItem({
-  label,
-  shortcut,
-  checked,
-  disabled,
-  className: extraClass,
-  onClick,
-}: {
-  label: string;
-  shortcut?: string;
-  checked?: boolean;
-  disabled?: boolean;
-  className?: string;
-  onClick: () => void;
-}) {
+function Shortcut({ keys }: { keys: string }) {
   const mac = useIsMac();
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={`w-full text-left pl-2 pr-3 py-1.5 text-xs hover:bg-gray-100 flex items-center gap-1 disabled:opacity-50 ${extraClass ?? ''}`}
-    >
-      <span className="w-4 shrink-0 flex items-center justify-center">
-        {checked !== undefined && <Check size={12} className={checked ? 'opacity-100' : 'opacity-0'} />}
-      </span>
-      <span className="flex-1">{label}</span>
-      {shortcut && <span className="text-gray-400 ml-4 shrink-0">{formatShortcut(shortcut, mac)}</span>}
-    </button>
-  );
+  return <span className="ml-auto pl-4 text-gray-400 text-[11px]">{formatShortcut(keys, mac)}</span>;
 }
 
-function MenuDivider() {
-  return <div className="border-t border-gray-200 my-1" />;
-}
-
-function UndoRedoButtons() {
-  const mac = useIsMac();
-  const storeApi = useEditorStoreApi();
-  const [canUndo, setCanUndo] = useState(false);
-  const [canRedo, setCanRedo] = useState(false);
-
-  useEffect(() => {
-    const temporal = storeApi.temporal;
-    const update = () => {
-      const { pastStates, futureStates } = temporal.getState();
-      setCanUndo(pastStates.length > 0);
-      setCanRedo(futureStates.length > 0);
-    };
-    update();
-    return temporal.subscribe(update);
-  }, [storeApi]);
-
-  const handleUndo = useCallback(() => {
-    storeApi.temporal.getState().undo();
-  }, [storeApi]);
-
-  const handleRedo = useCallback(() => {
-    storeApi.temporal.getState().redo();
-  }, [storeApi]);
-
+function CheckIndicator({ checked }: { checked: boolean }) {
   return (
-    <div className="flex items-center gap-0.5">
-      <button
-        onClick={handleUndo}
-        disabled={!canUndo}
-        className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-default"
-        title={`Undo (${formatShortcut('⌘Z', mac)})`}
-      >
-        <Undo2 size={14} />
-      </button>
-      <button
-        onClick={handleRedo}
-        disabled={!canRedo}
-        className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-default"
-        title={`Redo (${formatShortcut('⌘⇧Z', mac)})`}
-      >
-        <Redo2 size={14} />
-      </button>
-    </div>
+    <span className="absolute left-1.5 w-4 flex items-center justify-center">
+      <Check size={12} className={checked ? 'opacity-100' : 'opacity-0'} />
+    </span>
   );
 }
 
@@ -124,9 +59,8 @@ export function Toolbar() {
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [versionThumbnail, setVersionThumbnail] = useState<string | null>(null);
   const [versionLabelSize, setVersionLabelSize] = useState<{ widthInches: number; heightInches: number } | null>(null);
-  const [showFileMenu, setShowFileMenu] = useState(false);
-  const [showViewMenu, setShowViewMenu] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showLabelSizes, setShowLabelSizes] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const saveLabel = useCallback(async (name: string) => {
@@ -147,7 +81,6 @@ export function Toolbar() {
       if (res.ok) {
         const data = await res.json();
         store.setLabelMeta(data.id, name);
-        // Sync tab metadata
         const tabState = useTabStore.getState();
         const activeTabId = tabState.activeTabId;
         tabState.updateTabName(activeTabId, name);
@@ -264,7 +197,6 @@ export function Toolbar() {
     const onSave = () => {
       const store = storeApi.getState();
       if (store.readOnly) return;
-      // If latest is published, Cmd+S is a no-op — user must click New Version
       const tab = useTabStore.getState().tabs.find((t) => t.id === useTabStore.getState().activeTabId);
       if (tab?.latestStatus === 'published') return;
       if (store.currentLabelId) {
@@ -293,91 +225,157 @@ export function Toolbar() {
     <>
       <div className="h-10 border-b border-gray-200 bg-white flex items-center px-3 gap-1 text-sm" data-testid="toolbar">
         {/* Logo */}
-        <div className="flex items-center gap-1.5 mr-1">
+        <div className="flex items-center gap-1.5 mr-2">
           <Flame size={18} className="text-orange-500" />
           <span className="font-bold text-base tracking-tight text-gray-900">Thermal</span>
         </div>
 
-        <ToolbarSeparator />
+        <Menubar.Root className="flex items-center gap-0.5">
+          {/* File */}
+          <Menubar.Menu>
+            <Menubar.Trigger className={triggerClass}>File</Menubar.Trigger>
+            <Menubar.Portal>
+              <Menubar.Content className={contentClass} align="start" sideOffset={4}>
+                <Menubar.Item className={itemClass} onSelect={() => useTabStore.getState().createTab()}>
+                  New
+                </Menubar.Item>
+                <Menubar.Item className={itemClass} onSelect={() => setShowBrowserModal(true)}>
+                  Open...<Shortcut keys="⌘O" />
+                </Menubar.Item>
+                <Menubar.Separator className={separatorClass} />
+                {isPublished && !readOnly ? (
+                  <Menubar.Item className={`${itemClass} text-blue-600`} disabled={isSaving} onSelect={createNewDraft}>
+                    {isSaving ? 'Creating...' : 'New Version'}
+                  </Menubar.Item>
+                ) : (
+                  <Menubar.Item className={itemClass} disabled={isSaving || readOnly} onSelect={handleSaveClick}>
+                    Save<Shortcut keys="⌘S" />
+                  </Menubar.Item>
+                )}
+                <Menubar.Item className={itemClass} onSelect={() => setShowSaveAsModal(true)}>
+                  Save As...<Shortcut keys="⌘⇧S" />
+                </Menubar.Item>
+                {currentLabelId && (
+                  <Menubar.Item className={itemClass} onSelect={() => setShowRenameModal(true)}>
+                    Rename...
+                  </Menubar.Item>
+                )}
+                <Menubar.Separator className={separatorClass} />
+                <Menubar.Item className={itemClass} onSelect={() => setShowLabelSizes(true)}>
+                  Label Sizes...
+                </Menubar.Item>
+                <Menubar.Separator className={separatorClass} />
+                <Menubar.Item className={itemClass} onSelect={() => {
+                  const state = useTabStore.getState();
+                  const tab = state.tabs.find((t) => t.id === state.activeTabId);
+                  if (tab?.dirty) {
+                    if (!confirm(`"${tab.name}" has unsaved changes. Close anyway?`)) return;
+                  }
+                  state.closeTab(state.activeTabId);
+                }}>
+                  Close
+                </Menubar.Item>
+              </Menubar.Content>
+            </Menubar.Portal>
+          </Menubar.Menu>
 
-        {/* Backdrop to close any open menu */}
-        {(showFileMenu || showViewMenu) && (
-          <div className="fixed inset-0 z-40" onPointerDown={() => { setShowFileMenu(false); setShowViewMenu(false); }} />
-        )}
+          {/* Edit */}
+          <Menubar.Menu>
+            <Menubar.Trigger className={triggerClass}>Edit</Menubar.Trigger>
+            <Menubar.Portal>
+              <Menubar.Content className={contentClass} align="start" sideOffset={4}>
+                <Menubar.Item className={itemClass} onSelect={() => storeApi.temporal.getState().undo()}>
+                  Undo<Shortcut keys="⌘Z" />
+                </Menubar.Item>
+                <Menubar.Item className={itemClass} onSelect={() => storeApi.temporal.getState().redo()}>
+                  Redo<Shortcut keys="⌘⇧Z" />
+                </Menubar.Item>
+                <Menubar.Separator className={separatorClass} />
+                <Menubar.Item className={itemClass} onSelect={() => {
+                  const state = storeApi.getState();
+                  const comps = state.selectedComponentIds
+                    .map((id) => state.document.components.find((c) => c.id === id))
+                    .filter(Boolean);
+                  if (comps.length > 0) copyToClipboard(comps);
+                }}>
+                  Copy<Shortcut keys="⌘C" />
+                </Menubar.Item>
+                <Menubar.Item className={itemClass} onSelect={() => {
+                  const state = storeApi.getState();
+                  const comps = state.selectedComponentIds
+                    .map((id) => state.document.components.find((c) => c.id === id))
+                    .filter(Boolean);
+                  if (comps.length > 0) {
+                    copyToClipboard(comps);
+                    state.selectedComponentIds.forEach((id) => state.removeComponent(id));
+                  }
+                }}>
+                  Cut<Shortcut keys="⌘X" />
+                </Menubar.Item>
+                <Menubar.Item className={itemClass} onSelect={() => {
+                  const clip = readClipboard();
+                  if (clip.length > 0) storeApi.getState().pasteComponents(clip);
+                }}>
+                  Paste<Shortcut keys="⌘V" />
+                </Menubar.Item>
+                <Menubar.Separator className={separatorClass} />
+                <Menubar.Item className={itemClass} onSelect={() => {
+                  const ids = storeApi.getState().selectedComponentIds;
+                  if (ids.length === 1) storeApi.getState().duplicateComponent(ids[0]);
+                }}>
+                  Duplicate<Shortcut keys="⌘D" />
+                </Menubar.Item>
+                <Menubar.Item className={itemClass} onSelect={() => storeApi.getState().selectAll()}>
+                  Select All<Shortcut keys="⌘A" />
+                </Menubar.Item>
+                <Menubar.Item className={itemClass} onSelect={() => {
+                  const ids = storeApi.getState().selectedComponentIds;
+                  ids.forEach((id) => storeApi.getState().removeComponent(id));
+                }}>
+                  Delete<Shortcut keys="⌫" />
+                </Menubar.Item>
+              </Menubar.Content>
+            </Menubar.Portal>
+          </Menubar.Menu>
 
-        {/* File menu */}
-        <div className="relative z-41">
-          <button
-            onClick={() => { setShowFileMenu((v) => !v); setShowViewMenu(false); }}
-            className="flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 text-xs"
-          >
-            File
-            <ChevronDown size={12} />
-          </button>
-          {showFileMenu && (
-            <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 min-w-44">
-              <MenuItem label="New" onClick={() => { setShowFileMenu(false); useTabStore.getState().createTab(); }} />
-              <MenuItem label="Open..." shortcut="⌘O" onClick={() => { setShowFileMenu(false); setShowBrowserModal(true); }} />
-              <MenuDivider />
-              {isPublished && !readOnly ? (
-                <MenuItem
-                  label={isSaving ? 'Creating...' : 'New Version'}
-                  disabled={isSaving}
-                  className="text-blue-600"
-                  onClick={() => { setShowFileMenu(false); createNewDraft(); }}
-                />
-              ) : (
-                <MenuItem label="Save" shortcut="⌘S" disabled={isSaving || readOnly} onClick={() => { setShowFileMenu(false); handleSaveClick(); }} />
-              )}
-              <MenuItem label="Save As..." shortcut="⌘⇧S" onClick={() => { setShowFileMenu(false); setShowSaveAsModal(true); }} />
-              {currentLabelId && (
-                <MenuItem label="Rename..." onClick={() => { setShowFileMenu(false); setShowRenameModal(true); }} />
-              )}
-              <MenuDivider />
-              <MenuItem label="Close" onClick={() => {
-                setShowFileMenu(false);
-                const state = useTabStore.getState();
-                const tab = state.tabs.find((t) => t.id === state.activeTabId);
-                if (tab?.dirty) {
-                  if (!confirm(`"${tab.name}" has unsaved changes. Close anyway?`)) return;
-                }
-                state.closeTab(state.activeTabId);
-              }} />
-            </div>
-          )}
-        </div>
-
-        <ToolbarSeparator />
-
-        {/* Undo / Redo */}
-        <UndoRedoButtons />
-
-        {/* View menu */}
-        <div className="relative z-41">
-          <button
-            onClick={() => { setShowViewMenu((v) => !v); setShowFileMenu(false); }}
-            className="flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 text-xs"
-          >
-            View
-            <ChevronDown size={12} />
-          </button>
-          {showViewMenu && (
-            <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 min-w-56">
-              <MenuItem label="Grid" checked={showGrid} onClick={() => { toggleGrid(); setShowViewMenu(false); }} />
-              <MenuItem label="Rulers" checked={showRulers} shortcut="⇧R" onClick={() => { toggleRulers(); setShowViewMenu(false); }} />
-              <MenuDivider />
-              <MenuItem label="Zoom In" shortcut="⌘+" onClick={() => { storeApi.getState().setZoom(Math.min(zoom * 1.25, MAX_ZOOM)); setShowViewMenu(false); }} />
-              <MenuItem label="Zoom Out" shortcut="⌘−" onClick={() => { storeApi.getState().setZoom(Math.max(zoom / 1.25, MIN_ZOOM)); setShowViewMenu(false); }} />
-              <MenuItem label="Fit to View" shortcut="⌘0" onClick={() => { window.dispatchEvent(new Event(EDITOR_EVENTS.FIT_TO_VIEW)); setShowViewMenu(false); }} />
-              <MenuDivider />
-              {[50, 100, 200].map((pct) => (
-                <MenuItem key={pct} label={`${pct}%`} checked={Math.round(zoom * 100) === pct} onClick={() => { storeApi.getState().setZoom(pct / 100); setShowViewMenu(false); }} />
-              ))}
-              <MenuDivider />
-              <MenuItem label="Keyboard Shortcuts" shortcut="⌘/" onClick={() => { setShowShortcuts(true); setShowViewMenu(false); }} />
-            </div>
-          )}
-        </div>
+          {/* View */}
+          <Menubar.Menu>
+            <Menubar.Trigger className={triggerClass}>View</Menubar.Trigger>
+            <Menubar.Portal>
+              <Menubar.Content className={`${contentClass} min-w-56`} align="start" sideOffset={4}>
+                <Menubar.CheckboxItem className={itemClass} checked={showGrid} onCheckedChange={toggleGrid}>
+                  <CheckIndicator checked={showGrid} />
+                  Grid
+                </Menubar.CheckboxItem>
+                <Menubar.CheckboxItem className={itemClass} checked={showRulers} onCheckedChange={toggleRulers}>
+                  <CheckIndicator checked={showRulers} />
+                  Rulers<Shortcut keys="⇧R" />
+                </Menubar.CheckboxItem>
+                <Menubar.Separator className={separatorClass} />
+                <Menubar.Item className={itemClass} onSelect={() => storeApi.getState().setZoom(Math.min(zoom * 1.25, MAX_ZOOM))}>
+                  Zoom In<Shortcut keys="⌘+" />
+                </Menubar.Item>
+                <Menubar.Item className={itemClass} onSelect={() => storeApi.getState().setZoom(Math.max(zoom / 1.25, MIN_ZOOM))}>
+                  Zoom Out<Shortcut keys="⌘−" />
+                </Menubar.Item>
+                <Menubar.Item className={itemClass} onSelect={() => window.dispatchEvent(new Event(EDITOR_EVENTS.FIT_TO_VIEW))}>
+                  Fit to View<Shortcut keys="⌘0" />
+                </Menubar.Item>
+                <Menubar.Separator className={separatorClass} />
+                {[50, 100, 200].map((pct) => (
+                  <Menubar.CheckboxItem key={pct} className={itemClass} checked={Math.round(zoom * 100) === pct} onSelect={() => storeApi.getState().setZoom(pct / 100)}>
+                    <CheckIndicator checked={Math.round(zoom * 100) === pct} />
+                    {pct}%
+                  </Menubar.CheckboxItem>
+                ))}
+                <Menubar.Separator className={separatorClass} />
+                <Menubar.Item className={itemClass} onSelect={() => setShowShortcuts(true)}>
+                  Keyboard Shortcuts<Shortcut keys="⌘/" />
+                </Menubar.Item>
+              </Menubar.Content>
+            </Menubar.Portal>
+          </Menubar.Menu>
+        </Menubar.Root>
 
         {/* Spacer */}
         <div className="flex-1" />
@@ -456,6 +454,13 @@ export function Toolbar() {
 
       {showShortcuts && (
         <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />
+      )}
+
+      {showLabelSizes && (
+        <ManageLabelSizesModal
+          onClose={() => setShowLabelSizes(false)}
+          onChanged={() => {}}
+        />
       )}
     </>
   );

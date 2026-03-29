@@ -234,15 +234,15 @@ export function ManageLabelSizesModal({ onClose, onChanged }: Props) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
 
     >
-      <div className="bg-white rounded-lg shadow-xl w-160 max-h-[80vh] flex flex-col overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+      <div className="bg-white rounded-xl shadow-xl w-140 max-h-[80vh] flex flex-col overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
           <h2 className="text-sm font-semibold">Manage Label Sizes</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg leading-none">
             &times;
           </button>
         </div>
 
-        <div className="overflow-y-auto flex-1">
+        <div className="overflow-y-auto flex-1 p-4">
           {loading ? (
             <div className="text-center text-sm text-gray-400 py-8">Loading...</div>
           ) : sizes.length === 0 ? (
@@ -252,13 +252,13 @@ export function ManageLabelSizesModal({ onClose, onChanged }: Props) {
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200 text-left text-xs text-gray-500">
-                  <th className="px-3 py-2 font-medium">Name</th>
-                  <th className="px-3 py-2 font-medium">Unit</th>
-                  <th className="px-3 py-2 font-medium">Width</th>
-                  <th className="px-3 py-2 font-medium">Height</th>
-                  <th className="px-3 py-2 font-medium">DPI</th>
-                  <th className="px-3 py-2 font-medium w-20"></th>
+                <tr className="text-left text-xs text-gray-400 uppercase tracking-wider">
+                  <th className="px-4 pb-2 font-medium">Name</th>
+                  <th className="px-4 pb-2 font-medium">Unit</th>
+                  <th className="px-4 pb-2 font-medium">Width</th>
+                  <th className="px-4 pb-2 font-medium">Height</th>
+                  <th className="px-4 pb-2 font-medium">DPI</th>
+                  <th className="px-4 pb-2 font-medium w-20"></th>
                 </tr>
               </thead>
               <tbody>
@@ -271,13 +271,13 @@ export function ManageLabelSizesModal({ onClose, onChanged }: Props) {
                       onCancel={() => setEditingId(null)}
                     />
                   ) : (
-                    <tr key={size.id} className="border-b border-gray-100 hover:bg-gray-50 group">
-                      <td className="px-3 py-2 font-medium">{size.name}</td>
-                      <td className="px-3 py-2">{size.unit}</td>
-                      <td className="px-3 py-2">{formatSizeDisplay(size.widthDots, size.dpi, size.unit)}</td>
-                      <td className="px-3 py-2">{formatSizeDisplay(size.heightDots, size.dpi, size.unit)}</td>
-                      <td className="px-3 py-2">{size.dpi}</td>
-                      <td className="px-3 py-2">
+                    <tr key={size.id} className="border-t border-gray-100 hover:bg-gray-50 group">
+                      <td className="px-4 py-3 font-medium">{size.name}</td>
+                      <td className="px-4 py-3 text-gray-500">{size.unit}</td>
+                      <td className="px-4 py-3 text-gray-500">{formatSizeDisplay(size.widthDots, size.dpi, size.unit)}</td>
+                      <td className="px-4 py-3 text-gray-500">{formatSizeDisplay(size.heightDots, size.dpi, size.unit)}</td>
+                      <td className="px-4 py-3 text-gray-500">{size.dpi}</td>
+                      <td className="px-4 py-3">
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={() => { setEditingId(size.id); setDeletingId(null); }}
@@ -307,15 +307,15 @@ export function ManageLabelSizesModal({ onClose, onChanged }: Props) {
           )}
         </div>
 
-        <div className="px-4 py-3 border-t border-gray-200 flex justify-between">
+        <div className="px-6 py-4 border-t border-gray-200 flex justify-between">
           <button
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded"
           >
             <Plus size={14} />
             New Size
           </button>
-          <button onClick={onClose} className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded">
+          <button onClick={onClose} className="px-4 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded">
             Done
           </button>
         </div>
