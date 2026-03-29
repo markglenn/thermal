@@ -152,11 +152,24 @@ function FieldBlockText({ content, baseStyle, justification, maxLines, lineSpaci
     measureRef.current = node;
   }, []);
 
-  // Detect line breaks from the hidden measurement element
+  // Detect line breaks from the hidden measurement element.
+  // Optimization: first do a cheap height check — if the text fits within
+  // maxLines, skip the expensive character-by-character Range walk entirely.
   useLayoutEffect(() => {
     const raf = requestAnimationFrame(() => {
       const el = measureRef.current;
       if (!el) return;
+
+      // Quick check: does the text even overflow?
+      if (maxLines > 0) {
+        const maxHeight = maxLines * (fontSize + lineSpacing);
+        if (el.scrollHeight <= maxHeight + 1) {
+          // No overflow — no need for per-character measurement
+          setLines(null);
+          return;
+        }
+      }
+
       const detected = detectLineBreaks(el);
       setLines(detected);
     });
