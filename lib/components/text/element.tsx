@@ -107,15 +107,28 @@ export function TextElement({ props, isSelected: _isSelected }: Props) {
   };
 
   if (fb) {
+    // For field block text, the scaleX transform must not affect word wrap.
+    // We strip it from the text styles and instead apply it as a wrapper transform,
+    // scaling the pre-wrapped text to fill the container width.
+    const { transform: _t, transformOrigin: _to, ...baseStyleNoTransform } = baseStyle;
+    const wrapperTransform = fullTransform || undefined;
+    const wrapperOrigin = fullTransform ? (rot === 180 ? 'center' : 'top left') : undefined;
+
     return (
-      <FieldBlockText
-        content={props.content}
-        baseStyle={baseStyle}
-        justification={fb.justification}
-        maxLines={fb.maxLines}
-        lineSpacing={fb.lineSpacing}
-        fontSize={props.fontSize}
-      />
+      <div style={{
+        transform: wrapperTransform,
+        transformOrigin: wrapperOrigin,
+        width: fontStyle.scaleX !== 1 ? `${(1 / fontStyle.scaleX) * 100}%` : '100%',
+      }}>
+        <FieldBlockText
+          content={props.content}
+          baseStyle={baseStyleNoTransform}
+          justification={fb.justification}
+          maxLines={fb.maxLines}
+          lineSpacing={fb.lineSpacing}
+          fontSize={props.fontSize}
+        />
+      </div>
     );
   }
 
@@ -142,7 +155,13 @@ function FieldBlockText({ content, baseStyle, justification, maxLines, lineSpaci
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const measureRef = useRef<HTMLDivElement | null>(null);
-  const [lines, setLines] = useState<string[] | null>(null);
+  const [lineState, setLineState] = useState<{ key: string; lines: string[] } | null>(null);
+
+  // Derive a key from inputs that affect line breaks
+  const inputKey = `${content}|${fontSize}|${lineSpacing}|${maxLines}|${justification}`;
+
+  // Lines are only valid if they were measured for the current inputs
+  const currentLines = lineState?.key === inputKey ? lineState.lines : null;
 
   const setContainerRef = useCallback((node: HTMLDivElement | null) => {
     containerRef.current = node;
@@ -165,13 +184,13 @@ function FieldBlockText({ content, baseStyle, justification, maxLines, lineSpaci
         const maxHeight = maxLines * (fontSize + lineSpacing);
         if (el.scrollHeight <= maxHeight + 1) {
           // No overflow — no need for per-character measurement
-          setLines(null);
+          setLineState(null);
           return;
         }
       }
 
       const detected = detectLineBreaks(el);
-      setLines(detected);
+      setLineState({ key: inputKey, lines: detected });
     });
     return () => cancelAnimationFrame(raf);
   });
@@ -194,6 +213,7 @@ function FieldBlockText({ content, baseStyle, justification, maxLines, lineSpaci
         position: 'absolute',
         visibility: 'hidden',
         pointerEvents: 'none',
+        overflow: 'hidden',
         width: '100%',
       }}
     >
@@ -201,10 +221,12 @@ function FieldBlockText({ content, baseStyle, justification, maxLines, lineSpaci
     </div>
   );
 
+  const minHeight = maxLines > 0 ? maxLines * lineHeightPx : undefined;
+
   // Before measurement, show fallback with line-clamp
-  if (!lines) {
+  if (!currentLines) {
     return (
-      <div ref={setContainerRef} style={{ ...baseStyle, textAlign, position: 'relative' }}>
+      <div ref={setContainerRef} style={{ ...baseStyle, textAlign, position: 'relative', minHeight }}>
         {measureElement}
         <div
           style={{
@@ -227,7 +249,7 @@ function FieldBlockText({ content, baseStyle, justification, maxLines, lineSpaci
     );
   }
 
-  const hasOverflow = maxLines > 0 && lines.length > maxLines;
+  const hasOverflow = maxLines > 0 && currentLines.length > maxLines;
   const visibleHeight = maxLines > 0 ? maxLines * lineHeightPx : undefined;
 
   return (
@@ -242,7 +264,7 @@ function FieldBlockText({ content, baseStyle, justification, maxLines, lineSpaci
       }}
     >
       {measureElement}
-      {lines.map((line, i) => {
+      {currentLines.map((line, i) => {
         // Lines within maxLines render at their natural position.
         // Overflow lines all stack at the position of the last allowed line.
         const effectiveIndex = (hasOverflow && i >= maxLines) ? maxLines - 1 : i;
@@ -255,6 +277,7 @@ function FieldBlockText({ content, baseStyle, justification, maxLines, lineSpaci
               left: 0,
               right: 0,
               whiteSpace: 'nowrap',
+              overflow: 'hidden',
             }}
           >
             {line}

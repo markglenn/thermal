@@ -3,7 +3,7 @@
 import type { ResolvedBounds, ResizeHandle } from '@/lib/types';
 import { useEditorStoreContext } from '@/lib/store/editor-context';
 import { findComponent } from '@/lib/utils';
-import { getSizingMode } from '@/lib/components';
+import { getSizingMode, getDefinition } from '@/lib/components';
 
 interface Props {
   bounds: ResolvedBounds;
@@ -57,7 +57,8 @@ export function SelectionOverlay({ bounds, componentId, showHandles = true }: Pr
       {showHandles && allHandles.map((h) => {
         // Sizing mode restrictions
         if (sizing === 'auto') return null;
-        if (sizing === 'width-only' && HEIGHT_HANDLES.has(h.position)) return null;
+        const def = getDefinition(selectedComponent.typeData.type);
+        if (sizing === 'width-only' && HEIGHT_HANDLES.has(h.position) && !def.constrainSize) return null;
         // Lines: only show handles along the line's axis
         if (isHorizontalLine && HEIGHT_HANDLES.has(h.position)) return null;
         if (isVerticalLine && WIDTH_HANDLES.has(h.position)) return null;

@@ -5,6 +5,11 @@ import { TextElement } from './element';
 import { TextProperties as TextPropertiesPanel } from './properties';
 import { generateTextZpl } from './zpl';
 
+/** Compute the pixel height of one line for a text component with a field block. */
+function lineHeightPx(props: TextProperties): number {
+  return props.fontSize + (props.fieldBlock?.lineSpacing ?? 0);
+}
+
 export const textComponent: ComponentDefinition<TextProperties> = {
   type: 'text',
   label: 'Text',
@@ -30,5 +35,12 @@ export const textComponent: ComponentDefinition<TextProperties> = {
       return 'width-only';
     }
     return 'auto';
+  },
+  constrainSize: (props, _currentLayout, change) => {
+    // Only snap height for field block text — snaps to line increments
+    if (!props.fieldBlock || change.height === undefined) return change;
+    const lh = lineHeightPx(props);
+    const snappedLines = Math.max(1, Math.round(change.height / lh));
+    return { ...change, height: snappedLines * lh };
   },
 };

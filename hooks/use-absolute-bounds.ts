@@ -36,7 +36,11 @@ export function useAbsoluteBounds() {
       // explicit size in layout already (auto or width-only sizing)
       if (!def.computeContentSize && (sizing === 'auto' || sizing === 'width-only')) {
         const writeW = sizing === 'auto' && comp.layout.width !== w;
-        const writeH = comp.layout.height !== h;
+        // Don't overwrite height for field block text with maxLines — height is user-controlled
+        const hasMaxLines = comp.typeData.type === 'text'
+          && (comp.typeData.props as { fieldBlock?: { maxLines: number } }).fieldBlock?.maxLines
+          && (comp.typeData.props as { fieldBlock?: { maxLines: number } }).fieldBlock!.maxLines > 0;
+        const writeH = !hasMaxLines && comp.layout.height !== h;
         if (writeW || writeH) {
           storeApi.temporal.getState().pause();
           const update: Record<string, number> = {};
@@ -64,7 +68,12 @@ export function useAbsoluteBounds() {
         const def = getDefinition(comp.typeData.type);
         if (!def.computeContentSize) {
           const m = measuredSizes.get(comp.id);
-          if (m) { w = m.width; h = m.height; }
+          if (m) {
+            const sizing = getSizingMode(comp);
+            // width-only: keep layout width, only use measured height
+            if (sizing !== 'width-only') w = m.width;
+            h = m.height;
+          }
         }
 
         result.set(comp.id, { x: b.x + offsetX, y: b.y + offsetY, width: w, height: h });

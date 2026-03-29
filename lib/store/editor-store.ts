@@ -223,6 +223,14 @@ export function createEditorStore() {
               Object.assign(layout, constrained);
             }
             Object.assign(comp.layout, layout);
+            // If height was explicitly set on a field block text, sync maxLines
+            if (layout.height !== undefined && comp.typeData.type === 'text') {
+              const textProps = comp.typeData.props as import('../types').TextProperties;
+              if (textProps.fieldBlock) {
+                const lh = textProps.fontSize + textProps.fieldBlock.lineSpacing;
+                textProps.fieldBlock.maxLines = Math.max(1, Math.round(layout.height / lh));
+              }
+            }
             // If width changed, recompute height for width-only components
             if (layout.width !== undefined) {
               recomputeContentSize(comp);
@@ -249,6 +257,13 @@ export function createEditorStore() {
             if (comp) {
               Object.assign(comp.typeData.props, props);
               recomputeContentSize(comp);
+              // Sync layout height when font size or line spacing changes on field block text
+              if (comp.typeData.type === 'text') {
+                const textProps = comp.typeData.props as import('../types').TextProperties;
+                if (textProps.fieldBlock && textProps.fieldBlock.maxLines > 0) {
+                  comp.layout.height = textProps.fieldBlock.maxLines * (textProps.fontSize + textProps.fieldBlock.lineSpacing);
+                }
+              }
             }
           });
         },
