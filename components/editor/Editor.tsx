@@ -21,6 +21,7 @@ import { Toasts } from '../ui/Toasts';
 import { ReadOnlyBanner } from './ReadOnlyBanner';
 import { LabelBrowserModal } from '../documents/LabelBrowserModal';
 import { PanelLeftOpen, PanelRightOpen, PanelBottomClose, PanelBottomOpen, FilePlus, FolderOpen, Flame } from 'lucide-react';
+import { fetchJson } from '@/lib/client/fetch';
 import type { LabelDocument } from '@/lib/types';
 
 export function Editor() {
@@ -184,9 +185,8 @@ function EmptyState() {
   const [showBrowser, setShowBrowser] = useState(false);
 
   const handleOpenLabel = async (id: string) => {
-    const res = await fetch(`/api/labels/${id}`);
-    if (res.ok) {
-      const data = await res.json();
+    const data = await fetchJson<{ id: string; name: string; document: unknown; version: number; status: 'published' | null }>(`/api/labels/${id}`);
+    if (data) {
       useTabStore.getState().openLabel(data.id, data.name, data.document as LabelDocument, data.version, data.status);
     }
     setShowBrowser(false);

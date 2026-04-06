@@ -6,6 +6,7 @@ import { ShieldCheck, ShieldOff, Archive, ArchiveRestore, Clock } from 'lucide-r
 import { ConfirmButton } from '../ui/ConfirmButton';
 import { LabelThumbnail, formatSize } from '../ui/LabelThumbnail';
 import { useTabStore } from '@/lib/store/tab-store';
+import { fetchJson } from '@/lib/client/fetch';
 import type { LabelDocument, VersionStatus } from '@/lib/types';
 
 interface VersionEntry {
@@ -62,10 +63,8 @@ export function VersionHistoryPanel({ labelId, currentThumbnail, currentLabelSiz
       return;
     }
     const url = `/api/labels/${labelId}/versions${includeArchived ? '?archived=true' : ''}`;
-    const res = await fetch(url);
-    if (res.ok) {
-      setVersions(await res.json());
-    }
+    const data = await fetchJson<VersionEntry[]>(url);
+    if (data) setVersions(data);
     setLoading(false);
   }, [labelId]);
 
@@ -86,9 +85,8 @@ export function VersionHistoryPanel({ labelId, currentThumbnail, currentLabelSiz
       if (!confirm('You have unsaved changes. Discard them?')) return;
     }
 
-    const res = await fetch(`/api/labels/${labelId}/versions/${version}`);
-    if (!res.ok) return;
-    const data = await res.json();
+    const data = await fetchJson<{ name: string; document: unknown; status: VersionStatus }>(`/api/labels/${labelId}/versions/${version}`);
+    if (!data) return;
 
     if (isLatest) {
       useTabStore.getState().returnToLatest(
@@ -115,24 +113,23 @@ export function VersionHistoryPanel({ labelId, currentThumbnail, currentLabelSiz
   const handleSetPublished = async (version: number, production: boolean) => {
     setBusy(true);
     try {
-      const res = await fetch(`/api/labels/${labelId}/versions/${version}`, {
+      const result = await fetchJson(`/api/labels/${labelId}/versions/${version}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ production }),
       });
-      if (res.ok) {
-        await fetchVersions(showArchived);
+      if (!result) return;
 
-        const tabState = useTabStore.getState();
-        const tab = tabState.tabs.find((t) => t.id === activeTabId);
-        if (tab) {
-          const latestRes = await fetch(`/api/labels/${labelId}`);
-          if (latestRes.ok) {
-            const latestData = await latestRes.json();
-            tabState.updateTabVersionMeta(activeTabId, latestData.version, latestData.status);
-            if (viewingVersion === null) {
-              tab.store.getState().setReadOnly(latestData.status === 'published');
-            }
+      await fetchVersions(showArchived);
+
+      const tabState = useTabStore.getState();
+      const tab = tabState.tabs.find((t) => t.id === activeTabId);
+      if (tab) {
+        const latestData = await fetchJson<{ version: number; status: VersionStatus }>(`/api/labels/${labelId}`);
+        if (latestData) {
+          tabState.updateTabVersionMeta(activeTabId, latestData.version, latestData.status);
+          if (viewingVersion === null) {
+            tab.store.getState().setReadOnly(latestData.status === 'published');
           }
         }
       }
@@ -144,36 +141,31 @@ export function VersionHistoryPanel({ labelId, currentThumbnail, currentLabelSiz
   const handleSetArchived = async (version: number, archived: boolean) => {
     setBusy(true);
     try {
-      const res = await fetch(`/api/labels/${labelId}/versions/${version}`, {
+      const result = await fetchJson(`/api/labels/${labelId}/versions/${version}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ archived }),
       });
-      if (res.ok) {
-        await fetchVersions(showArchived);
+      if (!result) return;
 
-        // If we archived the version we're currently on, navigate to the
-        // previous non-archived version
-        if (archived) {
-          const isCurrentVersion =
-            (viewingVersion === null && version === latestVersion) ||
-            viewingVersion === version;
+      await fetchVersions(showArchived);
 
-          if (isCurrentVersion) {
-            // Fetch full list (including archived) to find the next non-archived version
-            const allRes = await fetch(`/api/labels/${labelId}/versions`);
-            if (allRes.ok) {
-              const allVersions = (await allRes.json()) as VersionEntry[];
-              const fallback = allVersions[0]; // first non-archived version
-              if (fallback) {
-                const docRes = await fetch(`/api/labels/${labelId}/versions/${fallback.version}`);
-                if (docRes.ok) {
-                  const data = await docRes.json();
-                  const tabState = useTabStore.getState();
-                  tabState.returnToLatest(activeTabId, data.document as LabelDocument, fallback.version, fallback.status);
-                  tabState.updateTabVersionMeta(activeTabId, fallback.version, fallback.status);
-                }
-              }
+      // If we archived the version we're currently on, navigate to the
+      // previous non-archived version
+      if (archived) {
+        const isCurrentVersion =
+          (viewingVersion === null && version === latestVersion) ||
+          viewingVersion === version;
+
+        if (isCurrentVersion) {
+          const allVersions = await fetchJson<VersionEntry[]>(`/api/labels/${labelId}/versions`);
+          const fallback = allVersions?.[0];
+          if (fallback) {
+            const data = await fetchJson<{ document: unknown; status: VersionStatus }>(`/api/labels/${labelId}/versions/${fallback.version}`);
+            if (data) {
+              const tabState = useTabStore.getState();
+              tabState.returnToLatest(activeTabId, data.document as LabelDocument, fallback.version, fallback.status);
+              tabState.updateTabVersionMeta(activeTabId, fallback.version, fallback.status);
             }
           }
         }

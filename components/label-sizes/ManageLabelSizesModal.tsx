@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2, Pencil, Check, X, Plus } from 'lucide-react';
+import { fetchJson } from '@/lib/client/fetch';
 import { DPI_VALUES, dotsToUnit, unitToDots } from '@/lib/constants';
 import { CreateLabelSizeModal } from './CreateLabelSizeModal';
 import type { LabelSizeInput } from './CreateLabelSizeModal';
@@ -163,10 +164,8 @@ export function ManageLabelSizesModal({ onClose, onChanged }: Props) {
   const [showCreate, setShowCreate] = useState(false);
 
   const fetchSizes = useCallback(async () => {
-    try {
-      const res = await fetch('/api/label-sizes');
-      if (res.ok) setSizes(await res.json());
-    } catch { /* ignore */ }
+    const data = await fetchJson<LabelSize[]>('/api/label-sizes');
+    if (data) setSizes(data);
     setLoading(false);
   }, []);
 
@@ -177,12 +176,12 @@ export function ManageLabelSizesModal({ onClose, onChanged }: Props) {
   }
 
   const handleSave = async (updated: LabelSize) => {
-    const res = await fetch('/api/label-sizes', {
+    const result = await fetchJson('/api/label-sizes', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updated),
     });
-    if (res.ok) {
+    if (result) {
       setSizes((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
       setEditingId(null);
       onChanged();
@@ -193,25 +192,21 @@ export function ManageLabelSizesModal({ onClose, onChanged }: Props) {
     if (deletingId === id) {
       setSizes((prev) => prev.filter((s) => s.id !== id));
       setDeletingId(null);
-      try {
-        const res = await fetch(`/api/label-sizes?id=${id}`, { method: 'DELETE' });
-        if (!res.ok) fetchSizes();
-        else onChanged();
-      } catch {
-        fetchSizes();
-      }
+      const result = await fetchJson(`/api/label-sizes?id=${id}`, { method: 'DELETE' });
+      if (result) onChanged();
+      else fetchSizes();
     } else {
       setDeletingId(id);
     }
   };
 
   const handleCreate = async (input: LabelSizeInput) => {
-    const res = await fetch('/api/label-sizes', {
+    const result = await fetchJson('/api/label-sizes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input),
     });
-    if (!res.ok) return;
+    if (!result) return;
     await fetchSizes();
     onChanged();
     setShowCreate(false);

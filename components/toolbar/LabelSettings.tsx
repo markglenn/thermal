@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { Plus, Settings, X } from 'lucide-react';
+import { fetchJson } from '@/lib/client/fetch';
 import { useEditorStoreContext, useActiveVariant } from '@/lib/store/editor-context';
 import { useLabelConfig } from '@/lib/store/editor-context';
 import { DPI_VALUES, getActiveVariant, dotsToUnit, unitToDots } from '@/lib/constants';
@@ -22,10 +23,8 @@ function useLabelSizes() {
   const [sizes, setSizes] = useState<LabelSize[]>([]);
 
   const refresh = useCallback(async () => {
-    try {
-      const res = await fetch('/api/label-sizes');
-      if (res.ok) setSizes(await res.json());
-    } catch { /* ignore */ }
+    const data = await fetchJson<LabelSize[]>('/api/label-sizes', undefined, { silent: true });
+    if (data) setSizes(data);
   }, []);
 
   const initialized = useRef<boolean | null>(null);

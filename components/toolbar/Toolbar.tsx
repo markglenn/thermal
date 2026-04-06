@@ -13,6 +13,7 @@ import { captureThumbnail } from '@/lib/documents/thumbnail';
 import { validateDocument } from '@/lib/documents/validate';
 import { exportDocument, importDocument } from '@/lib/documents/file-io';
 import { toast } from '@/lib/toast-store';
+import { fetchJson } from '@/lib/client/fetch';
 import { SaveNameModal } from '@/components/documents/SaveNameModal';
 import { LabelBrowserModal } from '@/components/documents/LabelBrowserModal';
 import { VersionHistoryPanel } from '@/components/documents/VersionHistoryPanel';
@@ -138,9 +139,8 @@ export function Toolbar() {
   }, [saveLabel, storeApi]);
 
   const handleOpenLabel = useCallback(async (id: string) => {
-    const res = await fetch(`/api/labels/${id}`);
-    if (res.ok) {
-      const data = await res.json();
+    const data = await fetchJson<{ id: string; name: string; document: unknown; version: number; status: 'published' | null }>(`/api/labels/${id}`);
+    if (data) {
       useTabStore.getState().openLabel(data.id, data.name, data.document as LabelDocument, data.version, data.status);
     }
     setShowBrowserModal(false);
@@ -151,17 +151,17 @@ export function Toolbar() {
     const labelId = store.currentLabelId;
     if (!labelId) return;
 
-    const res = await fetch(`/api/labels/${labelId}`, {
+    const data = await fetchJson(`/api/labels/${labelId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name }),
     });
-    if (res.ok) {
+    if (data) {
       store.setLabelMeta(labelId, name);
       const tabState = useTabStore.getState();
       tabState.updateTabName(tabState.activeTabId, name);
+      setShowRenameModal(false);
     }
-    setShowRenameModal(false);
   }, [storeApi]);
 
   const handleSaveAs = useCallback(async (name: string) => {

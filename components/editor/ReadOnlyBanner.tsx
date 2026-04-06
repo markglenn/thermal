@@ -4,7 +4,8 @@ import { Eye, ArrowLeft, FilePlus } from 'lucide-react';
 import { useTabStore } from '@/lib/store/tab-store';
 import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
 import { captureThumbnail } from '@/lib/documents/thumbnail';
-import type { LabelDocument } from '@/lib/types';
+import { fetchJson } from '@/lib/client/fetch';
+import type { LabelDocument, VersionStatus } from '@/lib/types';
 
 export function ReadOnlyBanner() {
   const readOnly = useEditorStoreContext((s) => s.readOnly);
@@ -30,15 +31,12 @@ export function ReadOnlyBanner() {
 
   const handleReturnToLatest = async () => {
     if (!labelId) return;
-    const listRes = await fetch(`/api/labels/${labelId}/versions`);
-    if (!listRes.ok) return;
-    const versions = await listRes.json();
-    if (versions.length === 0) return;
+    const versions = await fetchJson<{ version: number; status: VersionStatus }[]>(`/api/labels/${labelId}/versions`);
+    if (!versions || versions.length === 0) return;
 
     const latest = versions[0];
-    const docRes = await fetch(`/api/labels/${labelId}/versions/${latest.version}`);
-    if (!docRes.ok) return;
-    const data = await docRes.json();
+    const data = await fetchJson<{ document: unknown }>(`/api/labels/${labelId}/versions/${latest.version}`);
+    if (!data) return;
 
     useTabStore.getState().returnToLatest(
       activeTabId,
@@ -54,13 +52,12 @@ export function ReadOnlyBanner() {
     const doc = store.document;
     const thumbnail = await captureThumbnail(doc);
 
-    const res = await fetch(`/api/labels/${labelId}/versions`, {
+    const data = await fetchJson<{ version: number; status: VersionStatus }>(`/api/labels/${labelId}/versions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ document: doc, thumbnail }),
     });
-    if (res.ok) {
-      const data = await res.json();
+    if (data) {
       store.setReadOnly(false);
       const tabState = useTabStore.getState();
       tabState.markClean(activeTabId);

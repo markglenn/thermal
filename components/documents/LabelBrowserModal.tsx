@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { Archive, ArchiveRestore, Search } from 'lucide-react';
 import { ConfirmButton } from '../ui/ConfirmButton';
 import { LabelThumbnail, formatSize } from '../ui/LabelThumbnail';
+import { fetchJson } from '@/lib/client/fetch';
 
 interface LabelListItem {
   id: string;
@@ -69,10 +70,8 @@ export function LabelBrowserModal({ onSelect, onCancel }: Props) {
 
   const fetchLabels = useCallback(async (includeArchived: boolean) => {
     const url = `/api/labels${includeArchived ? '?archived=true' : ''}`;
-    const res = await fetch(url);
-    if (res.ok) {
-      setLabels(await res.json());
-    }
+    const data = await fetchJson<LabelListItem[]>(url);
+    if (data) setLabels(data);
     setLoading(false);
   }, []);
 
@@ -100,25 +99,14 @@ export function LabelBrowserModal({ onSelect, onCancel }: Props) {
 
   const handleArchive = async (id: string) => {
     setLabels((prev) => prev.filter((l) => l.id !== id));
-    try {
-      const res = await fetch(`/api/labels/${id}`, { method: 'DELETE' });
-      if (!res.ok) {
-        fetchLabels(showArchived);
-      }
-    } catch {
-      fetchLabels(showArchived);
-    }
+    const result = await fetchJson(`/api/labels/${id}`, { method: 'DELETE' });
+    if (!result) fetchLabels(showArchived);
   };
 
   const handleUnarchive = async (id: string) => {
-    try {
-      const res = await fetch(`/api/labels/${id}?unarchive=true`, { method: 'DELETE' });
-      if (res.ok) {
-        fetchLabels(showArchived);
-      }
-    } catch {
-      fetchLabels(showArchived);
-    }
+    const result = await fetchJson(`/api/labels/${id}?unarchive=true`, { method: 'DELETE' });
+    if (result) fetchLabels(showArchived);
+    else fetchLabels(showArchived);
   };
 
   useEffect(() => {
