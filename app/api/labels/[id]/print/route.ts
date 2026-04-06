@@ -3,46 +3,30 @@ import { eq, and, desc, isNull } from 'drizzle-orm';
 import { getDatabase } from '@/lib/db';
 import { generateZplMerge } from '@/lib/zpl/generator-merge';
 import { publishPrintJob } from '@/lib/print/sqs';
+import { validateDocument } from '@/lib/documents/validate';
+import { validatePrintRequest } from '@/lib/documents/validate-print';
 import type { LabelDocument } from '@/lib/types';
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  let body: Record<string, unknown>;
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { data, printer, copies } = body as {
-    data?: unknown;
-    printer?: string;
-    copies?: number;
-  };
-
-  if (!Array.isArray(data) || data.length === 0) {
-    return NextResponse.json({ error: 'data must be a non-empty array' }, { status: 400 });
+  const printResult = validatePrintRequest(body);
+  if (!printResult.valid || !printResult.parsed) {
+    return NextResponse.json(
+      { error: 'Invalid print request', details: printResult.errors },
+      { status: 400 }
+    );
   }
 
-  // Validate each entry is an object with string values
-  for (let i = 0; i < data.length; i++) {
-    if (typeof data[i] !== 'object' || data[i] === null || Array.isArray(data[i])) {
-      return NextResponse.json({ error: `data[${i}] must be an object` }, { status: 400 });
-    }
-    for (const [key, val] of Object.entries(data[i] as Record<string, unknown>)) {
-      if (typeof val !== 'string') {
-        return NextResponse.json({ error: `data[${i}].${key} must be a string` }, { status: 400 });
-      }
-    }
-  }
-
-  if (printer !== undefined && typeof printer !== 'string') {
-    return NextResponse.json({ error: 'printer must be a string' }, { status: 400 });
-  }
-
-  const copyCount = typeof copies === 'number' && copies >= 1 ? Math.floor(copies) : 1;
+  const { data, printer, copies: copyCount } = printResult.parsed;
 
   try {
     const { id } = await params;
@@ -118,6 +102,13 @@ export async function POST(
     }
 
     const { version: labelVersion, document: rawDoc } = versionRows[0];
+
+    if (!validateDocument(rawDoc)) {
+      return NextResponse.json(
+        { error: 'Stored document is corrupt or incompatible' },
+        { status: 500 }
+      );
+    }
     const doc = rawDoc as LabelDocument;
 
     // Generate merged ZPL for each data entry, passing index for counter variables

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { desc, isNull, sql } from 'drizzle-orm';
 import { getDatabase, parseThumbnail } from '@/lib/db';
-import { validateDocument } from '@/lib/documents/validate';
+import { validateDocumentDeep } from '@/lib/documents/validate';
 
 export async function GET(request: NextRequest) {
   try {
@@ -97,8 +97,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'name and document are required' }, { status: 400 });
   }
 
-  if (!validateDocument(document)) {
-    return NextResponse.json({ error: 'Invalid document structure' }, { status: 400 });
+  const docResult = validateDocumentDeep(document);
+  if (!docResult.valid) {
+    return NextResponse.json({ error: 'Invalid document structure', details: docResult.errors }, { status: 400 });
   }
 
   try {
