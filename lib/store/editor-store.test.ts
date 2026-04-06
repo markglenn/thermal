@@ -407,6 +407,22 @@ describe('editor store', () => {
       expect(useEditorStore.getState().activeVariant).toBe('Default');
     });
 
+    it('does not mutate the input document', () => {
+      const doc: LabelDocument = {
+        version: 1,
+        label: { dpi: 203, variants: [{ name: 'Default', widthDots: 406, heightDots: 203, unit: 'in' }] },
+        components: [{
+          id: 'comp-1',
+          name: 'Text 1',
+          layout: { x: 10, y: 20, width: 100, height: 50, horizontalAnchor: 'left', verticalAnchor: 'top' },
+          typeData: { type: 'rectangle', props: { borderThickness: 2, cornerRadius: 0, filled: false } },
+        }],
+      };
+      const snapshot = JSON.stringify(doc);
+      useEditorStore.getState().loadDocument(doc);
+      expect(JSON.stringify(doc)).toBe(snapshot);
+    });
+
     it('undo after load does not change state', () => {
       vi.useFakeTimers();
       useEditorStore.getState().addComponent('text');

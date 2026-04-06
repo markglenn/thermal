@@ -88,7 +88,7 @@ export async function POST(
         version: newVersion,
         status: null,
         document,
-        thumbnail: thumbnailData ?? latestActive?.thumbnail ?? null,
+        thumbnail: thumbnailData ?? (latestActive?.thumbnail as Buffer | null) ?? null,
         ...summary,
         createdAt: now,
       });

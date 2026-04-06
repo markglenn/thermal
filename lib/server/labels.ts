@@ -19,7 +19,7 @@ export interface VersionRow {
   version: number;
   status: 'published' | null;
   document: unknown;
-  thumbnail: unknown;
+  thumbnail: ArrayBuffer | string | null;
   archivedAt: Date | null;
   createdAt: Date;
   updatedAt: Date | null;
