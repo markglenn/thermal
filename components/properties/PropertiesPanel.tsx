@@ -41,9 +41,7 @@ export function PropertiesPanel({ onCollapse }: Props) {
           <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Properties</h2>
         </div>
       )}
-      <div className={readOnly ? 'pointer-events-none opacity-60' : ''}>
-        <LabelSettings />
-      </div>
+      <LabelSettings readOnly={readOnly} />
 
       {selected ? (
         <div className={readOnly ? 'pointer-events-none opacity-60' : ''}>

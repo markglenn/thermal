@@ -199,9 +199,8 @@ export function Toolbar() {
   useEffect(() => {
     const onSave = () => {
       const store = storeApi.getState();
-      if (store.readOnly) return;
       const tab = useTabStore.getState().tabs.find((t) => t.id === useTabStore.getState().activeTabId);
-      if (tab?.latestStatus === 'published') return;
+      if (tab?.latestStatus === 'published' && !tab?.dirty) return;
       if (store.currentLabelId) {
         saveLabel(store.currentLabelName || 'Untitled Label');
       } else {
@@ -251,7 +250,7 @@ export function Toolbar() {
                     {isSaving ? 'Creating...' : 'New Version'}
                   </Menubar.Item>
                 ) : (
-                  <Menubar.Item className={itemClass} disabled={isSaving || readOnly} onSelect={handleSaveClick}>
+                  <Menubar.Item className={itemClass} disabled={isSaving} onSelect={handleSaveClick}>
                     Save<Shortcut keys="⌘S" />
                   </Menubar.Item>
                 )}

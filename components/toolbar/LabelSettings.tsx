@@ -42,7 +42,7 @@ const UNIT_STEP: Record<LabelUnit, number> = { in: 0.25, mm: 1 };
 const UNIT_MAX: Record<LabelUnit, number> = { in: 12, mm: 305 };
 const UNIT_MIN: Record<LabelUnit, number> = { in: 0.5, mm: 10 };
 
-export function LabelSettings() {
+export function LabelSettings({ readOnly = false }: { readOnly?: boolean }) {
   const label = useLabelConfig();
   const updateLabelConfig = useEditorStoreContext((s) => s.updateLabelConfig);
   const updateVariant = useEditorStoreContext((s) => s.updateVariant);
@@ -142,6 +142,7 @@ export function LabelSettings() {
                 key={v.name}
                 onClick={() => setActiveVariant(v.name)}
                 onDoubleClick={() => {
+                  if (readOnly) return;
                   setEditingVariantName(v.name);
                   setEditingValue(v.name);
                 }}
@@ -168,7 +169,7 @@ export function LabelSettings() {
                 ) : (
                   v.name
                 )}
-                {label.variants.length > 1 && v.name === activeVariantName && editingVariantName !== v.name && (
+                {!readOnly && label.variants.length > 1 && v.name === activeVariantName && editingVariantName !== v.name && (
                   <span
                     onClick={(e) => { e.stopPropagation(); removeVariant(v.name); }}
                     className="absolute right-0.5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 hover:text-red-200 cursor-pointer"
@@ -178,13 +179,15 @@ export function LabelSettings() {
                 )}
               </button>
             ))}
-            <button
-              onClick={() => { if (showAddVariant) { setShowAddVariant(false); setNewVariantName(''); } else { setShowAddVariant(true); requestAnimationFrame(() => addVariantInputRef.current?.focus()); } }}
-              className="px-2 py-1 text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-50 border-l border-gray-300"
-              title="Add variant"
-            >
-              <Plus size={12} />
-            </button>
+            {!readOnly && (
+              <button
+                onClick={() => { if (showAddVariant) { setShowAddVariant(false); setNewVariantName(''); } else { setShowAddVariant(true); requestAnimationFrame(() => addVariantInputRef.current?.focus()); } }}
+                className="px-2 py-1 text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-50 border-l border-gray-300"
+                title="Add variant"
+              >
+                <Plus size={12} />
+              </button>
+            )}
           </div>
 
           {/* Inline add variant form */}
@@ -215,6 +218,7 @@ export function LabelSettings() {
           </div>
         </div>
 
+        <div className={readOnly ? 'pointer-events-none opacity-60' : ''}>
         <label>
           <span className="text-xs text-gray-500">Size</span>
           <select
@@ -302,6 +306,7 @@ export function LabelSettings() {
             </label>
           </>
         )}
+        </div>
       </div>
 
       {showManage && (
