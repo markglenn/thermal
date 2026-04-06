@@ -1,4 +1,3 @@
-import path from 'path';
 import type { LabelDocument } from '../types';
 import type { LibSQLDatabase } from 'drizzle-orm/libsql';
 import type * as sqliteSchema from './schema-sqlite';
@@ -41,14 +40,19 @@ async function initDb(): Promise<{ db: Db; tables: Tables }> {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { drizzle } = require('drizzle-orm/libsql');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { migrate } = require('drizzle-orm/libsql/migrator');
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const schema = require('./schema-sqlite') as Schema;
     const client = createClient({ url: DATABASE_URL });
-    const db = drizzle(client, { schema }) as Db;
-    await migrate(db, { migrationsFolder: path.join(process.cwd(), 'drizzle/sqlite') });
-    _db = db;
+    _db = drizzle(client, { schema }) as Db;
     _tables = { labels: schema.labels, labelVersions: schema.labelVersions, labelSizes: schema.labelSizes, printJobs: schema.printJobs };
+  }
+
+  // Verify the expected tables exist — fails fast if migrations haven't been run
+  try {
+    await _db!.select().from(_tables!.labels).limit(0);
+  } catch (e) {
+    throw new Error(
+      `Database tables not found. Run migrations first: npx tsx lib/db/migrate.ts\n${e instanceof Error ? e.message : e}`
+    );
   }
 
   return { db: _db!, tables: _tables! };
@@ -81,6 +85,7 @@ export type LabelVersionRow = {
   thumbnail: ArrayBuffer | string | null;
   archivedAt: Date | null;
   createdAt: Date;
+  updatedAt: Date | null;
 };
 
 /** Parse a base64 data URI thumbnail into a Buffer for DB storage. */

@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "npx tsx lib/db/migrate.ts",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -14,7 +15,7 @@
     "test:e2e:ui": "playwright test --ui",
     "db:generate:sqlite": "drizzle-kit generate --config drizzle-sqlite.config.ts",
     "db:generate:pg": "drizzle-kit generate --config drizzle-pg.config.ts",
-    "db:migrate": "drizzle-kit migrate --config drizzle-sqlite.config.ts",
+    "db:migrate": "npx tsx lib/db/migrate.ts",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {

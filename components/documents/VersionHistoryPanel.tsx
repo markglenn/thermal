@@ -17,6 +17,7 @@ interface VersionEntry {
   heightInches: number | null;
   archivedAt: string | null;
   createdAt: string;
+  updatedAt: string | null;
 }
 
 interface Props {
@@ -277,7 +278,9 @@ export function VersionHistoryPanel({ labelId, currentThumbnail, currentLabelSiz
                           <span className="text-[10px] text-gray-400 font-medium">Latest</span>
                         )}
                       </div>
-                      <span className="text-xs text-gray-400">{relativeTime(v.createdAt)}</span>
+                      <span className="text-xs text-gray-400" title={`Created ${new Date(v.createdAt).toLocaleString()}${v.updatedAt ? `\nEdited ${new Date(v.updatedAt).toLocaleString()}` : ''}`}>
+                        {v.updatedAt ? `edited ${relativeTime(v.updatedAt)}` : relativeTime(v.createdAt)}
+                      </span>
                     </div>
 
                     {/* Thumbnail */}

@@ -36,9 +36,13 @@ export const labelVersions = sqliteTable(
     archivedAt: integer('archived_at', { mode: 'timestamp' }),
     document: text('document', { mode: 'json' }).notNull(),
     thumbnail: blob('thumbnail', { mode: 'buffer' }),
+    widthDots: integer('width_dots'),
+    heightDots: integer('height_dots'),
+    dpi: integer('dpi'),
     createdAt: integer('created_at', { mode: 'timestamp' })
       .notNull()
       .$defaultFn(() => new Date()),
+    updatedAt: integer('updated_at', { mode: 'timestamp' }),
   },
   (table) => [unique().on(table.labelId, table.version)]
 );

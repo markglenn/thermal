@@ -30,7 +30,11 @@ export const labelVersions = pgTable(
     archivedAt: timestamp('archived_at'),
     document: jsonb('document').notNull(),
     thumbnail: text('thumbnail'),
+    widthDots: integer('width_dots'),
+    heightDots: integer('height_dots'),
+    dpi: integer('dpi'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at'),
   },
   (table) => [unique().on(table.labelId, table.version)]
 );

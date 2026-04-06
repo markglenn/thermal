@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { desc, isNull, sql } from 'drizzle-orm';
-import { getDatabase, parseThumbnail } from '@/lib/db';
+import { desc, isNull } from 'drizzle-orm';
+import { getDatabase, parseThumbnail, listLatestVersionSummaries, summaryFieldsFromDocument } from '@/lib/server/labels';
 import { validateDocumentDeep } from '@/lib/documents/validate';
 
 export async function GET(request: NextRequest) {
@@ -8,69 +8,22 @@ export async function GET(request: NextRequest) {
     const { db, tables } = await getDatabase();
     const includeArchived = request.nextUrl.searchParams.get('archived') === 'true';
 
-    // Two queries instead of N+1: all labels + latest version per label
     const allLabels = includeArchived
-      ? await db
-          .select()
-          .from(tables.labels)
-          .orderBy(desc(tables.labels.updatedAt))
-      : await db
-          .select()
-          .from(tables.labels)
-          .where(isNull(tables.labels.archivedAt))
-          .orderBy(desc(tables.labels.updatedAt));
+      ? await db.select().from(tables.labels).orderBy(desc(tables.labels.updatedAt))
+      : await db.select().from(tables.labels).where(isNull(tables.labels.archivedAt)).orderBy(desc(tables.labels.updatedAt));
 
-    // Get latest version metadata (no document/thumbnail blob) in a single query
-    const latestVersions = allLabels.length > 0
-      ? await db
-          .select({
-            labelId: tables.labelVersions.labelId,
-            version: tables.labelVersions.version,
-            status: tables.labelVersions.status,
-            hasThumbnail: sql<boolean>`${tables.labelVersions.thumbnail} IS NOT NULL`.as('has_thumbnail'),
-            document: tables.labelVersions.document,
-          })
-          .from(tables.labelVersions)
-          .where(
-            sql`(${tables.labelVersions.labelId}, ${tables.labelVersions.version}) IN (
-              SELECT ${tables.labelVersions.labelId}, MAX(${tables.labelVersions.version})
-              FROM ${tables.labelVersions}
-              WHERE ${tables.labelVersions.archivedAt} IS NULL
-              GROUP BY ${tables.labelVersions.labelId}
-            )`
-          )
-      : [];
-
-    // Index by labelId for O(1) lookup
-    const versionByLabelId = new Map<string, typeof latestVersions[0]>();
-    for (const v of latestVersions) {
-      versionByLabelId.set(v.labelId, v);
-    }
+    const versionByLabelId = await listLatestVersionSummaries();
 
     const result = allLabels.map((label) => {
       const latest = versionByLabelId.get(label.id);
-      const docLabel = (latest?.document as { label?: Record<string, unknown> } | undefined)?.label;
-      let widthInches: number | null = null;
-      let heightInches: number | null = null;
-      if (docLabel) {
-        if (Array.isArray(docLabel.variants) && docLabel.variants.length > 0) {
-          const variant = docLabel.variants[0] as { widthDots: number; heightDots: number };
-          const dpi = (docLabel.dpi as number) || 203;
-          widthInches = variant.widthDots / dpi;
-          heightInches = variant.heightDots / dpi;
-        } else if (typeof docLabel.widthInches === 'number' && typeof docLabel.heightInches === 'number') {
-          widthInches = docLabel.widthInches as number;
-          heightInches = docLabel.heightInches as number;
-        }
-      }
       return {
         id: label.id,
         name: label.name,
-        hasThumbnail: !!latest?.hasThumbnail,
+        hasThumbnail: latest?.hasThumbnail ?? false,
         latestVersion: latest?.version ?? 0,
         latestStatus: latest?.status ?? null,
-        widthInches,
-        heightInches,
+        widthInches: latest?.widthInches ?? null,
+        heightInches: latest?.heightInches ?? null,
         archivedAt: label.archivedAt?.toISOString() ?? null,
         updatedAt: label.updatedAt.toISOString(),
       };
@@ -109,8 +62,8 @@ export async function POST(request: NextRequest) {
     const versionId = crypto.randomUUID();
     const now = new Date();
     const thumbnailData = parseThumbnail(thumbnail);
+    const summary = summaryFieldsFromDocument(document);
 
-    // Transaction so label + version are created atomically
     await db.transaction(async (tx) => {
       await tx.insert(tables.labels).values({
         id: labelId,
@@ -125,6 +78,7 @@ export async function POST(request: NextRequest) {
         status: null,
         document,
         thumbnail: thumbnailData,
+        ...summary,
         createdAt: now,
       });
     });

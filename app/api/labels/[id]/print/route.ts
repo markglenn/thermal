@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { eq, and, desc, isNull } from 'drizzle-orm';
-import { getDatabase } from '@/lib/db';
+import {
+  findLabel,
+  findPublishedOrLatestVersion,
+  findVersion,
+  getDatabase,
+} from '@/lib/server/labels';
 import { generateZplMerge } from '@/lib/zpl/generator-merge';
 import { publishPrintJob } from '@/lib/print/sqs';
 import { validateDocument } from '@/lib/documents/validate';
@@ -30,78 +34,32 @@ export async function POST(
 
   try {
     const { id } = await params;
-    const { db, tables } = await getDatabase();
-
-    const labelRows = await db
-      .select()
-      .from(tables.labels)
-      .where(eq(tables.labels.id, id))
-      .limit(1);
-
-    if (labelRows.length === 0) {
+    const label = await findLabel(id);
+    if (!label) {
       return NextResponse.json({ error: 'Label not found' }, { status: 404 });
     }
 
+    // Resolve which version to print
     const versionParam = request.nextUrl.searchParams.get('version');
-    let versionRows;
+    let versionRow: { version: number; document: unknown } | null;
 
     if (versionParam) {
       const versionNum = parseInt(versionParam, 10);
       if (isNaN(versionNum) || versionNum < 1) {
         return NextResponse.json({ error: 'Invalid version number' }, { status: 400 });
       }
-      versionRows = await db
-        .select({
-          version: tables.labelVersions.version,
-          document: tables.labelVersions.document,
-        })
-        .from(tables.labelVersions)
-        .where(
-          and(
-            eq(tables.labelVersions.labelId, id),
-            eq(tables.labelVersions.version, versionNum)
-          )
-        )
-        .limit(1);
+      versionRow = await findVersion(id, versionNum);
+      if (!versionRow) {
+        return NextResponse.json({ error: 'Version not found' }, { status: 404 });
+      }
     } else {
-      // Default: published version, falling back to latest non-archived
-      versionRows = await db
-        .select({
-          version: tables.labelVersions.version,
-          document: tables.labelVersions.document,
-        })
-        .from(tables.labelVersions)
-        .where(
-          and(
-            eq(tables.labelVersions.labelId, id),
-            eq(tables.labelVersions.status, 'published')
-          )
-        )
-        .orderBy(desc(tables.labelVersions.version))
-        .limit(1);
-
-      // No published version — fall back to latest non-archived
-      if (versionRows.length === 0) {
-        versionRows = await db
-          .select({
-            version: tables.labelVersions.version,
-            document: tables.labelVersions.document,
-          })
-          .from(tables.labelVersions)
-          .where(and(eq(tables.labelVersions.labelId, id), isNull(tables.labelVersions.archivedAt)))
-          .orderBy(desc(tables.labelVersions.version))
-          .limit(1);
+      versionRow = await findPublishedOrLatestVersion(id);
+      if (!versionRow) {
+        return NextResponse.json({ error: 'No versions found' }, { status: 404 });
       }
     }
 
-    if (versionRows.length === 0) {
-      const msg = versionParam
-        ? 'Version not found'
-        : 'No versions found';
-      return NextResponse.json({ error: msg }, { status: 404 });
-    }
-
-    const { version: labelVersion, document: rawDoc } = versionRows[0];
+    const { version: labelVersion, document: rawDoc } = versionRow;
 
     if (!validateDocument(rawDoc)) {
       return NextResponse.json(
@@ -131,10 +89,11 @@ export async function POST(
     await publishPrintJob(jobId, zpl, printer, copyCount, {
       labelId: id,
       labelVersion,
-      labelName: labelRows[0].name,
+      labelName: label.name,
     });
 
     // Record the job
+    const { db, tables } = await getDatabase();
     await db.insert(tables.printJobs).values({
       id: jobId,
       labelId: id,

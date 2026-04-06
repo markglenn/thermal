@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { eq, and } from 'drizzle-orm';
-import { getDatabase } from '@/lib/db';
+import { findLabel, getDatabase } from '@/lib/server/labels';
 
 export async function GET(
   _request: NextRequest,
@@ -13,18 +13,12 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid version number' }, { status: 400 });
     }
 
-    const { db, tables } = await getDatabase();
-
-    const labelRows = await db
-      .select()
-      .from(tables.labels)
-      .where(eq(tables.labels.id, id))
-      .limit(1);
-
-    if (labelRows.length === 0) {
+    const label = await findLabel(id);
+    if (!label) {
       return NextResponse.json({ error: 'Label not found' }, { status: 404 });
     }
 
+    const { db, tables } = await getDatabase();
     const rows = await db
       .select()
       .from(tables.labelVersions)
@@ -42,12 +36,12 @@ export async function GET(
 
     const row = rows[0];
     return NextResponse.json({
-      id: labelRows[0].id,
-      name: labelRows[0].name,
+      id: label.id,
+      name: label.name,
       version: row.version,
       status: row.status,
       document: row.document,
-      updatedAt: labelRows[0].updatedAt.toISOString(),
+      updatedAt: label.updatedAt.toISOString(),
     });
   } catch (e) {
     console.error('GET /api/labels/[id]/versions/[version] failed:', e);

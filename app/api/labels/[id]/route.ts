@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { eq, and, desc, isNull } from 'drizzle-orm';
-import { getDatabase, parseThumbnail } from '@/lib/db';
+import { eq } from 'drizzle-orm';
+import {
+  findLabel,
+  findLatestActiveVersion,
+  getDatabase,
+  parseThumbnail,
+  summaryFieldsFromDocument,
+} from '@/lib/server/labels';
 import { validateDocumentDeep } from '@/lib/documents/validate';
 
 export async function GET(
@@ -9,33 +15,15 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const { db, tables } = await getDatabase();
-
-    const labelRows = await db
-      .select()
-      .from(tables.labels)
-      .where(eq(tables.labels.id, id))
-      .limit(1);
-
-    if (labelRows.length === 0) {
+    const label = await findLabel(id);
+    if (!label) {
       return NextResponse.json({ error: 'Label not found' }, { status: 404 });
     }
 
-    const label = labelRows[0];
-
-    // Get latest non-archived version
-    const versions = await db
-      .select()
-      .from(tables.labelVersions)
-      .where(and(eq(tables.labelVersions.labelId, id), isNull(tables.labelVersions.archivedAt)))
-      .orderBy(desc(tables.labelVersions.version))
-      .limit(1);
-
-    if (versions.length === 0) {
+    const latest = await findLatestActiveVersion(id);
+    if (!latest) {
       return NextResponse.json({ error: 'No versions found' }, { status: 404 });
     }
-
-    const latest = versions[0];
 
     return NextResponse.json({
       id: label.id,
@@ -75,31 +63,13 @@ export async function PUT(
 
   try {
     const { id } = await params;
-    const { db, tables } = await getDatabase();
-
-    const labelRows = await db
-      .select()
-      .from(tables.labels)
-      .where(eq(tables.labels.id, id))
-      .limit(1);
-
-    if (labelRows.length === 0) {
+    const label = await findLabel(id);
+    if (!label) {
       return NextResponse.json({ error: 'Label not found' }, { status: 404 });
     }
 
-    const now = new Date();
-    const thumbnailData = parseThumbnail(thumbnail);
-
-    // Get latest non-archived version
-    const versions = await db
-      .select()
-      .from(tables.labelVersions)
-      .where(and(eq(tables.labelVersions.labelId, id), isNull(tables.labelVersions.archivedAt)))
-      .orderBy(desc(tables.labelVersions.version))
-      .limit(1);
-
-    const latest = versions[0];
-    const labelName = name || labelRows[0].name;
+    const latest = await findLatestActiveVersion(id);
+    const labelName = name || label.name;
 
     if (latest && latest.status === 'published') {
       return NextResponse.json(
@@ -108,7 +78,11 @@ export async function PUT(
       );
     }
 
-    // Overwrite latest version — transaction for atomicity
+    const now = new Date();
+    const thumbnailData = parseThumbnail(thumbnail);
+    const summary = summaryFieldsFromDocument(document);
+    const { db, tables } = await getDatabase();
+
     await db.transaction(async (tx) => {
       await tx.update(tables.labels)
         .set({ name: labelName, updatedAt: now })
@@ -118,7 +92,8 @@ export async function PUT(
           .set({
             document,
             thumbnail: thumbnailData ?? latest.thumbnail,
-            createdAt: now,
+            ...summary,
+            updatedAt: now,
           })
           .where(eq(tables.labelVersions.id, latest.id));
       } else {
@@ -129,6 +104,7 @@ export async function PUT(
           status: null,
           document,
           thumbnail: thumbnailData,
+          ...summary,
           createdAt: now,
         });
       }
@@ -164,18 +140,12 @@ export async function PATCH(
 
   try {
     const { id } = await params;
-    const { db, tables } = await getDatabase();
-
-    const labelRows = await db
-      .select()
-      .from(tables.labels)
-      .where(eq(tables.labels.id, id))
-      .limit(1);
-
-    if (labelRows.length === 0) {
+    const label = await findLabel(id);
+    if (!label) {
       return NextResponse.json({ error: 'Label not found' }, { status: 404 });
     }
 
+    const { db, tables } = await getDatabase();
     await db.update(tables.labels)
       .set({ name: name.trim(), updatedAt: new Date() })
       .where(eq(tables.labels.id, id));
@@ -194,21 +164,14 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const { db, tables } = await getDatabase();
-
-    const labelRows = await db
-      .select()
-      .from(tables.labels)
-      .where(eq(tables.labels.id, id))
-      .limit(1);
-
-    if (labelRows.length === 0) {
+    const label = await findLabel(id);
+    if (!label) {
       return NextResponse.json({ error: 'Label not found' }, { status: 404 });
     }
 
-    // If already archived, unarchive; otherwise archive
     const unarchive = request.nextUrl.searchParams.get('unarchive') === 'true';
     const now = new Date();
+    const { db, tables } = await getDatabase();
 
     await db.update(tables.labels)
       .set({ archivedAt: unarchive ? null : now, updatedAt: now })
