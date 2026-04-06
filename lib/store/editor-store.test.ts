@@ -508,4 +508,319 @@ describe('editor store', () => {
       expect(useEditorStore.getState().currentLabelName).toBe('Label B');
     });
   });
+
+  // =========================================================================
+  // Characterization tests — capture current behavior before refactoring
+  // =========================================================================
+
+  describe('updateMultipleLayouts', () => {
+    it('updates multiple components in a single set call', () => {
+      const id1 = useEditorStore.getState().addComponent('rectangle', { x: 0, y: 0 });
+      const id2 = useEditorStore.getState().addComponent('rectangle', { x: 50, y: 50 });
+      useEditorStore.getState().updateMultipleLayouts([
+        { id: id1, layout: { x: 100 } },
+        { id: id2, layout: { x: 200 } },
+      ]);
+      expect(useEditorStore.getState().document.components[0].layout.x).toBe(100);
+      expect(useEditorStore.getState().document.components[1].layout.x).toBe(200);
+    });
+
+    it('skips non-existent component IDs', () => {
+      const id = useEditorStore.getState().addComponent('rectangle');
+      useEditorStore.getState().updateMultipleLayouts([
+        { id, layout: { x: 77 } },
+        { id: 'nonexistent', layout: { x: 999 } },
+      ]);
+      expect(useEditorStore.getState().document.components[0].layout.x).toBe(77);
+    });
+  });
+
+  describe('updateFieldBinding', () => {
+    it('sets a field binding', () => {
+      const id = useEditorStore.getState().addComponent('text');
+      useEditorStore.getState().updateFieldBinding(id, 'sku');
+      expect(useEditorStore.getState().document.components[0].fieldBinding).toBe('sku');
+    });
+
+    it('clears a field binding with undefined', () => {
+      const id = useEditorStore.getState().addComponent('text');
+      useEditorStore.getState().updateFieldBinding(id, 'sku');
+      useEditorStore.getState().updateFieldBinding(id, undefined);
+      expect(useEditorStore.getState().document.components[0].fieldBinding).toBeUndefined();
+    });
+
+    it('clears a field binding with empty string', () => {
+      const id = useEditorStore.getState().addComponent('text');
+      useEditorStore.getState().updateFieldBinding(id, 'sku');
+      useEditorStore.getState().updateFieldBinding(id, '');
+      // Empty string is falsy, so binding should be deleted
+      expect(useEditorStore.getState().document.components[0].fieldBinding).toBeUndefined();
+    });
+  });
+
+  describe('updateVisibilityCondition', () => {
+    it('sets a visibility condition', () => {
+      const id = useEditorStore.getState().addComponent('text');
+      const condition = { field: 'sku', operator: '==' as const, value: 'ABC' };
+      useEditorStore.getState().updateVisibilityCondition(id, condition);
+      expect(useEditorStore.getState().document.components[0].visibilityCondition).toEqual(condition);
+    });
+
+    it('clears a visibility condition', () => {
+      const id = useEditorStore.getState().addComponent('text');
+      useEditorStore.getState().updateVisibilityCondition(id, { field: 'x', operator: 'isEmpty' });
+      useEditorStore.getState().updateVisibilityCondition(id, undefined);
+      expect(useEditorStore.getState().document.components[0].visibilityCondition).toBeUndefined();
+    });
+  });
+
+  describe('toggleLock', () => {
+    it('toggles lockX on a component', () => {
+      const id = useEditorStore.getState().addComponent('text');
+      expect(useEditorStore.getState().document.components[0].layout.lockX).toBeFalsy();
+      useEditorStore.getState().toggleLock(id, 'x');
+      expect(useEditorStore.getState().document.components[0].layout.lockX).toBe(true);
+      useEditorStore.getState().toggleLock(id, 'x');
+      expect(useEditorStore.getState().document.components[0].layout.lockX).toBe(false);
+    });
+
+    it('toggles lockY independently of lockX', () => {
+      const id = useEditorStore.getState().addComponent('text');
+      useEditorStore.getState().toggleLock(id, 'x');
+      useEditorStore.getState().toggleLock(id, 'y');
+      const layout = useEditorStore.getState().document.components[0].layout;
+      expect(layout.lockX).toBe(true);
+      expect(layout.lockY).toBe(true);
+    });
+  });
+
+  describe('toggleRulers', () => {
+    it('toggles showRulers', () => {
+      expect(useEditorStore.getState().showRulers).toBe(true);
+      useEditorStore.getState().toggleRulers();
+      expect(useEditorStore.getState().showRulers).toBe(false);
+      useEditorStore.getState().toggleRulers();
+      expect(useEditorStore.getState().showRulers).toBe(true);
+    });
+  });
+
+  describe('setReadOnly', () => {
+    it('sets readOnly flag', () => {
+      expect(useEditorStore.getState().readOnly).toBe(false);
+      useEditorStore.getState().setReadOnly(true);
+      expect(useEditorStore.getState().readOnly).toBe(true);
+      useEditorStore.getState().setReadOnly(false);
+      expect(useEditorStore.getState().readOnly).toBe(false);
+    });
+  });
+
+  describe('variables', () => {
+    it('addVariable initializes array if missing and adds', () => {
+      expect(useEditorStore.getState().document.variables).toBeUndefined();
+      useEditorStore.getState().addVariable({ name: 'sku', type: 'text', defaultValue: '' });
+      expect(useEditorStore.getState().document.variables).toHaveLength(1);
+      expect(useEditorStore.getState().document.variables![0].name).toBe('sku');
+    });
+
+    it('addVariable appends to existing array', () => {
+      useEditorStore.getState().addVariable({ name: 'sku', type: 'text', defaultValue: '' });
+      useEditorStore.getState().addVariable({ name: 'qty', type: 'text', defaultValue: '1' });
+      expect(useEditorStore.getState().document.variables).toHaveLength(2);
+    });
+
+    it('updateVariable merges updates onto existing variable', () => {
+      useEditorStore.getState().addVariable({ name: 'sku', type: 'text', defaultValue: '' });
+      useEditorStore.getState().updateVariable('sku', { defaultValue: 'ABC' });
+      expect(useEditorStore.getState().document.variables![0].defaultValue).toBe('ABC');
+    });
+
+    it('updateVariable is a no-op for non-existent variable', () => {
+      useEditorStore.getState().addVariable({ name: 'sku', type: 'text', defaultValue: '' });
+      useEditorStore.getState().updateVariable('nonexistent', { defaultValue: 'X' });
+      expect(useEditorStore.getState().document.variables![0].defaultValue).toBe('');
+    });
+
+    it('removeVariable removes by name', () => {
+      useEditorStore.getState().addVariable({ name: 'sku', type: 'text', defaultValue: '' });
+      useEditorStore.getState().addVariable({ name: 'qty', type: 'text', defaultValue: '' });
+      useEditorStore.getState().removeVariable('sku');
+      expect(useEditorStore.getState().document.variables).toHaveLength(1);
+      expect(useEditorStore.getState().document.variables![0].name).toBe('qty');
+    });
+
+    it('removeVariable is a no-op if variables undefined', () => {
+      useEditorStore.getState().removeVariable('sku');
+      expect(useEditorStore.getState().document.variables).toBeUndefined();
+    });
+  });
+
+  describe('renameVariant', () => {
+    it('renames and updates activeVariant if renaming active', () => {
+      useEditorStore.getState().renameVariant('Default', 'Primary');
+      expect(useEditorStore.getState().document.label.variants[0].name).toBe('Primary');
+      expect(useEditorStore.getState().activeVariant).toBe('Primary');
+    });
+
+    it('does not rename to empty string', () => {
+      useEditorStore.getState().renameVariant('Default', '');
+      expect(useEditorStore.getState().document.label.variants[0].name).toBe('Default');
+    });
+
+    it('does not rename to whitespace-only string', () => {
+      useEditorStore.getState().renameVariant('Default', '   ');
+      expect(useEditorStore.getState().document.label.variants[0].name).toBe('Default');
+    });
+
+    it('does not rename to a duplicate name', () => {
+      useEditorStore.getState().addVariant({ name: 'UK', widthDots: 800, heightDots: 1197, unit: 'mm' });
+      useEditorStore.getState().renameVariant('Default', 'UK');
+      expect(useEditorStore.getState().document.label.variants[0].name).toBe('Default');
+    });
+
+    it('allows renaming to same name (no-op)', () => {
+      useEditorStore.getState().renameVariant('Default', 'Default');
+      expect(useEditorStore.getState().document.label.variants[0].name).toBe('Default');
+    });
+  });
+
+  describe('setActiveVariant', () => {
+    it('does not switch to non-existent variant', () => {
+      useEditorStore.getState().setActiveVariant('NonExistent');
+      expect(useEditorStore.getState().activeVariant).toBe('Default');
+    });
+  });
+
+  describe('loadDocument with legacy constraints', () => {
+    it('migrates legacy constraints to layout model', () => {
+      const legacyDoc = {
+        version: 1 as const,
+        label: { dpi: 203 as const, variants: [{ name: 'Default', widthDots: 406, heightDots: 203, unit: 'in' as const }] },
+        components: [{
+          id: 'comp-1',
+          name: 'Text 1',
+          constraints: { left: 10, top: 20, width: 100, height: 50 },
+          pins: ['left', 'top'],
+          typeData: { type: 'rectangle' as const, props: { borderThickness: 2, cornerRadius: 0, filled: false } },
+        }],
+      };
+      useEditorStore.getState().loadDocument(legacyDoc as unknown as LabelDocument);
+      const comp = useEditorStore.getState().document.components[0];
+      expect(comp.layout).toBeDefined();
+      expect(comp.layout.x).toBe(10);
+      expect(comp.layout.y).toBe(20);
+      expect(comp.layout.width).toBe(100);
+      expect(comp.layout.height).toBe(50);
+      expect(comp.layout.horizontalAnchor).toBe('left');
+      expect(comp.layout.verticalAnchor).toBe('top');
+      expect(comp.constraints).toBeUndefined();
+      expect(comp.pins).toBeUndefined();
+    });
+  });
+
+  describe('undo batching during drag', () => {
+    it('collapses multiple layout updates during drag into one undo entry', () => {
+      vi.useFakeTimers();
+      const id = useEditorStore.getState().addComponent('rectangle', { x: 0, y: 0, width: 100, height: 50 });
+      // Flush the addComponent to undo history
+      vi.advanceTimersByTime(1000);
+
+      const undoBefore = useEditorStore.temporal.getState().pastStates.length;
+
+      // Start drag
+      useEditorStore.getState().setDragState({
+        componentId: id,
+        startX: 0,
+        startY: 0,
+        startLayout: { ...useEditorStore.getState().document.components[0].layout },
+      });
+
+      // Multiple layout updates during drag
+      useEditorStore.getState().updateLayout(id, { x: 10 });
+      useEditorStore.getState().updateLayout(id, { x: 20 });
+      useEditorStore.getState().updateLayout(id, { x: 30 });
+
+      // End drag
+      useEditorStore.getState().setDragState(null);
+      vi.advanceTimersByTime(1000);
+
+      const undoAfter = useEditorStore.temporal.getState().pastStates.length;
+      // Should have exactly one new undo entry (the batch)
+      expect(undoAfter - undoBefore).toBe(1);
+
+      // Current position should be the final drag position
+      expect(useEditorStore.getState().document.components[0].layout.x).toBe(30);
+
+      // Undo should restore to pre-drag position
+      useEditorStore.temporal.getState().undo();
+      expect(useEditorStore.getState().document.components[0].layout.x).toBe(0);
+
+      vi.useRealTimers();
+    });
+  });
+
+  describe('undo batching during resize', () => {
+    it('collapses multiple layout updates during resize into one undo entry', () => {
+      vi.useFakeTimers();
+      const id = useEditorStore.getState().addComponent('rectangle', { x: 0, y: 0, width: 100, height: 50 });
+      vi.advanceTimersByTime(1000);
+
+      const undoBefore = useEditorStore.temporal.getState().pastStates.length;
+
+      useEditorStore.getState().setResizeState({
+        componentId: id,
+        handle: 'right',
+        startX: 100,
+        startY: 0,
+        startLayout: { ...useEditorStore.getState().document.components[0].layout },
+      });
+
+      useEditorStore.getState().updateLayout(id, { width: 150 });
+      useEditorStore.getState().updateLayout(id, { width: 200 });
+
+      useEditorStore.getState().setResizeState(null);
+      vi.advanceTimersByTime(1000);
+
+      const undoAfter = useEditorStore.temporal.getState().pastStates.length;
+      expect(undoAfter - undoBefore).toBe(1);
+
+      expect(useEditorStore.getState().document.components[0].layout.width).toBe(200);
+      useEditorStore.temporal.getState().undo();
+      expect(useEditorStore.getState().document.components[0].layout.width).toBe(100);
+
+      vi.useRealTimers();
+    });
+  });
+
+  describe('duplicate clears locks', () => {
+    it('removes lockX and lockY from duplicated component', () => {
+      const id = useEditorStore.getState().addComponent('rectangle');
+      useEditorStore.getState().toggleLock(id, 'x');
+      useEditorStore.getState().toggleLock(id, 'y');
+      useEditorStore.getState().duplicateComponent(id);
+      const copy = useEditorStore.getState().document.components[1];
+      expect(copy.layout.lockX).toBeUndefined();
+      expect(copy.layout.lockY).toBeUndefined();
+    });
+  });
+
+  describe('duplicate offset respects right anchor', () => {
+    it('offsets in negative direction for right-anchored component', () => {
+      const id = useEditorStore.getState().addComponent('rectangle', { x: 50, width: 100, height: 50 });
+      useEditorStore.getState().setAnchor(id, 'right');
+      const xBefore = useEditorStore.getState().document.components[0].layout.x;
+      useEditorStore.getState().duplicateComponent(id);
+      const copy = useEditorStore.getState().document.components[1];
+      // Right anchor: offset subtracts (moves visually right = toward center)
+      expect(copy.layout.x).toBe(xBefore - 20);
+    });
+  });
+
+  describe('center anchor', () => {
+    it('sets x to 0 for center anchor', () => {
+      const id = useEditorStore.getState().addComponent('rectangle', { x: 50, width: 100, height: 50 });
+      useEditorStore.getState().setAnchor(id, 'center');
+      expect(useEditorStore.getState().document.components[0].layout.x).toBe(0);
+      expect(useEditorStore.getState().document.components[0].layout.horizontalAnchor).toBe('center');
+    });
+  });
 });
