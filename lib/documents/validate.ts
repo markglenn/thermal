@@ -6,6 +6,7 @@ import type {
   BarcodeEncoding,
   QrErrorCorrection,
   TextJustification,
+  VerticalAlign,
   MonochromeMethod,
   ImageObjectFit,
   ImageObjectPosition,
@@ -67,6 +68,7 @@ const VALID_FONTS: readonly ZplFont[] = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
 const VALID_BARCODE_ENCODINGS: readonly BarcodeEncoding[] = ['code128', 'code39', 'ean13', 'upca', 'itf'];
 const VALID_QR_EC: readonly QrErrorCorrection[] = ['H', 'Q', 'M', 'L'];
 const VALID_JUSTIFICATIONS: readonly TextJustification[] = ['L', 'C', 'R', 'J'];
+const VALID_VERTICAL_ALIGNS: readonly VerticalAlign[] = ['top', 'center', 'bottom'];
 const VALID_MONOCHROME_METHODS: readonly MonochromeMethod[] = ['threshold', 'dither', 'ordered'];
 const VALID_OBJECT_FIT: readonly ImageObjectFit[] = ['fit', 'fill', 'stretch'];
 const VALID_OBJECT_POSITION: readonly ImageObjectPosition[] = [
@@ -143,6 +145,9 @@ function validateTextProps(v: unknown, ctx: Ctx): void {
     if (typeof fbo.maxLines !== 'number' || (fbo.maxLines as number) < 1) err(child(fb, 'maxLines'), 'must be >= 1');
     if (typeof fbo.lineSpacing !== 'number') err(child(fb, 'lineSpacing'), 'must be a number');
     if (!isOneOf(fbo.justification, VALID_JUSTIFICATIONS)) err(child(fb, 'justification'), `must be one of: ${VALID_JUSTIFICATIONS.join(', ')}`);
+    if (fbo.verticalAlign !== undefined && !isOneOf(fbo.verticalAlign, VALID_VERTICAL_ALIGNS)) {
+      err(child(fb, 'verticalAlign'), `must be one of: ${VALID_VERTICAL_ALIGNS.join(', ')}`);
+    }
   }
 }
 

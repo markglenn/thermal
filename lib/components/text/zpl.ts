@@ -4,7 +4,25 @@ import { getZplFontWithRotation } from '@/lib/zpl/fonts';
 
 export function generateTextZpl(props: TextProperties, bounds: ResolvedBounds): string[] {
   const lines: string[] = [];
-  lines.push(fieldOrigin(bounds.x, bounds.y));
+  let y = bounds.y;
+
+  if (props.fieldBlock) {
+    const fb = props.fieldBlock;
+    const va = fb.verticalAlign;
+
+    // For vertical alignment, offset Y so the text block is centered/bottom
+    // within the fixed-height box. Estimate content height from maxLines.
+    if (va === 'center' || va === 'bottom') {
+      const lineHeight = props.fontSize + fb.lineSpacing;
+      const contentHeight = fb.maxLines * lineHeight;
+      const gap = bounds.height - contentHeight;
+      if (gap > 0) {
+        y += va === 'center' ? Math.round(gap / 2) : gap;
+      }
+    }
+  }
+
+  lines.push(fieldOrigin(bounds.x, y));
   lines.push(getZplFontWithRotation(props.font, props.fontSize, props.fontWidth, props.rotation));
   if (props.fieldBlock) {
     const fb = props.fieldBlock;

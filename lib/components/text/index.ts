@@ -32,6 +32,8 @@ export const textComponent: ComponentDefinition<TextProperties> = {
   // source of truth for both auto and width-only sizing.
   getSizingMode: (component) => {
     if (component.typeData.type === 'text' && component.typeData.props.fieldBlock) {
+      const va = component.typeData.props.fieldBlock.verticalAlign;
+      if (va === 'center' || va === 'bottom') return 'fixed';
       return 'width-only';
     }
     return 'auto';

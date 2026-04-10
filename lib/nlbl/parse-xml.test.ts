@@ -109,6 +109,7 @@ describe('parseFormatXml', () => {
       <Items>
         <Item Type="TextDocumentItem">
           <Name>Title</Name>
+          <TextType>2</TextType>
           <FontDescriptor Type="FontDescriptor">
             <Name>Arial</Name>
             <Height>14</Height>
@@ -159,6 +160,7 @@ describe('parseFormatXml', () => {
     expect(text.height).toBe(2540);
     expect(text.content).toBe('Hello');
     expect(text.fontPointSize).toBe(14);
+    expect(text.textType).toBe(2);
     expect(text.fontWeight).toBe(700);
     expect(text.justification).toBe(2);
     expect(text.zOrder).toBe(10001);

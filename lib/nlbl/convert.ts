@@ -3,6 +3,7 @@ import type {
   LabelComponent,
   LabelVariable,
   TextJustification,
+  VerticalAlign,
 } from '../types';
 import type { NlblParsedLabel, NlblTextItem, NlblBarcodeItem, NlblRectangleItem, NlblLineItem, NlblVariable } from './types';
 
@@ -57,6 +58,13 @@ function adjustForAnchor(
   }
 
   return { left: adjustedLeft, top: adjustedTop };
+}
+
+function mapVerticalAlign(anchor: number): VerticalAlign | undefined {
+  // AnchoringPoint: 0=TL 1=TC 2=TR 3=ML 4=MC 5=MR 6=BL 7=BC 8=BR
+  if (anchor >= 3 && anchor <= 5) return 'center';
+  if (anchor >= 6 && anchor <= 8) return 'bottom';
+  return undefined; // top is the default, omit
 }
 
 function mapJustification(nlblAlign: number): TextJustification {
@@ -176,7 +184,11 @@ function convertTextItem(
   }
   const fontSize = pointsToDots(item.fontPointSize, dpi);
   const justification = mapJustification(item.justification);
-  const needsFieldBlock = justification !== 'L' || item.width > 0;
+  const verticalAlign = mapVerticalAlign(item.anchoringPoint);
+  // TextType 2 = Text Box (fixed-size rectangle), always needs a field block.
+  // Also create field block for non-left justification.
+  const isTextBox = item.textType === 2;
+  const needsFieldBlock = isTextBox || justification !== 'L';
 
   const width = micronsToDots(item.width, dpi);
   const height = micronsToDots(item.height, dpi);
@@ -204,9 +216,10 @@ function convertTextItem(
         rotation: 0,
         ...(needsFieldBlock ? {
           fieldBlock: {
-            maxLines: Math.max(1, Math.floor(height / fontSize) || 1),
+            maxLines: Math.max(1, Math.round(height / fontSize) || 1),
             lineSpacing: 0,
             justification,
+            ...(verticalAlign ? { verticalAlign } : {}),
           },
         } : {}),
       },

@@ -52,11 +52,13 @@ export type ZplFont = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | '0';
 export type Rotation = 0 | 90 | 180 | 270;
 
 export type TextJustification = 'L' | 'C' | 'R' | 'J';
+export type VerticalAlign = 'top' | 'center' | 'bottom';
 
 export interface FieldBlockProperties {
   maxLines: number;
   lineSpacing: number;
   justification: TextJustification;
+  verticalAlign?: VerticalAlign;
 }
 
 export interface TextProperties {

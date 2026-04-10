@@ -1,6 +1,6 @@
 'use client';
 
-import type { TextProperties as TextPropsType, ZplFont, Rotation, TextJustification, FieldBlockProperties } from '@/lib/types';
+import type { TextProperties as TextPropsType, ZplFont, Rotation, TextJustification, VerticalAlign, FieldBlockProperties } from '@/lib/types';
 import { useEditorStoreContext, usePauseTracking, useResumeTracking } from '@/lib/store/editor-context';
 import { NumberInput } from '@/components/properties/NumberInput';
 
@@ -148,6 +148,20 @@ export function TextProperties({ componentId, props }: Props) {
                   <option value="J">Justify</option>
                 </select>
               </label>
+              <label className="flex-1">
+                <span className="text-xs text-gray-500">V-Align</span>
+                <select
+                  value={fb.verticalAlign ?? 'top'}
+                  onChange={(e) => updateFieldBlock({ verticalAlign: (e.target.value === 'top' ? undefined : e.target.value) as VerticalAlign | undefined })}
+                  className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm"
+                >
+                  <option value="top">Top</option>
+                  <option value="center">Center</option>
+                  <option value="bottom">Bottom</option>
+                </select>
+              </label>
+            </div>
+            <div className="flex gap-2">
               <label className="flex-1">
                 <span className="text-xs text-gray-500">Line Spacing</span>
                 <NumberInput value={fb.lineSpacing} onChange={(v) => updateFieldBlock({ lineSpacing: v })} min={-20} max={100} fallback={0} />

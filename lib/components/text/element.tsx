@@ -155,6 +155,7 @@ export function TextElement({ props, isSelected: _isSelected }: Props) {
         transform: wrapperTransform,
         transformOrigin: wrapperOrigin,
         width: fontStyle.scaleX !== 1 ? `${(1 / fontStyle.scaleX) * 100}%` : '100%',
+        height: (fb.verticalAlign === 'center' || fb.verticalAlign === 'bottom') ? '100%' : undefined,
       }}>
         <FieldBlockText
           content={props.content}
@@ -163,6 +164,7 @@ export function TextElement({ props, isSelected: _isSelected }: Props) {
           maxLines={fb.maxLines}
           lineSpacing={fb.lineSpacing}
           fontSize={props.fontSize}
+          verticalAlign={fb.verticalAlign}
         />
       </div>
     );
@@ -181,17 +183,19 @@ export function TextElement({ props, isSelected: _isSelected }: Props) {
  * renders each line as a positioned div. Overflow lines are stacked on
  * top of the last allowed line, replicating the printer's overwrite effect.
  */
-function FieldBlockText({ content, baseStyle, justification, maxLines, lineSpacing, fontSize }: {
+function FieldBlockText({ content, baseStyle, justification, maxLines, lineSpacing, fontSize, verticalAlign }: {
   content: string;
   baseStyle: React.CSSProperties;
   justification: string;
   maxLines: number;
   lineSpacing: number;
   fontSize: number;
+  verticalAlign?: string;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const measureRef = useRef<HTMLDivElement | null>(null);
   const [lineState, setLineState] = useState<{ key: string; lines: string[] } | null>(null);
+  const [vAlignOffset, setVAlignOffset] = useState(0);
 
   // Derive a key from inputs that affect line breaks
   const inputKey = `${content}|${fontSize}|${lineSpacing}|${maxLines}|${justification}`;
@@ -231,6 +235,26 @@ function FieldBlockText({ content, baseStyle, justification, maxLines, lineSpaci
     return () => cancelAnimationFrame(raf);
   });
 
+  // Compute vertical alignment offset from the container's actual height.
+  // Must be in an effect since it reads ref.current.
+  const isFixedHeight = verticalAlign === 'center' || verticalAlign === 'bottom';
+  useLayoutEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      if (!isFixedHeight) { setVAlignOffset(0); return; }
+      const el = containerRef.current;
+      if (!el) { setVAlignOffset(0); return; }
+      const boxHeight = el.parentElement?.offsetHeight ?? 0;
+      const renderedCount = currentLines
+        ? Math.min(currentLines.length, maxLines > 0 ? maxLines : currentLines.length)
+        : 1;
+      const contentH = renderedCount * (fontSize + lineSpacing);
+      const gap = boxHeight - contentH;
+      if (gap <= 0) { setVAlignOffset(0); return; }
+      setVAlignOffset(verticalAlign === 'center' ? Math.round(gap / 2) : gap);
+    });
+    return () => cancelAnimationFrame(raf);
+  });
+
   const textAlign = JUSTIFICATION_MAP[justification] || 'left';
   const lineHeightPx = fontSize + lineSpacing;
 
@@ -257,12 +281,17 @@ function FieldBlockText({ content, baseStyle, justification, maxLines, lineSpaci
     </div>
   );
 
-  const minHeight = maxLines > 0 ? maxLines * lineHeightPx : undefined;
+  const isFixedHeightFallback = verticalAlign === 'center' || verticalAlign === 'bottom';
+  const minHeight = isFixedHeightFallback ? undefined : (maxLines > 0 ? maxLines * lineHeightPx : undefined);
 
   // Before measurement, show fallback with line-clamp
   if (!currentLines) {
+    const flexAlign = verticalAlign === 'center' ? 'center' : verticalAlign === 'bottom' ? 'flex-end' : undefined;
     return (
-      <div ref={setContainerRef} style={{ ...baseStyle, textAlign, position: 'relative', minHeight }}>
+      <div ref={setContainerRef} style={{
+        ...baseStyle, textAlign, position: 'relative', minHeight,
+        ...(isFixedHeightFallback ? { height: '100%', display: 'flex', flexDirection: 'column' as const, justifyContent: flexAlign } : {}),
+      }}>
         {measureElement}
         <div
           style={{
@@ -286,7 +315,7 @@ function FieldBlockText({ content, baseStyle, justification, maxLines, lineSpaci
   }
 
   const hasOverflow = maxLines > 0 && currentLines.length > maxLines;
-  const visibleHeight = maxLines > 0 ? maxLines * lineHeightPx : undefined;
+  const visibleHeight = isFixedHeight ? '100%' : (maxLines > 0 ? maxLines * lineHeightPx : undefined);
 
   return (
     <div
@@ -309,7 +338,7 @@ function FieldBlockText({ content, baseStyle, justification, maxLines, lineSpaci
             key={i}
             style={{
               position: 'absolute',
-              top: effectiveIndex * lineHeightPx,
+              top: vAlignOffset + effectiveIndex * lineHeightPx,
               left: 0,
               right: 0,
               whiteSpace: 'nowrap',

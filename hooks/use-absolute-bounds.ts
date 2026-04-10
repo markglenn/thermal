@@ -71,9 +71,13 @@ export function useAbsoluteBounds() {
           const m = measuredSizes.get(comp.id);
           if (m) {
             const sizing = getSizingMode(comp);
-            // width-only: keep layout width, only use measured height
-            if (sizing !== 'width-only') w = m.width;
-            h = m.height;
+            // fixed: keep both layout width and height
+            // width-only: keep layout width, use measured height
+            // auto: use both measured dimensions
+            if (sizing !== 'fixed') {
+              if (sizing !== 'width-only') w = m.width;
+              h = m.height;
+            }
           }
         }
 

@@ -22,6 +22,7 @@ export interface NlblTextItem {
   fontPointSize: number; // FontDescriptor.Height in points
   fontWeight: number; // 0 = normal, 700 = bold
   justification: number; // 0 = left, 1 = right, 2 = center
+  textType: number; // 1=Text (auto-size), 2=TextBox (fixed-size)
   bestFit: boolean;
   zOrder: number;
   dataSourceId: string | null;

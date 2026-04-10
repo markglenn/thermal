@@ -122,8 +122,19 @@ export function createComponentActions(set: ImmerSet<EditorStore>, get: StoreGet
           recomputeContentSize(comp);
           if (comp.typeData.type === 'text') {
             const textProps = comp.typeData.props as import('../../types').TextProperties;
+            // Recalculate height from maxLines, but only for width-only sizing (top-aligned).
+            // Fixed-height boxes (verticalAlign center/bottom) keep their layout height.
+            const va = textProps.fieldBlock?.verticalAlign;
+            const isFixed = va === 'center' || va === 'bottom';
             if (textProps.fieldBlock && textProps.fieldBlock.maxLines > 0) {
-              comp.layout.height = textProps.fieldBlock.maxLines * (textProps.fontSize + textProps.fieldBlock.lineSpacing);
+              if (isFixed) {
+                // Fixed-height: keep layout height, recalculate maxLines to fit
+                const lh = textProps.fontSize + textProps.fieldBlock.lineSpacing;
+                textProps.fieldBlock.maxLines = Math.max(1, Math.round(comp.layout.height / lh));
+              } else {
+                // Width-only: recalculate height from maxLines
+                comp.layout.height = textProps.fieldBlock.maxLines * (textProps.fontSize + textProps.fieldBlock.lineSpacing);
+              }
             }
           }
         }

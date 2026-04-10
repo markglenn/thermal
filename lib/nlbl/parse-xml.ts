@@ -153,6 +153,7 @@ function parseTextItem(item: Record<string, unknown>): NlblTextItem {
       )?.Weight,
     ),
     justification: num(item.TextBoxAlignment),
+    textType: num(item.TextType),
     bestFit: num(item.BestFit) === 1,
     zOrder: num(item.ZOrder),
     dataSourceId: text(
