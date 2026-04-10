@@ -47,7 +47,7 @@ describe('convertNlblToDocument', () => {
     expect(doc.label.dpi).toBe(203);
     expect(doc.label.variants[0].widthDots).toBe(812);
     expect(doc.label.variants[0].heightDots).toBe(812);
-    expect(doc.label.variants[0].unit).toBe('mm');
+    expect(doc.label.variants[0].unit).toBe('in'); // 4"x4" detected as clean inches
     expect(doc.components).toHaveLength(0);
   });
 

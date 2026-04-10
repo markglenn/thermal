@@ -161,6 +161,12 @@ export function convertNlblToDocument(
   const widthDots = micronsToDots(parsed.media.widthMicrons, dpi);
   const heightDots = micronsToDots(parsed.media.heightMicrons, dpi);
 
+  // Use inches if both dimensions are clean inch values (to 1/8" precision),
+  // otherwise default to mm.
+  const widthInches = parsed.media.widthMicrons / 25400;
+  const heightInches = parsed.media.heightMicrons / 25400;
+  const isCleanInches = (widthInches * 8) % 1 < 0.01 && (heightInches * 8) % 1 < 0.01;
+
   return {
     version: 1,
     label: {
@@ -169,7 +175,7 @@ export function convertNlblToDocument(
         name: 'Default',
         widthDots,
         heightDots,
-        unit: 'mm',
+        unit: isCleanInches ? 'in' : 'mm',
       }],
     },
     components,
