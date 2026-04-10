@@ -85,6 +85,7 @@ export function parseSolutionXml(xml: string): NlblVariable[] {
 
 interface FormatParseResult {
   media: NlblMedia;
+  dpi: 203 | 300 | 600;
   textItems: NlblTextItem[];
   barcodeItems: NlblBarcodeItem[];
   rectangleItems: NlblRectangleItem[];
@@ -105,6 +106,9 @@ export function parseFormatXml(xml: string): FormatParseResult {
     heightMicrons: num(root.Media?.Height),
   };
 
+  // Extract DPI from DevModeBuffer (Windows DEVMODE: dmPrintQuality at offset 90)
+  const dpi = extractDpiFromPrintScenario(root) ?? 203;
+
   const textItems: NlblTextItem[] = [];
   const barcodeItems: NlblBarcodeItem[] = [];
   const rectangleItems: NlblRectangleItem[] = [];
@@ -113,11 +117,11 @@ export function parseFormatXml(xml: string): FormatParseResult {
 
   // Navigate to document items
   const designs = root.DocumentDesigns?.DocumentDesign;
-  if (!designs) return { media, textItems, barcodeItems, rectangleItems, lineItems, graphicItems };
+  if (!designs) return { media, dpi, textItems, barcodeItems, rectangleItems, lineItems, graphicItems };
 
   const design = Array.isArray(designs) ? designs[0] : designs;
   const items = design?.Items?.Item;
-  if (!items) return { media, textItems, barcodeItems, rectangleItems, lineItems, graphicItems };
+  if (!items) return { media, dpi, textItems, barcodeItems, rectangleItems, lineItems, graphicItems };
 
   const itemList = Array.isArray(items) ? items : [items];
 
@@ -137,7 +141,32 @@ export function parseFormatXml(xml: string): FormatParseResult {
     }
   }
 
-  return { media, textItems, barcodeItems, rectangleItems, lineItems, graphicItems };
+  return { media, dpi, textItems, barcodeItems, rectangleItems, lineItems, graphicItems };
+}
+
+const VALID_DPI = new Set([203, 300, 600]);
+
+/**
+ * Extract DPI from the PrintScenario's DevModeBuffer.
+ * The Windows DEVMODE structure stores dmPrintQuality (X DPI) at byte offset 90.
+ */
+function extractDpiFromPrintScenario(root: Record<string, unknown>): 203 | 300 | 600 | null {
+  try {
+    const scenarios = root.PrintScenarioCollection as Record<string, unknown> | undefined;
+    const scenario = (scenarios?.PrintScenarioCollection ?? scenarios) as Record<string, unknown> | undefined;
+    const printer = scenario?.Printer as Record<string, unknown> | undefined;
+    const devModeB64 = text(printer?.DevModeBuffer);
+    if (!devModeB64 || devModeB64.length < 130) return null;
+
+    const buf = Buffer.from(devModeB64, 'base64');
+    if (buf.length < 92) return null;
+
+    // dmPrintQuality is a signed 16-bit int at offset 90
+    const dpi = buf.readUInt16LE(90);
+    return VALID_DPI.has(dpi) ? (dpi as 203 | 300 | 600) : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Extract text content, decoding base64 if flagged. */

@@ -13,17 +13,15 @@ export interface NlblImportResult {
  *
  * @param data - Raw file bytes
  * @param password - AES decryption password (from NLBL_PASSWORD env var)
- * @param dpi - Target printer DPI (default 203)
  */
 export async function parseNlbl(
   data: Buffer,
   password: string,
-  dpi: 203 | 300 | 600 = 203,
 ): Promise<NlblImportResult> {
   const { solutionXml, formatXml, formatName } = await extractNlblArchive(data, password);
 
   const variables = parseSolutionXml(solutionXml);
-  const { media, textItems, barcodeItems, rectangleItems, lineItems, graphicItems } = parseFormatXml(formatXml);
+  const { media, dpi, textItems, barcodeItems, rectangleItems, lineItems, graphicItems } = parseFormatXml(formatXml);
 
   const document = convertNlblToDocument({
     name: formatName,
