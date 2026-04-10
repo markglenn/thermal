@@ -12,6 +12,9 @@ interface Props {
 export function TextProperties({ componentId, props }: Props) {
   const updateProperties = useEditorStoreContext((s) => s.updateProperties);
   const updateLayout = useEditorStoreContext((s) => s.updateLayout);
+  const fieldBinding = useEditorStoreContext((s) =>
+    s.document.components.find((c) => c.id === componentId)?.fieldBinding,
+  );
   const pauseTracking = usePauseTracking();
   const resumeTracking = useResumeTracking();
   const update = (changes: Partial<TextPropsType>) => updateProperties(componentId, changes);
@@ -38,27 +41,43 @@ export function TextProperties({ componentId, props }: Props) {
   return (
     <div className="px-3 pb-3">
       <div className="space-y-2">
-        <label>
-          <span className="text-xs text-gray-500">Content</span>
-          {hasFieldBlock ? (
-            <textarea
-              value={props.content}
-              onChange={(e) => update({ content: e.target.value })}
-              onFocus={pauseTracking}
-              onBlur={resumeTracking}
-              rows={3}
-              className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm resize-y"
-            />
-          ) : (
-            <input
-              value={props.content}
-              onChange={(e) => update({ content: e.target.value })}
-              onFocus={pauseTracking}
-              onBlur={resumeTracking}
-              className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm"
-            />
+        <div>
+          <label>
+            <span className="text-xs text-gray-500">Content</span>
+            {hasFieldBlock ? (
+              <textarea
+                value={props.content}
+                onChange={(e) => update({ content: e.target.value })}
+                onFocus={pauseTracking}
+                onBlur={resumeTracking}
+                rows={3}
+                className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm resize-y"
+              />
+            ) : (
+              <input
+                value={props.content}
+                onChange={(e) => update({ content: e.target.value })}
+                onFocus={pauseTracking}
+                onBlur={resumeTracking}
+                className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm"
+              />
+            )}
+          </label>
+          {fieldBinding && !props.content.includes('{}') && (
+            <button
+              type="button"
+              onClick={() => update({ content: props.content + '{}' })}
+              className="mt-1 text-[10px] text-blue-500 hover:text-blue-700"
+            >
+              + Insert value placeholder
+            </button>
           )}
-        </label>
+          {fieldBinding && props.content.includes('{}') && (
+            <p className="mt-0.5 text-[9px] text-gray-400">
+              {'{}' } is replaced with <span className="font-mono">{fieldBinding}</span> at print time
+            </p>
+          )}
+        </div>
         <label>
           <span className="text-xs text-gray-500">Font</span>
           <select

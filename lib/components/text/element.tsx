@@ -79,6 +79,42 @@ function detectLineBreaks(element: HTMLElement): string[] {
   return lines.length > 0 ? lines : [''];
 }
 
+/** Render text content, highlighting {} placeholders as styled badges. */
+function renderContent(content: string): React.ReactNode {
+  if (!content.includes('{}')) return content;
+
+  const parts: React.ReactNode[] = [];
+  let remaining = content;
+  let key = 0;
+
+  while (remaining.includes('{}')) {
+    const idx = remaining.indexOf('{}');
+    if (idx > 0) parts.push(remaining.slice(0, idx));
+    parts.push(
+      <span
+        key={key++}
+        style={{
+          backgroundColor: 'rgba(59, 130, 246, 0.15)',
+          border: '1px solid rgba(59, 130, 246, 0.3)',
+          borderRadius: 2,
+          padding: '0.05em 2px',
+          fontSize: '0.8em',
+          color: 'rgb(59, 130, 246)',
+          fontStyle: 'italic',
+          position: 'relative',
+          top: '-0.05em',
+        }}
+      >
+        value
+      </span>,
+    );
+    remaining = remaining.slice(idx + 2);
+  }
+
+  if (remaining) parts.push(remaining);
+  return parts;
+}
+
 export function TextElement({ props, isSelected: _isSelected }: Props) {
   const fb = props.fieldBlock;
   const rot = props.rotation;
@@ -134,7 +170,7 @@ export function TextElement({ props, isSelected: _isSelected }: Props) {
 
   return (
     <div className="whitespace-nowrap" style={baseStyle}>
-      {props.content}
+      {renderContent(props.content)}
     </div>
   );
 }
@@ -243,7 +279,7 @@ function FieldBlockText({ content, baseStyle, justification, maxLines, lineSpaci
               : {}),
           }}
         >
-          {content}
+          {renderContent(content)}
         </div>
       </div>
     );
@@ -280,7 +316,7 @@ function FieldBlockText({ content, baseStyle, justification, maxLines, lineSpaci
               overflow: 'hidden',
             }}
           >
-            {line}
+            {renderContent(line)}
           </div>
         );
       })}
