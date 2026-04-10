@@ -1,7 +1,6 @@
 import type { BarcodeProperties, BarcodeEncoding } from '@/lib/types';
 
 const DEFAULT_MODULE_WIDTH = 2;
-const TEXT_HEIGHT = 22;
 
 /**
  * Compute the total module count for a barcode encoding given its content length.
@@ -35,14 +34,16 @@ function computeTotalModules(encoding: BarcodeEncoding, contentLength: number, s
 export function computeBarcodeSize(props: BarcodeProperties): { width: number; height: number } {
   const { content, encoding, height, showText, rotation, moduleWidth } = props;
   const mw = moduleWidth ?? DEFAULT_MODULE_WIDTH;
+  // Zebrash uses fontSize = barWidth * 10, plus padding for text margin
+  const textHeight = 10 * mw + 2;
 
   if (content.length === 0) {
-    return { width: 0, height: height + (showText ? TEXT_HEIGHT : 0) };
+    return { width: 0, height: height + (showText ? textHeight : 0) };
   }
 
   const totalModules = computeTotalModules(encoding, content.length, showText);
   const w = totalModules * mw;
-  const h = height + (showText ? TEXT_HEIGHT : 0);
+  const h = height + (showText ? textHeight : 0);
 
   if (rotation === 90 || rotation === 270) {
     return { width: h, height: w };
