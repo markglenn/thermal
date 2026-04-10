@@ -190,16 +190,18 @@ function convertTextItem(
   const isTextBox = item.textType === 2;
   const needsFieldBlock = isTextBox || justification !== 'L';
 
-  const width = micronsToDots(item.width, dpi);
-  const height = micronsToDots(item.height, dpi);
   const { left, top } = adjustForAnchor(item.left, item.top, item.width, item.height, item.anchoringPoint);
+  const x = micronsToDots(left, dpi);
+  const y = micronsToDots(top, dpi);
+  const width = micronsToDots(left + item.width, dpi) - x;
+  const height = micronsToDots(top + item.height, dpi) - y;
 
   return {
     id: nextId(),
     name: variable?.name ?? item.name,
     layout: {
-      x: micronsToDots(left, dpi),
-      y: micronsToDots(top, dpi),
+      x,
+      y,
       width: Math.max(width, 10),
       height: Math.max(height, fontSize),
       horizontalAnchor: 'left',
@@ -267,15 +269,19 @@ function convertRectangleItem(
   item: NlblRectangleItem,
   dpi: number,
 ): LabelComponent {
-  const width = micronsToDots(item.width, dpi);
-  const height = micronsToDots(item.height, dpi);
+  // Compute width/height from rounded edges to avoid 1-dot gaps between adjacent rects.
+  // round(left) + round(width) can differ from round(left + width) by 1.
+  const x = micronsToDots(item.left, dpi);
+  const y = micronsToDots(item.top, dpi);
+  const width = micronsToDots(item.left + item.width, dpi) - x;
+  const height = micronsToDots(item.top + item.height, dpi) - y;
 
   return {
     id: nextId(),
     name: item.name,
     layout: {
-      x: micronsToDots(item.left, dpi),
-      y: micronsToDots(item.top, dpi),
+      x,
+      y,
       width: Math.max(width, 10),
       height: Math.max(height, 10),
       horizontalAnchor: 'left',

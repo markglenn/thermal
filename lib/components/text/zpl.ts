@@ -11,10 +11,15 @@ export function generateTextZpl(props: TextProperties, bounds: ResolvedBounds): 
     const va = fb.verticalAlign;
 
     // For vertical alignment, offset Y so the text block is centered/bottom
-    // within the fixed-height box. Estimate content height from maxLines.
+    // within the fixed-height box. Estimate actual line count from content
+    // (explicit line breaks via \n or ZPL \&), capped at maxLines.
     if (va === 'center' || va === 'bottom') {
       const lineHeight = props.fontSize + fb.lineSpacing;
-      const contentHeight = fb.maxLines * lineHeight;
+      const contentLineCount = Math.min(
+        fb.maxLines,
+        (props.content.split(/\n|\\&/).length) || 1,
+      );
+      const contentHeight = contentLineCount * lineHeight;
       const gap = bounds.height - contentHeight;
       if (gap > 0) {
         y += va === 'center' ? Math.round(gap / 2) : gap;
