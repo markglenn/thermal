@@ -6,7 +6,7 @@ import type {
   TextJustification,
   VerticalAlign,
 } from '../types';
-import type { NlblParsedLabel, NlblTextItem, NlblBarcodeItem, NlblRectangleItem, NlblLineItem, NlblVariable } from './types';
+import type { NlblParsedLabel, NlblTextItem, NlblBarcodeItem, NlblRectangleItem, NlblLineItem, NlblGraphicItem, NlblVariable } from './types';
 import { computeBarcodeSize } from '../components/barcode/compute-size';
 
 // ---------------------------------------------------------------------------
@@ -119,9 +119,12 @@ export function convertNlblToDocument(
     components.push(convertTextItem(item, variableMap, dpi));
   }
 
-  // Convert barcode items
+  // Convert barcode items (and companion text for contentMask labels)
   for (const item of parsed.barcodeItems) {
     components.push(convertBarcodeItem(item, variableMap, dpi));
+    if (item.contentMask) {
+      components.push(convertBarcodeMaskText(item, variableMap, dpi));
+    }
   }
 
   // Convert rectangle items
@@ -132,6 +135,11 @@ export function convertNlblToDocument(
   // Convert line items
   for (const item of parsed.lineItems) {
     components.push(convertLineItem(item, dpi));
+  }
+
+  // Convert graphic items as placeholder images
+  for (const item of parsed.graphicItems) {
+    components.push(convertGraphicItem(item, variableMap, dpi));
   }
 
   // Sort by ZOrder (lower = rendered first = below)
@@ -311,6 +319,64 @@ function convertBarcodeItem(
   };
 }
 
+/** Create a text label below a barcode from its ContentsMask (e.g. "Order Number: 0000000"). */
+function convertBarcodeMaskText(
+  item: NlblBarcodeItem,
+  variableMap: Map<string, NlblVariable>,
+  dpi: number,
+): LabelComponent {
+  const variable = item.dataSourceId ? variableMap.get(item.dataSourceId) : null;
+  const maskContent = item.contentMask.includes('*')
+    ? item.contentMask.replace(/\*+/g, '{}')
+    : `${item.contentMask}{}`;
+
+  const encoding = mapBarcodeEncoding(item.barcodeType);
+  const barcodeHeight = Math.max(20, micronsToDots(item.moduleHeight, dpi));
+  const barcodeSize = computeBarcodeSize({
+    content: (variable ? cleanSampleValue(variable.sampleValue) : '') || item.content || '1234567890',
+    encoding, height: barcodeHeight, showText: false, rotation: 0,
+  });
+
+  // Position below the barcode
+  let x = micronsToDots(item.x, dpi);
+  let y = micronsToDots(item.y, dpi);
+  const anchor = item.anchoringPoint;
+  if (anchor === 1 || anchor === 4 || anchor === 7) x -= Math.round(barcodeSize.width / 2);
+  if (anchor >= 3 && anchor <= 5) y -= Math.round(barcodeSize.height / 2);
+  if (anchor >= 6) y -= barcodeSize.height;
+
+  const fontSize = pointsToDots(item.humanFontPointSize, dpi);
+
+  return {
+    id: nextId(),
+    name: `${variable?.name ?? item.name}_label`,
+    layout: {
+      x,
+      y: y + barcodeSize.height,
+      width: barcodeSize.width,
+      height: fontSize,
+      horizontalAnchor: 'left',
+      verticalAnchor: 'top',
+    },
+    ...(variable ? { fieldBinding: variable.name } : {}),
+    typeData: {
+      type: 'text',
+      props: {
+        content: maskContent,
+        font: '0',
+        fontSize,
+        fontWidth: fontSize,
+        rotation: 0,
+        fieldBlock: {
+          maxLines: 1,
+          lineSpacing: 0,
+          justification: 'C' as const,
+        },
+      },
+    },
+  };
+}
+
 function convertRectangleItem(
   item: NlblRectangleItem,
   dpi: number,
@@ -385,6 +451,45 @@ function convertLineItem(
   };
 }
 
+function convertGraphicItem(
+  item: NlblGraphicItem,
+  variableMap: Map<string, NlblVariable>,
+  dpi: number,
+): LabelComponent {
+  const { left, top } = adjustForAnchor(item.left, item.top, item.width, item.height, item.anchoringPoint);
+  const x = micronsToDots(left, dpi);
+  const y = micronsToDots(top, dpi);
+  const width = Math.max(10, micronsToDots(left + item.width, dpi) - x);
+  const height = Math.max(10, micronsToDots(top + item.height, dpi) - y);
+  const variable = item.dataSourceId ? variableMap.get(item.dataSourceId) : null;
+
+  return {
+    id: nextId(),
+    name: variable?.name ?? item.name,
+    layout: { x, y, width, height, horizontalAnchor: 'left', verticalAnchor: 'top' },
+    ...(variable ? { fieldBinding: variable.name } : {}),
+    typeData: {
+      type: 'image',
+      props: {
+        data: '',
+        originalWidth: width,
+        originalHeight: height,
+        objectFit: 'fit',
+        objectPosition: 'center',
+        threshold: 128,
+        invert: false,
+        monochromeMethod: 'threshold',
+        monochromePreview: '',
+        monochromePreviewFull: '',
+        zplHex: '',
+        zplBytesPerRow: 0,
+        zplWidth: 0,
+        zplHeight: 0,
+      },
+    },
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -395,6 +500,7 @@ function getOriginalZOrder(component: LabelComponent, parsed: NlblParsedLabel): 
     ...parsed.barcodeItems.map((b) => ({ name: b.name, zOrder: b.zOrder })),
     ...parsed.rectangleItems.map((r) => ({ name: r.name, zOrder: r.zOrder })),
     ...parsed.lineItems.map((l) => ({ name: l.name, zOrder: l.zOrder })),
+    ...parsed.graphicItems.map((g) => ({ name: g.name, zOrder: g.zOrder })),
   ];
   return allItems.find((i) => i.name === component.name)?.zOrder ?? 0;
 }

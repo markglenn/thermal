@@ -5,12 +5,16 @@ import type {
   NlblBarcodeItem,
   NlblRectangleItem,
   NlblLineItem,
+  NlblGraphicItem,
   NlblMedia,
 } from './types';
 
 const parser = new XMLParser({
   ignoreAttributes: false,
   attributeNamePrefix: '@_',
+  // Don't auto-parse tag values as numbers — "0000000" must stay as a string,
+  // not become the number 0. Our num() helper handles conversion when needed.
+  parseTagValue: false,
   // Ensure single-element arrays are still arrays
   isArray: (_name, jpath) => {
     return jpath === 'EuroPlus.NiceLabel.Variables.Item'
@@ -85,6 +89,7 @@ interface FormatParseResult {
   barcodeItems: NlblBarcodeItem[];
   rectangleItems: NlblRectangleItem[];
   lineItems: NlblLineItem[];
+  graphicItems: NlblGraphicItem[];
 }
 
 export function parseFormatXml(xml: string): FormatParseResult {
@@ -104,14 +109,15 @@ export function parseFormatXml(xml: string): FormatParseResult {
   const barcodeItems: NlblBarcodeItem[] = [];
   const rectangleItems: NlblRectangleItem[] = [];
   const lineItems: NlblLineItem[] = [];
+  const graphicItems: NlblGraphicItem[] = [];
 
   // Navigate to document items
   const designs = root.DocumentDesigns?.DocumentDesign;
-  if (!designs) return { media, textItems, barcodeItems, rectangleItems, lineItems };
+  if (!designs) return { media, textItems, barcodeItems, rectangleItems, lineItems, graphicItems };
 
   const design = Array.isArray(designs) ? designs[0] : designs;
   const items = design?.Items?.Item;
-  if (!items) return { media, textItems, barcodeItems, rectangleItems, lineItems };
+  if (!items) return { media, textItems, barcodeItems, rectangleItems, lineItems, graphicItems };
 
   const itemList = Array.isArray(items) ? items : [items];
 
@@ -126,10 +132,12 @@ export function parseFormatXml(xml: string): FormatParseResult {
       rectangleItems.push(parseRectangleItem(item));
     } else if (type === 'LineDocumentItem') {
       lineItems.push(parseLineItem(item));
+    } else if (type === 'GraphicDocumentItem') {
+      graphicItems.push(parseGraphicItem(item));
     }
   }
 
-  return { media, textItems, barcodeItems, rectangleItems, lineItems };
+  return { media, textItems, barcodeItems, rectangleItems, lineItems, graphicItems };
 }
 
 /** Extract text content, decoding base64 if flagged. */
@@ -194,6 +202,10 @@ function parseBarcodeItem(item: Record<string, unknown>): NlblBarcodeItem {
     baseBarWidth: num(barcodeData?.BaseBarWidth),
     moduleHeight: num(barcodeData?.ModuleHeight),
     showText: num(barcodeData?.HumanInterpretationPosition) !== 0,
+    humanFontPointSize: num(
+      (barcodeData?.HumanInterpretationFontDescriptor as Record<string, unknown> | undefined)?.Height,
+    ) || 10,
+    contentMask: text(item.ContentsMask),
     content: text(item.FixedContents),
     zOrder: num(item.ZOrder),
     dataSourceId: text(
@@ -230,5 +242,22 @@ function parseLineItem(item: Record<string, unknown>): NlblLineItem {
     endY: num(geometry?.EndPointY),
     thickness: num(item.Thickness),
     zOrder: num(item.ZOrder),
+  };
+}
+
+function parseGraphicItem(item: Record<string, unknown>): NlblGraphicItem {
+  const geometry = item.Geometry as Record<string, unknown> | undefined;
+
+  return {
+    name: text(item.Name),
+    left: num(geometry?.Left),
+    top: num(geometry?.Top),
+    width: num(geometry?.Width),
+    height: num(geometry?.Height),
+    anchoringPoint: num(geometry?.AnchoringPoint),
+    zOrder: num(item.ZOrder),
+    dataSourceId: text(
+      (item.DataSourceReference as Record<string, unknown> | undefined)?.Id,
+    ) || null,
   };
 }

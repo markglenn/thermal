@@ -36,6 +36,7 @@ describe('convertNlblToDocument', () => {
       barcodeItems: [],
       rectangleItems: [],
       lineItems: [],
+      graphicItems: [],
       ...overrides,
     };
   }

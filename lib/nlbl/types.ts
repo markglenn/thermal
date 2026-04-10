@@ -37,6 +37,8 @@ export interface NlblBarcodeItem {
   baseBarWidth: number; // microns — narrow bar width
   moduleHeight: number; // microns
   showText: boolean; // HumanInterpretationPosition != 0
+  humanFontPointSize: number; // HumanInterpretationFontDescriptor.Height
+  contentMask: string; // e.g. "Order Number:  *******"
   content: string;
   zOrder: number;
   dataSourceId: string | null;
@@ -65,6 +67,17 @@ export interface NlblLineItem {
   zOrder: number;
 }
 
+export interface NlblGraphicItem {
+  name: string;
+  left: number;   // microns
+  top: number;
+  width: number;
+  height: number;
+  anchoringPoint: number;
+  zOrder: number;
+  dataSourceId: string | null;
+}
+
 export interface NlblMedia {
   widthMicrons: number;
   heightMicrons: number;
@@ -78,4 +91,5 @@ export interface NlblParsedLabel {
   barcodeItems: NlblBarcodeItem[];
   rectangleItems: NlblRectangleItem[];
   lineItems: NlblLineItem[];
+  graphicItems: NlblGraphicItem[];
 }
