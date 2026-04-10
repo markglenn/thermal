@@ -23,7 +23,7 @@ export async function parseNlbl(
   const { solutionXml, formatXml, formatName } = await extractNlblArchive(data, password);
 
   const variables = parseSolutionXml(solutionXml);
-  const { media, textItems, barcodeItems } = parseFormatXml(formatXml);
+  const { media, textItems, barcodeItems, rectangleItems, lineItems } = parseFormatXml(formatXml);
 
   const document = convertNlblToDocument({
     name: formatName,
@@ -31,6 +31,8 @@ export async function parseNlbl(
     variables,
     textItems,
     barcodeItems,
+    rectangleItems,
+    lineItems,
   }, dpi);
 
   return { document, name: formatName };

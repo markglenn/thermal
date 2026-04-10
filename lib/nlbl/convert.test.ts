@@ -34,6 +34,8 @@ describe('convertNlblToDocument', () => {
       variables: [],
       textItems: [],
       barcodeItems: [],
+      rectangleItems: [],
+      lineItems: [],
       ...overrides,
     };
   }
@@ -118,7 +120,8 @@ describe('convertNlblToDocument', () => {
     expect(comp.fieldBinding).toBe('serial_number');
     expect(comp.name).toBe('serial_number');
     if (comp.typeData.type === 'text') {
-      expect(comp.typeData.props.content).toBe('{{serial_number}}');
+      // Uses FixedContents ("Serial Number"), not {{variable_name}}
+      expect(comp.typeData.props.content).toBe('Serial Number');
     }
 
     // Variable should be in the document
@@ -253,5 +256,94 @@ describe('convertNlblToDocument', () => {
     }));
 
     expect(doc.variables).toBeUndefined();
+  });
+
+  it('converts a rectangle item', () => {
+    const doc = convertNlblToDocument(makeMinimalLabel({
+      rectangleItems: [{
+        name: 'Box',
+        left: 2540,   // 0.1 inch
+        top: 2540,
+        width: 25400,  // 1 inch
+        height: 12700, // 0.5 inch
+        thickness: 254, // ~0.01 inch
+        radius: 0,
+        filled: false,
+        zOrder: 10001,
+      }],
+    }));
+
+    expect(doc.components).toHaveLength(1);
+    const comp = doc.components[0];
+    expect(comp.typeData.type).toBe('rectangle');
+    expect(comp.layout.x).toBe(20);   // 0.1 inch at 203 DPI
+    expect(comp.layout.y).toBe(20);
+    expect(comp.layout.width).toBe(203);  // 1 inch
+    expect(comp.layout.height).toBe(102); // 0.5 inch
+
+    if (comp.typeData.type === 'rectangle') {
+      expect(comp.typeData.props.borderThickness).toBe(2);
+      expect(comp.typeData.props.cornerRadius).toBe(0);
+      expect(comp.typeData.props.filled).toBe(false);
+    }
+  });
+
+  it('converts a filled rectangle', () => {
+    const doc = convertNlblToDocument(makeMinimalLabel({
+      rectangleItems: [{
+        name: 'FilledBox',
+        left: 0, top: 0, width: 25400, height: 25400,
+        thickness: 127, radius: 2540, filled: true,
+        zOrder: 10001,
+      }],
+    }));
+
+    const comp = doc.components[0];
+    if (comp.typeData.type === 'rectangle') {
+      expect(comp.typeData.props.filled).toBe(true);
+      expect(comp.typeData.props.cornerRadius).toBe(20);
+    }
+  });
+
+  it('converts a vertical line', () => {
+    const doc = convertNlblToDocument(makeMinimalLabel({
+      lineItems: [{
+        name: 'VLine',
+        startX: 12700,
+        startY: 0,
+        endX: 12700,
+        endY: 25400,
+        thickness: 254,
+        zOrder: 10001,
+      }],
+    }));
+
+    expect(doc.components).toHaveLength(1);
+    const comp = doc.components[0];
+    expect(comp.typeData.type).toBe('line');
+
+    if (comp.typeData.type === 'line') {
+      expect(comp.typeData.props.orientation).toBe('vertical');
+      expect(comp.typeData.props.thickness).toBe(2);
+    }
+  });
+
+  it('converts a horizontal line', () => {
+    const doc = convertNlblToDocument(makeMinimalLabel({
+      lineItems: [{
+        name: 'HLine',
+        startX: 0,
+        startY: 12700,
+        endX: 50800,
+        endY: 12700,
+        thickness: 127,
+        zOrder: 10001,
+      }],
+    }));
+
+    const comp = doc.components[0];
+    if (comp.typeData.type === 'line') {
+      expect(comp.typeData.props.orientation).toBe('horizontal');
+    }
   });
 });

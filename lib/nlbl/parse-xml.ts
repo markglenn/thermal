@@ -3,6 +3,8 @@ import type {
   NlblVariable,
   NlblTextItem,
   NlblBarcodeItem,
+  NlblRectangleItem,
+  NlblLineItem,
   NlblMedia,
 } from './types';
 
@@ -81,6 +83,8 @@ interface FormatParseResult {
   media: NlblMedia;
   textItems: NlblTextItem[];
   barcodeItems: NlblBarcodeItem[];
+  rectangleItems: NlblRectangleItem[];
+  lineItems: NlblLineItem[];
 }
 
 export function parseFormatXml(xml: string): FormatParseResult {
@@ -98,14 +102,16 @@ export function parseFormatXml(xml: string): FormatParseResult {
 
   const textItems: NlblTextItem[] = [];
   const barcodeItems: NlblBarcodeItem[] = [];
+  const rectangleItems: NlblRectangleItem[] = [];
+  const lineItems: NlblLineItem[] = [];
 
   // Navigate to document items
   const designs = root.DocumentDesigns?.DocumentDesign;
-  if (!designs) return { media, textItems, barcodeItems };
+  if (!designs) return { media, textItems, barcodeItems, rectangleItems, lineItems };
 
   const design = Array.isArray(designs) ? designs[0] : designs;
   const items = design?.Items?.Item;
-  if (!items) return { media, textItems, barcodeItems };
+  if (!items) return { media, textItems, barcodeItems, rectangleItems, lineItems };
 
   const itemList = Array.isArray(items) ? items : [items];
 
@@ -116,11 +122,14 @@ export function parseFormatXml(xml: string): FormatParseResult {
       textItems.push(parseTextItem(item));
     } else if (type === 'BarcodeDocumentItem') {
       barcodeItems.push(parseBarcodeItem(item));
+    } else if (type === 'RectangleDocumentItem') {
+      rectangleItems.push(parseRectangleItem(item));
+    } else if (type === 'LineDocumentItem') {
+      lineItems.push(parseLineItem(item));
     }
-    // Other types (graphic, line, etc.) are skipped for now
   }
 
-  return { media, textItems, barcodeItems };
+  return { media, textItems, barcodeItems, rectangleItems, lineItems };
 }
 
 function parseTextItem(item: Record<string, unknown>): NlblTextItem {
@@ -167,5 +176,35 @@ function parseBarcodeItem(item: Record<string, unknown>): NlblBarcodeItem {
     dataSourceId: text(
       (item.DataSourceReference as Record<string, unknown> | undefined)?.Id,
     ) || null,
+  };
+}
+
+function parseRectangleItem(item: Record<string, unknown>): NlblRectangleItem {
+  const geometry = item.Geometry as Record<string, unknown> | undefined;
+
+  return {
+    name: text(item.Name),
+    left: num(geometry?.Left),
+    top: num(geometry?.Top),
+    width: num(geometry?.Width),
+    height: num(geometry?.Height),
+    thickness: num(item.Thickness),
+    radius: num(item.Radius),
+    filled: num(item.FillStyle) !== 0,
+    zOrder: num(item.ZOrder),
+  };
+}
+
+function parseLineItem(item: Record<string, unknown>): NlblLineItem {
+  const geometry = item.Geometry as Record<string, unknown> | undefined;
+
+  return {
+    name: text(item.Name),
+    startX: num(geometry?.StartPointX),
+    startY: num(geometry?.StartPointY),
+    endX: num(geometry?.EndPointX),
+    endY: num(geometry?.EndPointY),
+    thickness: num(item.Thickness),
+    zOrder: num(item.ZOrder),
   };
 }

@@ -38,6 +38,28 @@ export interface NlblBarcodeItem {
   dataSourceId: string | null;
 }
 
+export interface NlblRectangleItem {
+  name: string;
+  left: number;   // microns
+  top: number;
+  width: number;
+  height: number;
+  thickness: number; // microns
+  radius: number;    // microns
+  filled: boolean;   // FillStyle != 0
+  zOrder: number;
+}
+
+export interface NlblLineItem {
+  name: string;
+  startX: number; // microns
+  startY: number;
+  endX: number;
+  endY: number;
+  thickness: number; // microns
+  zOrder: number;
+}
+
 export interface NlblMedia {
   widthMicrons: number;
   heightMicrons: number;
@@ -49,4 +71,6 @@ export interface NlblParsedLabel {
   variables: NlblVariable[];
   textItems: NlblTextItem[];
   barcodeItems: NlblBarcodeItem[];
+  rectangleItems: NlblRectangleItem[];
+  lineItems: NlblLineItem[];
 }

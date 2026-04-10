@@ -4,7 +4,7 @@ import type {
   LabelVariable,
   TextJustification,
 } from '../types';
-import type { NlblParsedLabel, NlblTextItem, NlblBarcodeItem, NlblVariable } from './types';
+import type { NlblParsedLabel, NlblTextItem, NlblBarcodeItem, NlblRectangleItem, NlblLineItem, NlblVariable } from './types';
 
 // ---------------------------------------------------------------------------
 // Unit conversion
@@ -102,6 +102,16 @@ export function convertNlblToDocument(
     components.push(convertBarcodeItem(item, variableMap, dpi));
   }
 
+  // Convert rectangle items
+  for (const item of parsed.rectangleItems) {
+    components.push(convertRectangleItem(item, dpi));
+  }
+
+  // Convert line items
+  for (const item of parsed.lineItems) {
+    components.push(convertLineItem(item, dpi));
+  }
+
   // Sort by ZOrder (lower = rendered first = below)
   components.sort((a, b) => {
     const aIdx = getOriginalZOrder(a, parsed);
@@ -155,7 +165,10 @@ function convertTextItem(
   dpi: number,
 ): LabelComponent {
   const variable = item.dataSourceId ? variableMap.get(item.dataSourceId) : null;
-  const content = variable ? `{{${variable.name}}}` : item.content;
+  // Use FixedContents (NiceLabel's designer preview text) as display content.
+  // Fall back to the variable's sample value if FixedContents is empty.
+  const content = item.content
+    || (variable ? cleanSampleValue(variable.sampleValue) : '') || 'Text';
   const fontSize = pointsToDots(item.fontPointSize, dpi);
   const justification = mapJustification(item.justification);
   const needsFieldBlock = justification !== 'L' || item.width > 0;
@@ -232,6 +245,75 @@ function convertBarcodeItem(
   };
 }
 
+function convertRectangleItem(
+  item: NlblRectangleItem,
+  dpi: number,
+): LabelComponent {
+  const width = micronsToDots(item.width, dpi);
+  const height = micronsToDots(item.height, dpi);
+
+  return {
+    id: nextId(),
+    name: item.name,
+    layout: {
+      x: micronsToDots(item.left, dpi),
+      y: micronsToDots(item.top, dpi),
+      width: Math.max(width, 10),
+      height: Math.max(height, 10),
+      horizontalAnchor: 'left',
+      verticalAnchor: 'top',
+    },
+    typeData: {
+      type: 'rectangle',
+      props: {
+        borderThickness: Math.max(1, micronsToDots(item.thickness, dpi)),
+        cornerRadius: micronsToDots(item.radius, dpi),
+        filled: item.filled,
+      },
+    },
+  };
+}
+
+function convertLineItem(
+  item: NlblLineItem,
+  dpi: number,
+): LabelComponent {
+  const x1 = micronsToDots(item.startX, dpi);
+  const y1 = micronsToDots(item.startY, dpi);
+  const x2 = micronsToDots(item.endX, dpi);
+  const y2 = micronsToDots(item.endY, dpi);
+
+  // Determine orientation from endpoints
+  const isVertical = Math.abs(x2 - x1) < Math.abs(y2 - y1);
+  const orientation = isVertical ? 'vertical' : 'horizontal';
+
+  const x = Math.min(x1, x2);
+  const y = Math.min(y1, y2);
+  const thickness = Math.max(1, micronsToDots(item.thickness, dpi));
+  const width = isVertical ? thickness : Math.max(10, Math.abs(x2 - x1));
+  const height = isVertical ? Math.max(10, Math.abs(y2 - y1)) : thickness;
+
+  return {
+    id: nextId(),
+    name: item.name,
+    layout: {
+      x,
+      y,
+      width,
+      height,
+      horizontalAnchor: 'left',
+      verticalAnchor: 'top',
+    },
+    typeData: {
+      type: 'line',
+      props: {
+        thickness,
+        orientation,
+      },
+    },
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -240,6 +322,8 @@ function getOriginalZOrder(component: LabelComponent, parsed: NlblParsedLabel): 
   const allItems = [
     ...parsed.textItems.map((t) => ({ name: t.name, zOrder: t.zOrder })),
     ...parsed.barcodeItems.map((b) => ({ name: b.name, zOrder: b.zOrder })),
+    ...parsed.rectangleItems.map((r) => ({ name: r.name, zOrder: r.zOrder })),
+    ...parsed.lineItems.map((l) => ({ name: l.name, zOrder: l.zOrder })),
   ];
   return allItems.find((i) => i.name === component.name)?.zOrder ?? 0;
 }
