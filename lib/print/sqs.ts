@@ -1,10 +1,9 @@
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { signJob } from './signing';
-import { compressZpl } from './compress';
+import { compressData } from './compress';
 import type { PrintJobMessage, PrintJobMessageMetadata } from './types';
 
-// Inline threshold: raw ZPL under this size is sent directly in the SQS
+// Inline threshold: raw data under this size is sent directly in the SQS
 // message. Above this, it's gzipped and uploaded to S3. 200 KB leaves
 // headroom within SQS's 256 KB limit after the JSON envelope.
 const INLINE_THRESHOLD_BYTES = 200 * 1024;
@@ -41,39 +40,38 @@ function getBucket(): string {
 /**
  * Publish a print job.
  *
- * Small jobs (< 200 KB raw): raw ZPL inline in the SQS message.
+ * Small jobs (< 200 KB raw): data inline in the SQS message.
  * Large jobs (≥ 200 KB raw): gzip to S3, send pointer via SQS.
  *
  * The print server checks for `s3Key` — if present, fetch from S3 and gunzip.
- * Otherwise, use `zpl` directly.
+ * Otherwise, use `data` directly.
  */
 export async function publishPrintJob(
   jobId: string,
-  zpl: string,
+  data: string,
   printer: string,
   copies: number,
+  contentType: string,
   metadata: PrintJobMessageMetadata
 ): Promise<void> {
-  const rawSize = Buffer.byteLength(zpl, 'utf-8');
+  const rawSize = Buffer.byteLength(data, 'utf-8');
 
   let message: PrintJobMessage;
 
   if (rawSize < INLINE_THRESHOLD_BYTES) {
-    // Inline: raw ZPL directly in the message
-    const signature = signJob(jobId, zpl);
-    message = { jobId, printer, copies, zpl, signature, metadata };
+    // Inline: data directly in the message
+    message = { jobId, chunkIndex: 0, totalChunks: 1, printer, contentType, copies, data, metadata };
   } else {
     // S3: gzip and upload, send pointer
     const s3Key = `print-jobs/${jobId}.zpl.gz`;
-    const compressed = compressZpl(zpl);
+    const compressed = compressData(data);
     await getS3Client().send(new PutObjectCommand({
       Bucket: getBucket(),
       Key: s3Key,
       Body: compressed,
       ContentType: 'application/gzip',
     }));
-    const signature = signJob(jobId, s3Key);
-    message = { jobId, printer, copies, s3Key, signature, metadata };
+    message = { jobId, chunkIndex: 0, totalChunks: 1, printer, contentType, copies, s3Key, metadata };
   }
 
   await getSqsClient().send(new SendMessageCommand({

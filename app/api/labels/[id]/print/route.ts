@@ -86,10 +86,17 @@ export async function POST(
     // Queue to SQS for remote printing
     const jobId = crypto.randomUUID();
     const zpl = zplBlocks.join('\n');
-    await publishPrintJob(jobId, zpl, printer, copyCount, {
+    const dpiToDpmm: Record<number, string> = { 203: '8dpmm', 300: '12dpmm', 600: '24dpmm' };
+    const variant = doc.label.variants[0];
+    const w = parseFloat((variant.widthDots / doc.label.dpi).toFixed(2));
+    const h = parseFloat((variant.heightDots / doc.label.dpi).toFixed(2));
+    const labelSize = `${w}x${h}`;
+    await publishPrintJob(jobId, zpl, printer, copyCount, 'application/vnd.zebra.zpl', {
       labelId: id,
       labelVersion,
       labelName: label.name,
+      labelSize,
+      dpmm: dpiToDpmm[doc.label.dpi] || '8dpmm',
     });
 
     // Record the job

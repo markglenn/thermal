@@ -1,56 +1,55 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { INLINE_THRESHOLD } from './sqs';
 import type { PrintJobMessage } from './types';
 
-const metadata = { labelId: 'label-1', labelVersion: 1, labelName: 'Test Label' };
+const metadata = {
+  labelId: 'label-1',
+  labelVersion: 1,
+  labelName: 'Test Label',
+  labelSize: '4x6',
+  dpmm: '8dpmm',
+};
 
 describe('PrintJobMessage — inline path', () => {
-  beforeEach(() => {
-    process.env.PRINT_SIGNING_SECRET = 'test-secret-key-for-unit-tests-minimum-32-chars';
-  });
-
-  it('small ZPL produces inline message with raw zpl field', async () => {
-    const { signJob } = await import('./signing');
-
-    const zpl = '^XA\n^FDHello^FS\n^XZ';
-    const signature = signJob('job-1', zpl);
+  it('small data produces inline message with data field', () => {
+    const data = '^XA\n^FDHello^FS\n^XZ';
 
     const message: PrintJobMessage = {
       jobId: 'job-1',
+      chunkIndex: 0,
+      totalChunks: 1,
       printer: 'printer-1',
+      contentType: 'application/vnd.zebra.zpl',
       copies: 1,
-      zpl,
-      signature,
+      data,
       metadata,
     };
 
     expect(message.s3Key).toBeUndefined();
-    expect(message.zpl).toBe(zpl);
+    expect(message.data).toBe(data);
+    expect(message.chunkIndex).toBe(0);
+    expect(message.totalChunks).toBe(1);
+    expect(message.contentType).toBe('application/vnd.zebra.zpl');
     expect(JSON.stringify(message).length).toBeLessThan(1000);
   });
 });
 
 describe('PrintJobMessage — S3 path', () => {
-  beforeEach(() => {
-    process.env.PRINT_SIGNING_SECRET = 'test-secret-key-for-unit-tests-minimum-32-chars';
-  });
-
-  it('large ZPL produces S3 message with s3Key field', async () => {
-    const { signJob } = await import('./signing');
-
+  it('large data produces S3 message with s3Key field', () => {
     const s3Key = 'print-jobs/job-big.zpl.gz';
-    const signature = signJob('job-big', s3Key);
 
     const message: PrintJobMessage = {
       jobId: 'job-big',
+      chunkIndex: 0,
+      totalChunks: 1,
       printer: 'printer-1',
+      contentType: 'application/vnd.zebra.zpl',
       copies: 1,
       s3Key,
-      signature,
       metadata,
     };
 
-    expect(message.zpl).toBeUndefined();
+    expect(message.data).toBeUndefined();
     expect(message.s3Key).toBe(s3Key);
     expect(JSON.stringify(message).length).toBeLessThan(500);
   });
@@ -75,33 +74,11 @@ describe('inline threshold', () => {
 
 describe('compression for S3 path', () => {
   it('gzip significantly reduces size for image-heavy labels', async () => {
-    const { compressZpl } = await import('./compress');
+    const { compressData } = await import('./compress');
     const hexData = '0'.repeat(5000) + 'FF'.repeat(500) + 'AA'.repeat(1000);
     const zpl = `^XA\n^GFA,4000,4000,38,${hexData}\n^FO10,10\n^FDHello^FS\n^XZ`;
 
-    const compressed = compressZpl(zpl);
+    const compressed = compressData(zpl);
     expect(compressed.length).toBeLessThan(Buffer.byteLength(zpl, 'utf-8') * 0.5);
-  });
-});
-
-describe('signing', () => {
-  beforeEach(() => {
-    process.env.PRINT_SIGNING_SECRET = 'test-secret-key-for-unit-tests-minimum-32-chars';
-  });
-
-  it('works for both inline ZPL and S3 key payloads', async () => {
-    const { signJob, verifyJob } = await import('./signing');
-
-    // Inline: signs raw ZPL
-    const zpl = '^XA^XZ';
-    const sig1 = signJob('job-1', zpl);
-    expect(verifyJob('job-1', zpl, sig1)).toBe(true);
-    expect(verifyJob('job-1', 'tampered', sig1)).toBe(false);
-
-    // S3: signs the key
-    const s3Key = 'print-jobs/job-2.zpl.gz';
-    const sig2 = signJob('job-2', s3Key);
-    expect(verifyJob('job-2', s3Key, sig2)).toBe(true);
-    expect(verifyJob('job-2', 'print-jobs/wrong.zpl.gz', sig2)).toBe(false);
   });
 });
