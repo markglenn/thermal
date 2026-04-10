@@ -1,0 +1,52 @@
+// Intermediate types representing parsed NiceLabel XML structures
+// before conversion to Thermal's LabelDocument format.
+// All spatial values from the XML are in microns (1/1000 mm).
+
+export interface NlblVariable {
+  id: string;
+  name: string;
+  sampleValue: string;
+  isRequired: boolean;
+}
+
+export interface NlblTextItem {
+  name: string;
+  left: number;   // microns
+  top: number;
+  width: number;
+  height: number;
+  anchoringPoint: number; // 0=TL 1=TC 2=TR 3=ML 4=MC 5=MR 6=BL 7=BC 8=BR
+  content: string;
+  fontName: string;
+  fontPointSize: number; // FontDescriptor.Height in points
+  fontWeight: number; // 0 = normal, 700 = bold
+  justification: number; // 0 = left, 1 = right, 2 = center
+  bestFit: boolean;
+  zOrder: number;
+  dataSourceId: string | null;
+}
+
+export interface NlblBarcodeItem {
+  name: string;
+  x: number;      // microns
+  y: number;
+  barcodeType: string; // e.g. 'Code128BarcodeData'
+  moduleHeight: number; // microns
+  showText: boolean; // HumanInterpretationPosition != 0
+  content: string;
+  zOrder: number;
+  dataSourceId: string | null;
+}
+
+export interface NlblMedia {
+  widthMicrons: number;
+  heightMicrons: number;
+}
+
+export interface NlblParsedLabel {
+  name: string;
+  media: NlblMedia;
+  variables: NlblVariable[];
+  textItems: NlblTextItem[];
+  barcodeItems: NlblBarcodeItem[];
+}

@@ -11,7 +11,7 @@ import { copyToClipboard, readClipboard } from '@/lib/store/clipboard';
 import { useTabStore } from '@/lib/store/tab-store';
 import { captureThumbnail } from '@/lib/documents/thumbnail';
 import { validateDocument } from '@/lib/documents/validate';
-import { exportDocument, importDocument } from '@/lib/documents/file-io';
+import { exportDocument, importDocument, importNlblDocument } from '@/lib/documents/file-io';
 import { toast } from '@/lib/toast-store';
 import { fetchJson } from '@/lib/client/fetch';
 import { SaveNameModal } from '@/components/documents/SaveNameModal';
@@ -285,6 +285,19 @@ export function Toolbar() {
                   });
                 }}>
                   Import JSON...
+                </Menubar.Item>
+                <Menubar.Item className={itemClass} onSelect={() => {
+                  importNlblDocument().then((result) => {
+                    if (!result) return;
+                    const tabId = useTabStore.getState().createTab();
+                    const tab = useTabStore.getState().tabs.find((t) => t.id === tabId);
+                    if (tab) {
+                      tab.store.getState().loadDocument(result.document);
+                      useTabStore.getState().updateTabName(tabId, result.name);
+                    }
+                  });
+                }}>
+                  Import NiceLabel...
                 </Menubar.Item>
                 <Menubar.Separator className={separatorClass} />
                 <Menubar.Item className={itemClass} onSelect={() => {
