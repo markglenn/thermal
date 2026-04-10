@@ -48,6 +48,7 @@ export interface NlblRectangleItem {
   top: number;
   width: number;
   height: number;
+  anchoringPoint: number;
   thickness: number; // microns
   radius: number;    // microns
   filled: boolean;   // FillStyle != 0

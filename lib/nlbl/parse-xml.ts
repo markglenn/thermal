@@ -211,6 +211,7 @@ function parseRectangleItem(item: Record<string, unknown>): NlblRectangleItem {
     top: num(geometry?.Top),
     width: num(geometry?.Width),
     height: num(geometry?.Height),
+    anchoringPoint: num(geometry?.AnchoringPoint),
     thickness: num(item.Thickness),
     radius: num(item.Radius),
     filled: num(item.FillStyle) !== 0,

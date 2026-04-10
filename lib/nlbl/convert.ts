@@ -315,12 +315,13 @@ function convertRectangleItem(
   item: NlblRectangleItem,
   dpi: number,
 ): LabelComponent {
-  // Compute width/height from rounded edges to avoid 1-dot gaps between adjacent rects.
-  // round(left) + round(width) can differ from round(left + width) by 1.
-  const x = micronsToDots(item.left, dpi);
-  const y = micronsToDots(item.top, dpi);
-  const width = micronsToDots(item.left + item.width, dpi) - x;
-  const height = micronsToDots(item.top + item.height, dpi) - y;
+  // Adjust for anchoring, then compute width/height from rounded edges
+  // to avoid 1-dot gaps between adjacent rects.
+  const { left, top } = adjustForAnchor(item.left, item.top, item.width, item.height, item.anchoringPoint);
+  const x = micronsToDots(left, dpi);
+  const y = micronsToDots(top, dpi);
+  const width = micronsToDots(left + item.width, dpi) - x;
+  const height = micronsToDots(top + item.height, dpi) - y;
 
   return {
     id: nextId(),
