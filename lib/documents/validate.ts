@@ -157,6 +157,9 @@ function validateBarcodeProps(v: unknown, ctx: Ctx): void {
   if (typeof o.content !== 'string') err(child(ctx, 'content'), 'must be a string');
   if (!isOneOf(o.encoding, VALID_BARCODE_ENCODINGS)) err(child(ctx, 'encoding'), `must be one of: ${VALID_BARCODE_ENCODINGS.join(', ')}`);
   if (typeof o.height !== 'number' || (o.height as number) <= 0) err(child(ctx, 'height'), 'must be a positive number');
+  if (o.moduleWidth !== undefined && (typeof o.moduleWidth !== 'number' || (o.moduleWidth as number) < 1)) {
+    err(child(ctx, 'moduleWidth'), 'must be a positive number if present');
+  }
   if (typeof o.showText !== 'boolean') err(child(ctx, 'showText'), 'must be a boolean');
   if (!isOneOf(o.rotation, VALID_ROTATIONS)) err(child(ctx, 'rotation'), `must be one of: ${VALID_ROTATIONS.join(', ')}`);
 }

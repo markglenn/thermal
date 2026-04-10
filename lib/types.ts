@@ -74,6 +74,7 @@ export interface BarcodeProperties {
   content: string;
   encoding: BarcodeEncoding;
   height: number;
+  moduleWidth?: number;  // narrow bar width in dots (default: 2)
   showText: boolean;
   rotation: Rotation;
 }

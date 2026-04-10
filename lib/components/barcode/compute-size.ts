@@ -1,6 +1,6 @@
 import type { BarcodeProperties, BarcodeEncoding } from '@/lib/types';
 
-const MODULE_WIDTH = 2;
+const DEFAULT_MODULE_WIDTH = 2;
 const TEXT_HEIGHT = 22;
 
 /**
@@ -33,14 +33,15 @@ function computeTotalModules(encoding: BarcodeEncoding, contentLength: number, s
  * No DOM measurement — deterministic from props alone.
  */
 export function computeBarcodeSize(props: BarcodeProperties): { width: number; height: number } {
-  const { content, encoding, height, showText, rotation } = props;
+  const { content, encoding, height, showText, rotation, moduleWidth } = props;
+  const mw = moduleWidth ?? DEFAULT_MODULE_WIDTH;
 
   if (content.length === 0) {
     return { width: 0, height: height + (showText ? TEXT_HEIGHT : 0) };
   }
 
   const totalModules = computeTotalModules(encoding, content.length, showText);
-  const w = totalModules * MODULE_WIDTH;
+  const w = totalModules * mw;
   const h = height + (showText ? TEXT_HEIGHT : 0);
 
   if (rotation === 90 || rotation === 270) {

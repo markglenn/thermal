@@ -64,6 +64,23 @@ export function BarcodeProperties({ componentId, props }: Props) {
             <NumberInput value={props.height} onChange={(v) => update({ height: v })} min={20} max={300} fallback={80} />
           </label>
           <label className="flex-1">
+            <span className="text-xs text-gray-500">Bar Width</span>
+            <select
+              value={props.moduleWidth ?? 2}
+              onChange={(e) => {
+                const v = parseInt(e.target.value);
+                update({ moduleWidth: v === 2 ? undefined : v });
+              }}
+              className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm"
+            >
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((v) => (
+                <option key={v} value={v}>{v}{v === 2 ? ' (default)' : ''}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="flex gap-2">
+          <label className="flex-1">
             <span className="text-xs text-gray-500">Rotation</span>
             <select
               value={props.rotation}

@@ -27,7 +27,7 @@ export function BarcodeElement({ props, isSelected: _isSelected }: Props) {
       const displayText = props.encoding === 'code39' ? `*${props.content}*` : undefined;
       JsBarcode(svgRef.current, props.content, {
         format: JSBARCODE_FORMAT[props.encoding],
-        width: 2,
+        width: props.moduleWidth ?? 2,
         height: props.height,
         displayValue: props.showText,
         text: displayText,
@@ -44,7 +44,7 @@ export function BarcodeElement({ props, isSelected: _isSelected }: Props) {
         svgRef.current.innerHTML = `<text x="4" y="16" font-size="12" fill="#dc2626" font-family="sans-serif">${msg}</text>`;
       }
     }
-  }, [props.content, props.encoding, props.height, props.showText]);
+  }, [props.content, props.encoding, props.height, props.moduleWidth, props.showText]);
 
   const rot = props.rotation;
 

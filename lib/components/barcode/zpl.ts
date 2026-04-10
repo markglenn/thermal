@@ -6,6 +6,9 @@ export function barcodeCommand(props: BarcodeProperties, bounds: ResolvedBounds)
   const lines: string[] = [];
   lines.push(fieldOrigin(bounds.x, bounds.y));
 
+  const mw = props.moduleWidth ?? 2;
+  lines.push(`^BY${mw}`);
+
   const rot = getZplRotation(props.rotation);
   const showText = props.showText ? 'Y' : 'N';
 

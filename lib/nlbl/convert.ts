@@ -279,10 +279,11 @@ function convertBarcodeItem(
     || item.content || '1234567890';
   const encoding = mapBarcodeEncoding(item.barcodeType);
   const barcodeHeight = Math.max(20, micronsToDots(item.moduleHeight, dpi));
+  const moduleWidth = item.baseBarWidth > 0 ? Math.max(1, micronsToDots(item.baseBarWidth, dpi)) : undefined;
 
   // Compute the actual barcode dimensions so we can adjust for anchoring
   const barcodeSize = computeBarcodeSize({
-    content, encoding, height: barcodeHeight, showText: item.showText, rotation: 0,
+    content, encoding, height: barcodeHeight, moduleWidth, showText: item.showText, rotation: 0,
   });
 
   // Adjust position from anchor point to top-left
@@ -312,6 +313,7 @@ function convertBarcodeItem(
         content,
         encoding,
         height: barcodeHeight,
+        ...(moduleWidth ? { moduleWidth } : {}),
         showText: item.showText,
         rotation: 0,
       },
@@ -332,9 +334,10 @@ function convertBarcodeMaskText(
 
   const encoding = mapBarcodeEncoding(item.barcodeType);
   const barcodeHeight = Math.max(20, micronsToDots(item.moduleHeight, dpi));
+  const moduleWidth = item.baseBarWidth > 0 ? Math.max(1, micronsToDots(item.baseBarWidth, dpi)) : undefined;
   const barcodeSize = computeBarcodeSize({
     content: (variable ? cleanSampleValue(variable.sampleValue) : '') || item.content || '1234567890',
-    encoding, height: barcodeHeight, showText: false, rotation: 0,
+    encoding, height: barcodeHeight, moduleWidth, showText: false, rotation: 0,
   });
 
   // Position below the barcode

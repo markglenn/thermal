@@ -66,6 +66,7 @@ describe('barcodeCommand', () => {
     );
     expect(result).toEqual([
       '^FO50,100',
+      '^BY2',
       '^BCN,80,Y,N',
       '^FD12345^FS',
     ]);
