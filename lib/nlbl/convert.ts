@@ -2,10 +2,12 @@ import type {
   LabelDocument,
   LabelComponent,
   LabelVariable,
+  BarcodeEncoding,
   TextJustification,
   VerticalAlign,
 } from '../types';
 import type { NlblParsedLabel, NlblTextItem, NlblBarcodeItem, NlblRectangleItem, NlblLineItem, NlblVariable } from './types';
+import { computeBarcodeSize } from '../components/barcode/compute-size';
 
 // ---------------------------------------------------------------------------
 // Unit conversion
@@ -65,6 +67,18 @@ function mapVerticalAlign(anchor: number): VerticalAlign | undefined {
   if (anchor >= 3 && anchor <= 5) return 'center';
   if (anchor >= 6 && anchor <= 8) return 'bottom';
   return undefined; // top is the default, omit
+}
+
+const BARCODE_TYPE_MAP: Record<string, BarcodeEncoding> = {
+  Code128BarcodeData: 'code128',
+  Code39BarcodeData: 'code39',
+  EAN13BarcodeData: 'ean13',
+  UPCABarcodeData: 'upca',
+  Interleaved2of5BarcodeData: 'itf',
+};
+
+function mapBarcodeEncoding(nlblType: string): BarcodeEncoding {
+  return BARCODE_TYPE_MAP[nlblType] ?? 'code128';
 }
 
 function mapJustification(nlblAlign: number): TextJustification {
@@ -174,11 +188,21 @@ function convertTextItem(
 ): LabelComponent {
   const variable = item.dataSourceId ? variableMap.get(item.dataSourceId) : null;
   // For variable-bound items, build a template with {} placeholder.
-  // ContentsMask becomes the prefix: "Rack ID:{}" or just "{}".
+  // ContentsMask asterisks (*) mark where the variable value goes:
+  //   "Rack ID:******" → "Rack ID:{}"
+  //   "Rack ID:" (no asterisks) → "Rack ID:{}"
   // For non-variable items, use FixedContents directly.
   let content: string;
   if (variable) {
-    content = item.contentMask ? `${item.contentMask}{}` : '{}';
+    if (item.contentMask) {
+      // Replace trailing asterisk run with {}, or append {} if no asterisks
+      const maskWithPlaceholder = item.contentMask.includes('*')
+        ? item.contentMask.replace(/\*+/g, '{}')
+        : `${item.contentMask}{}`;
+      content = maskWithPlaceholder;
+    } else {
+      content = '{}';
+    }
   } else {
     content = item.content || 'Text';
   }
@@ -235,19 +259,35 @@ function convertBarcodeItem(
   dpi: number,
 ): LabelComponent {
   const variable = item.dataSourceId ? variableMap.get(item.dataSourceId) : null;
-  const content = variable?.sampleValue
-    ? cleanSampleValue(variable.sampleValue)
-    : item.content || '1234567890';
+  // Use cleaned sample value, falling back to FixedContents or a default.
+  // cleanSampleValue("??????") returns "" so we need the || chain.
+  const content = (variable ? cleanSampleValue(variable.sampleValue) : '')
+    || item.content || '1234567890';
+  const encoding = mapBarcodeEncoding(item.barcodeType);
   const barcodeHeight = Math.max(20, micronsToDots(item.moduleHeight, dpi));
+
+  // Compute the actual barcode dimensions so we can adjust for anchoring
+  const barcodeSize = computeBarcodeSize({
+    content, encoding, height: barcodeHeight, showText: item.showText, rotation: 0,
+  });
+
+  // Adjust position from anchor point to top-left
+  let x = micronsToDots(item.x, dpi);
+  let y = micronsToDots(item.y, dpi);
+  const anchor = item.anchoringPoint;
+  if (anchor === 1 || anchor === 4 || anchor === 7) x -= Math.round(barcodeSize.width / 2);
+  if (anchor === 2 || anchor === 5 || anchor === 8) x -= barcodeSize.width;
+  if (anchor >= 3 && anchor <= 5) y -= Math.round(barcodeSize.height / 2);
+  if (anchor >= 6) y -= barcodeSize.height;
 
   return {
     id: nextId(),
     name: variable?.name ?? item.name,
     layout: {
-      x: micronsToDots(item.x, dpi),
-      y: micronsToDots(item.y, dpi),
-      width: 100, // auto-sized, placeholder
-      height: barcodeHeight,
+      x,
+      y,
+      width: barcodeSize.width,
+      height: barcodeSize.height,
       horizontalAnchor: 'left',
       verticalAnchor: 'top',
     },
@@ -256,7 +296,7 @@ function convertBarcodeItem(
       type: 'barcode',
       props: {
         content,
-        encoding: 'code128',
+        encoding,
         height: barcodeHeight,
         showText: item.showText,
         rotation: 0,

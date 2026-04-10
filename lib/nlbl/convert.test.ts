@@ -236,7 +236,27 @@ describe('convertNlblToDocument', () => {
     expect(doc.variables![2].defaultValue).toBe('hello');
   });
 
-  it('prepends contentMask to variable sample value', () => {
+  it('replaces contentMask asterisks with {} placeholder', () => {
+    const doc = convertNlblToDocument(makeMinimalLabel({
+      variables: [
+        { id: 'v1', name: 'expiry', sampleValue: '07/2031', isRequired: false },
+      ],
+      textItems: [{
+        name: 'Warranty',
+        left: 0, top: 0, width: 25400, height: 5000,
+        content: 'Text Box', contentMask: 'Warranty Expiration: *******', fontName: 'Arial', fontPointSize: 14,
+        fontWeight: 0, justification: 0, textType: 2, bestFit: false,
+        zOrder: 10001, dataSourceId: 'v1', anchoringPoint: 0,
+      }],
+    }));
+
+    const comp = doc.components[0];
+    if (comp.typeData.type === 'text') {
+      expect(comp.typeData.props.content).toBe('Warranty Expiration: {}');
+    }
+  });
+
+  it('appends {} to contentMask without asterisks', () => {
     const doc = convertNlblToDocument(makeMinimalLabel({
       variables: [
         { id: 'v1', name: 'rack_id', sampleValue: '??????', isRequired: false },

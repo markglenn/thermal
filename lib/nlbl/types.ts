@@ -32,7 +32,9 @@ export interface NlblBarcodeItem {
   name: string;
   x: number;      // microns
   y: number;
+  anchoringPoint: number; // 0=TL 1=TC 2=TR 3=ML 4=MC 5=MR 6=BL 7=BC 8=BR
   barcodeType: string; // e.g. 'Code128BarcodeData'
+  baseBarWidth: number; // microns — narrow bar width
   moduleHeight: number; // microns
   showText: boolean; // HumanInterpretationPosition != 0
   content: string;

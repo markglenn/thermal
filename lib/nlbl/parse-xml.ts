@@ -132,6 +132,25 @@ export function parseFormatXml(xml: string): FormatParseResult {
   return { media, textItems, barcodeItems, rectangleItems, lineItems };
 }
 
+/** Extract text content, decoding base64 if flagged. */
+function extractContent(item: Record<string, unknown>): string {
+  // Check Contents/FixedValue/StringValue for Base64Encoded flag
+  const contents = item.Contents as Record<string, unknown> | undefined;
+  const fixedValue = contents?.FixedValue as Record<string, unknown> | undefined;
+  const stringValue = fixedValue?.StringValue as Record<string, unknown> | undefined;
+
+  if (stringValue && text(stringValue['@_Base64Encoded']) === 'true') {
+    const encoded = text(stringValue['#text'] ?? stringValue);
+    try {
+      return Buffer.from(encoded, 'base64').toString('utf-8').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    } catch {
+      return text(item.FixedContents);
+    }
+  }
+
+  return text(item.FixedContents);
+}
+
 function parseTextItem(item: Record<string, unknown>): NlblTextItem {
   const geometry = item.Geometry as Record<string, unknown> | undefined;
 
@@ -142,7 +161,7 @@ function parseTextItem(item: Record<string, unknown>): NlblTextItem {
     width: num(geometry?.Width),
     height: num(geometry?.Height),
     anchoringPoint: num(geometry?.AnchoringPoint),
-    content: text(item.FixedContents),
+    content: extractContent(item),
     contentMask: text(item.ContentsMask),
     fontName: text((item.FontDescriptor as Record<string, unknown>)?.Name),
     fontPointSize: num((item.FontDescriptor as Record<string, unknown>)?.Height),
@@ -170,7 +189,9 @@ function parseBarcodeItem(item: Record<string, unknown>): NlblBarcodeItem {
     name: text(item.Name),
     x: num(geometry?.X),
     y: num(geometry?.Y),
+    anchoringPoint: num(geometry?.AnchoringPoint),
     barcodeType: text(barcodeData?.['@_Type']),
+    baseBarWidth: num(barcodeData?.BaseBarWidth),
     moduleHeight: num(barcodeData?.ModuleHeight),
     showText: num(barcodeData?.HumanInterpretationPosition) !== 0,
     content: text(item.FixedContents),
