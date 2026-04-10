@@ -257,4 +257,54 @@ describe('generateZplMerge visibility conditions', () => {
     const zplUS = await generateZplMerge(doc, { region: 'US' });
     expect(zplUS).not.toContain('Best Before');
   });
+
+  it('replaces {} placeholder in content with field value', () => {
+    const comp: LabelComponent = {
+      id: 'masked1',
+      name: 'Rack Label',
+      layout: makeLayout({ width: 300, height: 40 }),
+      fieldBinding: 'rack_id',
+      typeData: {
+        type: 'text',
+        props: {
+          content: 'Rack ID:{}',
+          font: '0',
+          fontSize: 30,
+          fontWidth: 30,
+          rotation: 0,
+        },
+      },
+    };
+
+    const doc = makeDoc([comp]);
+    const result = applyFieldData(doc, { rack_id: 'A-42' });
+    const updated = result.components[0];
+
+    expect((updated.typeData.props as { content: string }).content).toBe('Rack ID:A-42');
+  });
+
+  it('replaces entire content when no {} placeholder present', () => {
+    const comp: LabelComponent = {
+      id: 'plain1',
+      name: 'Name',
+      layout: makeLayout({ width: 150, height: 30 }),
+      fieldBinding: 'name',
+      typeData: {
+        type: 'text',
+        props: {
+          content: 'Default',
+          font: '0',
+          fontSize: 30,
+          fontWidth: 30,
+          rotation: 0,
+        },
+      },
+    };
+
+    const doc = makeDoc([comp]);
+    const result = applyFieldData(doc, { name: 'Replaced' });
+    const updated = result.components[0];
+
+    expect((updated.typeData.props as { content: string }).content).toBe('Replaced');
+  });
 });

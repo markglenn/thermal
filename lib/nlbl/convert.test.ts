@@ -122,8 +122,8 @@ describe('convertNlblToDocument', () => {
     expect(comp.fieldBinding).toBe('serial_number');
     expect(comp.name).toBe('serial_number');
     if (comp.typeData.type === 'text') {
-      // Uses variable sample value (what NiceLabel displays)
-      expect(comp.typeData.props.content).toBe('SN-12345');
+      // Variable-bound items use {} placeholder
+      expect(comp.typeData.props.content).toBe('{}');
     }
 
     // Variable should be in the document
@@ -251,7 +251,7 @@ describe('convertNlblToDocument', () => {
 
     const comp = doc.components[0];
     if (comp.typeData.type === 'text') {
-      expect(comp.typeData.props.content).toBe('Rack ID:??????');
+      expect(comp.typeData.props.content).toBe('Rack ID:{}');
     }
   });
 

@@ -31,11 +31,15 @@ export function applyFieldData(doc: LabelDocument, fieldData: Record<string, str
 
 /**
  * Substitute field data into the component's content prop.
+ * If the content contains `{}`, the placeholder is replaced with the value
+ * (e.g. "Rack ID:{}" + "ABC" → "Rack ID:ABC"). Otherwise the entire
+ * content is replaced.
  */
 function substituteContent(comp: LabelComponent, value: string): void {
   const props = comp.typeData.props;
   if ('content' in props) {
-    (props as { content: string }).content = value;
+    const p = props as { content: string };
+    p.content = p.content.includes('{}') ? p.content.replace('{}', value) : value;
   }
 }
 

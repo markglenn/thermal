@@ -165,11 +165,15 @@ function convertTextItem(
   dpi: number,
 ): LabelComponent {
   const variable = item.dataSourceId ? variableMap.get(item.dataSourceId) : null;
-  // For variable-bound items, NiceLabel displays: contentMask + variable sample value.
+  // For variable-bound items, build a template with {} placeholder.
+  // ContentsMask becomes the prefix: "Rack ID:{}" or just "{}".
   // For non-variable items, use FixedContents directly.
-  const content = variable
-    ? (item.contentMask + variable.sampleValue) || item.content || 'Text'
-    : item.content || 'Text';
+  let content: string;
+  if (variable) {
+    content = item.contentMask ? `${item.contentMask}{}` : '{}';
+  } else {
+    content = item.content || 'Text';
+  }
   const fontSize = pointsToDots(item.fontPointSize, dpi);
   const justification = mapJustification(item.justification);
   const needsFieldBlock = justification !== 'L' || item.width > 0;
