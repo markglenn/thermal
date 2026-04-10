@@ -165,10 +165,11 @@ function convertTextItem(
   dpi: number,
 ): LabelComponent {
   const variable = item.dataSourceId ? variableMap.get(item.dataSourceId) : null;
-  // Use FixedContents (NiceLabel's designer preview text) as display content.
-  // Fall back to the variable's sample value if FixedContents is empty.
-  const content = item.content
-    || (variable ? cleanSampleValue(variable.sampleValue) : '') || 'Text';
+  // For variable-bound items, NiceLabel displays: contentMask + variable sample value.
+  // For non-variable items, use FixedContents directly.
+  const content = variable
+    ? (item.contentMask + variable.sampleValue) || item.content || 'Text'
+    : item.content || 'Text';
   const fontSize = pointsToDots(item.fontPointSize, dpi);
   const justification = mapJustification(item.justification);
   const needsFieldBlock = justification !== 'L' || item.width > 0;

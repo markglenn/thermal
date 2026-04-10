@@ -143,6 +143,7 @@ function parseTextItem(item: Record<string, unknown>): NlblTextItem {
     height: num(geometry?.Height),
     anchoringPoint: num(geometry?.AnchoringPoint),
     content: text(item.FixedContents),
+    contentMask: text(item.ContentsMask),
     fontName: text((item.FontDescriptor as Record<string, unknown>)?.Name),
     fontPointSize: num((item.FontDescriptor as Record<string, unknown>)?.Height),
     fontWeight: num(

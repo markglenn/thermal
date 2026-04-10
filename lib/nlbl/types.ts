@@ -16,7 +16,8 @@ export interface NlblTextItem {
   width: number;
   height: number;
   anchoringPoint: number; // 0=TL 1=TC 2=TR 3=ML 4=MC 5=MR 6=BL 7=BC 8=BR
-  content: string;
+  content: string;        // FixedContents
+  contentMask: string;    // ContentsMask prefix (e.g. "Rack ID:")
   fontName: string;
   fontPointSize: number; // FontDescriptor.Height in points
   fontWeight: number; // 0 = normal, 700 = bold

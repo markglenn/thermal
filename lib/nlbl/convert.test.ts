@@ -60,6 +60,7 @@ describe('convertNlblToDocument', () => {
         width: 50800, // 2 inches
         height: 25400,
         content: 'Hello World',
+        contentMask: '',
         fontName: 'Arial',
         fontPointSize: 14,
         fontWeight: 700,
@@ -105,6 +106,7 @@ describe('convertNlblToDocument', () => {
         width: 50800,
         height: 25400,
         content: 'Serial Number',
+        contentMask: '',
         fontName: 'Arial',
         fontPointSize: 10,
         fontWeight: 0,
@@ -120,8 +122,8 @@ describe('convertNlblToDocument', () => {
     expect(comp.fieldBinding).toBe('serial_number');
     expect(comp.name).toBe('serial_number');
     if (comp.typeData.type === 'text') {
-      // Uses FixedContents ("Serial Number"), not {{variable_name}}
-      expect(comp.typeData.props.content).toBe('Serial Number');
+      // Uses variable sample value (what NiceLabel displays)
+      expect(comp.typeData.props.content).toBe('SN-12345');
     }
 
     // Variable should be in the document
@@ -164,14 +166,14 @@ describe('convertNlblToDocument', () => {
         {
           name: 'Second',
           left: 0, top: 0, width: 10000, height: 5000,
-          content: 'B', fontName: 'Arial', fontPointSize: 10,
+          content: 'B', contentMask: '', fontName: 'Arial', fontPointSize: 10,
           fontWeight: 0, justification: 0, bestFit: false,
           zOrder: 10002, dataSourceId: null, anchoringPoint: 0,
         },
         {
           name: 'First',
           left: 0, top: 10000, width: 10000, height: 5000,
-          content: 'A', fontName: 'Arial', fontPointSize: 10,
+          content: 'A', contentMask: '', fontName: 'Arial', fontPointSize: 10,
           fontWeight: 0, justification: 0, bestFit: false,
           zOrder: 10001, dataSourceId: null, anchoringPoint: 0,
         },
@@ -187,7 +189,7 @@ describe('convertNlblToDocument', () => {
       textItems: [{
         name: 'Centered',
         left: 0, top: 0, width: 50800, height: 25400,
-        content: 'Center', fontName: 'Arial', fontPointSize: 10,
+        content: 'Center', contentMask: '', fontName: 'Arial', fontPointSize: 10,
         fontWeight: 0, justification: 2, bestFit: false,
         zOrder: 10001, dataSourceId: null, anchoringPoint: 0,
       }],
@@ -209,19 +211,19 @@ describe('convertNlblToDocument', () => {
       textItems: [
         {
           name: 'T1', left: 0, top: 0, width: 10000, height: 5000,
-          content: '', fontName: 'Arial', fontPointSize: 10,
+          content: '', contentMask: '', fontName: 'Arial', fontPointSize: 10,
           fontWeight: 0, justification: 0, bestFit: false,
           zOrder: 10001, dataSourceId: 'v1', anchoringPoint: 0,
         },
         {
           name: 'T2', left: 0, top: 10000, width: 10000, height: 5000,
-          content: '', fontName: 'Arial', fontPointSize: 10,
+          content: '', contentMask: '', fontName: 'Arial', fontPointSize: 10,
           fontWeight: 0, justification: 0, bestFit: false,
           zOrder: 10002, dataSourceId: 'v2', anchoringPoint: 0,
         },
         {
           name: 'T3', left: 0, top: 20000, width: 10000, height: 5000,
-          content: '', fontName: 'Arial', fontPointSize: 10,
+          content: '', contentMask: '', fontName: 'Arial', fontPointSize: 10,
           fontWeight: 0, justification: 0, bestFit: false,
           zOrder: 10003, dataSourceId: 'v3', anchoringPoint: 0,
         },
@@ -231,6 +233,26 @@ describe('convertNlblToDocument', () => {
     expect(doc.variables![0].defaultValue).toBe('');
     expect(doc.variables![1].defaultValue).toBe('some_value');
     expect(doc.variables![2].defaultValue).toBe('hello');
+  });
+
+  it('prepends contentMask to variable sample value', () => {
+    const doc = convertNlblToDocument(makeMinimalLabel({
+      variables: [
+        { id: 'v1', name: 'rack_id', sampleValue: '??????', isRequired: false },
+      ],
+      textItems: [{
+        name: 'Rack Label',
+        left: 0, top: 0, width: 25400, height: 5000,
+        content: 'Text Box', contentMask: 'Rack ID:', fontName: 'Arial', fontPointSize: 14,
+        fontWeight: 0, justification: 0, bestFit: false,
+        zOrder: 10001, dataSourceId: 'v1', anchoringPoint: 0,
+      }],
+    }));
+
+    const comp = doc.components[0];
+    if (comp.typeData.type === 'text') {
+      expect(comp.typeData.props.content).toBe('Rack ID:??????');
+    }
   });
 
   it('respects custom DPI', () => {
@@ -249,7 +271,7 @@ describe('convertNlblToDocument', () => {
       textItems: [{
         name: 'Static',
         left: 0, top: 0, width: 10000, height: 5000,
-        content: 'Fixed text', fontName: 'Arial', fontPointSize: 10,
+        content: 'Fixed text', contentMask: '', fontName: 'Arial', fontPointSize: 10,
         fontWeight: 0, justification: 0, bestFit: false,
         zOrder: 10001, dataSourceId: null, anchoringPoint: 0,
       }],
