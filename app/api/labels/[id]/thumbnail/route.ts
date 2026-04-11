@@ -22,11 +22,7 @@ export async function GET(
       return new NextResponse(null, { status: 404 });
     }
 
-    // libsql returns ArrayBuffer, pg may return string
-    const buf = typeof thumb === 'string'
-      ? Buffer.from(thumb, 'base64')
-      : Buffer.from(thumb);
-    return new NextResponse(buf, {
+    return new NextResponse(new Uint8Array(thumb), {
       headers: {
         'Content-Type': 'image/png',
         'Cache-Control': 'no-cache',

@@ -20,8 +20,9 @@ import { ContextMenuProvider } from '../ui/ContextMenu';
 import { Toasts } from '../ui/Toasts';
 import { ReadOnlyBanner } from './ReadOnlyBanner';
 import { LabelBrowserModal } from '../documents/LabelBrowserModal';
-import { PanelLeftOpen, PanelRightOpen, PanelBottomClose, PanelBottomOpen, FilePlus, FolderOpen, Flame } from 'lucide-react';
+import { PanelLeftOpen, PanelRightOpen, PanelBottomClose, PanelBottomOpen, FilePlus, FolderOpen, Flame, Upload } from 'lucide-react';
 import { fetchJson } from '@/lib/client/fetch';
+import { importNlblDocument } from '@/lib/documents/file-io';
 import type { LabelDocument } from '@/lib/types';
 
 export function Editor() {
@@ -64,19 +65,9 @@ export function Editor() {
   );
 }
 
-type PreviewTab = 'zpl' | 'preview' | 'labelary';
-
 function EditorInner() {
   useKeyboardShortcuts();
   useUndoFlash();
-  const [previewTab, setPreviewTab] = useState<PreviewTab>('preview');
-
-  const [leftWidth, setLeftWidth] = useState(208);
-  const [rightWidth, setRightWidth] = useState(256);
-  const [bottomHeight, setBottomHeight] = useState(320);
-  const [leftCollapsed, setLeftCollapsed] = useState(false);
-  const [rightCollapsed, setRightCollapsed] = useState(false);
-  const [bottomCollapsed, setBottomCollapsed] = useState(false);
 
   return (
     <div className="h-screen flex flex-col bg-white text-gray-900" onContextMenu={(e) => e.preventDefault()}>
@@ -85,98 +76,127 @@ function EditorInner() {
       <TabBar />
       <ReadOnlyBanner />
       <div className="flex-1 flex overflow-hidden">
-        {/* Left panel */}
-        {leftCollapsed ? (
-          <button
-            onClick={() => setLeftCollapsed(false)}
-            className="shrink-0 w-7 border-r border-gray-200 bg-white flex flex-col items-center hover:bg-gray-50 transition-colors cursor-pointer"
-            title="Show components panel"
-          >
-            <PanelLeftOpen size={14} className="text-gray-400 mt-2 mb-3" />
-            <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest [writing-mode:vertical-lr] rotate-180">
-              Components
-            </span>
-          </button>
-        ) : (
-          <>
-            <div style={{ width: leftWidth }} className="shrink-0 border-r border-gray-200 bg-white flex flex-col overflow-hidden">
-              <ComponentPalette onCollapse={() => setLeftCollapsed(true)} />
-            </div>
-            <PanelResizeHandle direction="horizontal" size={leftWidth} onSizeChange={setLeftWidth} min={160} max={400} onDoubleClick={() => setLeftCollapsed(true)} />
-          </>
-        )}
-
-        {/* Center */}
+        <LeftPanel />
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           <div className="flex-1 flex overflow-hidden">
             <Canvas />
           </div>
-
-          {/* Bottom preview panel */}
-          {bottomCollapsed ? (
-            <div className="shrink-0 border-t border-gray-200 flex items-center justify-between px-3 py-1">
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Preview</span>
-              <button onClick={() => setBottomCollapsed(false)} className="text-gray-400 hover:text-gray-600" title="Show preview panel">
-                <PanelBottomOpen size={14} />
-              </button>
-            </div>
-          ) : (
-            <>
-              <PanelResizeHandle direction="vertical" size={bottomHeight} onSizeChange={setBottomHeight} min={100} max={600} invert onDoubleClick={() => setBottomCollapsed(true)} />
-              <div style={{ height: bottomHeight }} className="shrink-0 border-t border-gray-200 flex flex-col">
-                <div className="flex border-b border-gray-200 items-center">
-                  {(['zpl', 'preview', 'labelary'] as const).map((tab) => (
-                    <button
-                      key={tab}
-                      data-testid={`preview-tab-${tab}`}
-                      onClick={() => setPreviewTab(tab)}
-                      className={`px-4 py-1.5 text-xs font-medium ${
-                        previewTab === tab
-                          ? 'text-blue-600 border-b-2 border-blue-600'
-                          : 'text-gray-500 hover:text-gray-700'
-                      }`}
-                    >
-                      {{ zpl: 'ZPL', preview: 'Preview', labelary: 'Labelary Preview' }[tab]}
-                    </button>
-                  ))}
-                  <div className="ml-auto pr-2">
-                    <button onClick={() => setBottomCollapsed(true)} className="text-gray-400 hover:text-gray-600" title="Collapse panel">
-                      <PanelBottomClose size={14} />
-                    </button>
-                  </div>
-                </div>
-                <div className="flex-1 overflow-hidden">
-                  {previewTab === 'zpl' && <ZplPreview />}
-                  {previewTab === 'preview' && <LabelaryPreview />}
-                  {previewTab === 'labelary' && <LabelaryApiPreview />}
-                </div>
-              </div>
-            </>
-          )}
+          <BottomPanel />
         </div>
-
-        {/* Right panel */}
-        {rightCollapsed ? (
-          <button
-            onClick={() => setRightCollapsed(false)}
-            className="shrink-0 w-7 border-l border-gray-200 bg-white flex flex-col items-center hover:bg-gray-50 transition-colors cursor-pointer"
-            title="Show properties panel"
-          >
-            <PanelRightOpen size={14} className="text-gray-400 mt-2 mb-3" />
-            <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest [writing-mode:vertical-lr]">
-              Properties
-            </span>
-          </button>
-        ) : (
-          <>
-            <PanelResizeHandle direction="horizontal" size={rightWidth} onSizeChange={setRightWidth} min={200} max={450} invert onDoubleClick={() => setRightCollapsed(true)} />
-            <div style={{ width: rightWidth }} className="shrink-0 border-l border-gray-200 bg-white flex flex-col overflow-y-auto">
-              <PropertiesPanel onCollapse={() => setRightCollapsed(true)} />
-            </div>
-          </>
-        )}
+        <RightPanel />
       </div>
     </div>
+  );
+}
+
+function LeftPanel() {
+  const [width, setWidth] = useState(208);
+  const [collapsed, setCollapsed] = useState(false);
+
+  if (collapsed) {
+    return (
+      <button
+        onClick={() => setCollapsed(false)}
+        className="shrink-0 w-7 border-r border-gray-200 bg-white flex flex-col items-center hover:bg-gray-50 transition-colors cursor-pointer"
+        title="Show components panel"
+      >
+        <PanelLeftOpen size={14} className="text-gray-400 mt-2 mb-3" />
+        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest [writing-mode:vertical-lr] rotate-180">
+          Components
+        </span>
+      </button>
+    );
+  }
+
+  return (
+    <>
+      <div style={{ width }} className="shrink-0 border-r border-gray-200 bg-white flex flex-col overflow-hidden">
+        <ComponentPalette onCollapse={() => setCollapsed(true)} />
+      </div>
+      <PanelResizeHandle direction="horizontal" size={width} onSizeChange={setWidth} min={160} max={400} onDoubleClick={() => setCollapsed(true)} />
+    </>
+  );
+}
+
+type PreviewTab = 'zpl' | 'preview' | 'labelary';
+
+function BottomPanel() {
+  const [height, setHeight] = useState(320);
+  const [collapsed, setCollapsed] = useState(false);
+  const [previewTab, setPreviewTab] = useState<PreviewTab>('preview');
+
+  if (collapsed) {
+    return (
+      <div className="shrink-0 border-t border-gray-200 flex items-center justify-between px-3 py-1">
+        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Preview</span>
+        <button onClick={() => setCollapsed(false)} className="text-gray-400 hover:text-gray-600" title="Show preview panel">
+          <PanelBottomOpen size={14} />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <PanelResizeHandle direction="vertical" size={height} onSizeChange={setHeight} min={100} max={600} invert onDoubleClick={() => setCollapsed(true)} />
+      <div style={{ height }} className="shrink-0 border-t border-gray-200 flex flex-col">
+        <div className="flex border-b border-gray-200 items-center">
+          {(['zpl', 'preview', 'labelary'] as const).map((tab) => (
+            <button
+              key={tab}
+              data-testid={`preview-tab-${tab}`}
+              onClick={() => setPreviewTab(tab)}
+              className={`px-4 py-1.5 text-xs font-medium ${
+                previewTab === tab
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {{ zpl: 'ZPL', preview: 'Preview', labelary: 'Labelary Preview' }[tab]}
+            </button>
+          ))}
+          <div className="ml-auto pr-2">
+            <button onClick={() => setCollapsed(true)} className="text-gray-400 hover:text-gray-600" title="Collapse panel">
+              <PanelBottomClose size={14} />
+            </button>
+          </div>
+        </div>
+        <div className="flex-1 overflow-hidden">
+          {previewTab === 'zpl' && <ZplPreview />}
+          {previewTab === 'preview' && <LabelaryPreview />}
+          {previewTab === 'labelary' && <LabelaryApiPreview />}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function RightPanel() {
+  const [width, setWidth] = useState(256);
+  const [collapsed, setCollapsed] = useState(false);
+
+  if (collapsed) {
+    return (
+      <button
+        onClick={() => setCollapsed(false)}
+        className="shrink-0 w-7 border-l border-gray-200 bg-white flex flex-col items-center hover:bg-gray-50 transition-colors cursor-pointer"
+        title="Show properties panel"
+      >
+        <PanelRightOpen size={14} className="text-gray-400 mt-2 mb-3" />
+        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest [writing-mode:vertical-lr]">
+          Properties
+        </span>
+      </button>
+    );
+  }
+
+  return (
+    <>
+      <PanelResizeHandle direction="horizontal" size={width} onSizeChange={setWidth} min={200} max={450} invert onDoubleClick={() => setCollapsed(true)} />
+      <div style={{ width }} className="shrink-0 border-l border-gray-200 bg-white flex flex-col overflow-y-auto">
+        <PropertiesPanel onCollapse={() => setCollapsed(true)} />
+      </div>
+    </>
   );
 }
 
@@ -211,6 +231,25 @@ function EmptyState() {
             >
               <FolderOpen size={16} />
               Open Label
+            </button>
+          </div>
+          <div className="flex justify-center">
+            <button
+              onClick={() => {
+                importNlblDocument().then((result) => {
+                  if (!result) return;
+                  const tabId = useTabStore.getState().createTab();
+                  const tab = useTabStore.getState().tabs.find((t) => t.id === tabId);
+                  if (tab) {
+                    tab.store.getState().loadDocument(result.document);
+                    useTabStore.getState().updateTabName(tabId, result.name);
+                  }
+                });
+              }}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded hover:bg-gray-100 text-sm text-gray-700"
+            >
+              <Upload size={16} />
+              Import NiceLabel
             </button>
           </div>
         </div>

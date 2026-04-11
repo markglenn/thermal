@@ -9,6 +9,12 @@ export interface NlblVariable {
   isRequired: boolean;
 }
 
+/** Visibility condition parsed from NiceLabel XML. */
+export interface NlblVisibilityCondition {
+  variableId: string; // DataSourceReference Id for the left-hand variable
+  value: string;      // Fixed right-hand value (e.g. "1")
+}
+
 export interface NlblTextItem {
   name: string;
   left: number;   // microns
@@ -26,6 +32,7 @@ export interface NlblTextItem {
   bestFit: boolean;
   zOrder: number;
   dataSourceId: string | null;
+  visibilityCondition: NlblVisibilityCondition | null;
 }
 
 export interface NlblBarcodeItem {
@@ -42,6 +49,7 @@ export interface NlblBarcodeItem {
   content: string;
   zOrder: number;
   dataSourceId: string | null;
+  visibilityCondition: NlblVisibilityCondition | null;
 }
 
 export interface NlblRectangleItem {

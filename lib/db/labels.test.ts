@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach, afterAll } from 'vitest';
-import path from 'path';
-import fs from 'fs';
-import { createClient } from '@libsql/client';
-import { drizzle } from 'drizzle-orm/libsql';
-import { migrate } from 'drizzle-orm/libsql/migrator';
+import '../../scripts/env';
+import { drizzle } from 'drizzle-orm/node-postgres';
 import { eq, desc } from 'drizzle-orm';
-import * as schema from './schema-sqlite';
+import { Pool } from 'pg';
+import * as schema from './schema';
 import type { LabelDocument } from '../types';
 
-const TEST_DB_PATH = path.join(__dirname, '../../thermal-test-labels.db');
+const DATABASE_URL = process.env.DATABASE_URL || 'postgres://thermal:thermal@localhost:5433/thermal';
+
+const pool = new Pool({ connectionString: DATABASE_URL });
 
 const sampleDocument: LabelDocument = {
   version: 1,
@@ -67,21 +67,14 @@ async function createLabel(name: string, doc: LabelDocument = sampleDocument) {
 }
 
 beforeEach(async () => {
-  // Fresh DB for each test
-  if (fs.existsSync(TEST_DB_PATH)) fs.unlinkSync(TEST_DB_PATH);
+  db = drizzle(pool, { schema });
 
-  const client = createClient({ url: `file:${TEST_DB_PATH}` });
-  db = drizzle(client, { schema });
-  await migrate(db, { migrationsFolder: path.join(__dirname, '../../drizzle/sqlite') });
+  // Truncate all tables (cascade handles FK ordering)
+  await pool.query('TRUNCATE label_versions, print_jobs, labels, label_sizes CASCADE');
 });
 
-afterAll(() => {
-  if (fs.existsSync(TEST_DB_PATH)) fs.unlinkSync(TEST_DB_PATH);
-  // Also clean up WAL/SHM files
-  for (const suffix of ['-wal', '-shm']) {
-    const f = TEST_DB_PATH + suffix;
-    if (fs.existsSync(f)) fs.unlinkSync(f);
-  }
+afterAll(async () => {
+  await pool.end();
 });
 
 describe('labels database operations', () => {
@@ -360,10 +353,9 @@ describe('labels database operations', () => {
         .from(schema.labelVersions)
         .where(eq(schema.labelVersions.id, versions[0].id));
 
-      // libsql returns ArrayBuffer for blobs — convert to check bytes
       const thumb = updated[0].thumbnail;
-      const bytes = thumb instanceof ArrayBuffer ? new Uint8Array(thumb) : thumb;
-      expect(bytes[0]).toBe(0x89);
+      expect(Buffer.isBuffer(thumb)).toBe(true);
+      expect(thumb![0]).toBe(0x89);
     });
 
     it('allows null thumbnail', async () => {

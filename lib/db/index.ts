@@ -1,61 +1,50 @@
+import { drizzle, NodePgDatabase } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
+import * as schema from './schema';
 import type { LabelDocument } from '../types';
-import type { LibSQLDatabase } from 'drizzle-orm/libsql';
-import type * as sqliteSchema from './schema-sqlite';
 
-// Use the SQLite schema types as the canonical table type — both dialects have
-// identical column names so queries written against these types work for either.
-type Schema = typeof sqliteSchema;
-type Tables = { labels: Schema['labels']; labelVersions: Schema['labelVersions']; labelSizes: Schema['labelSizes']; printJobs: Schema['printJobs'] };
+type Tables = {
+  labels: typeof schema.labels;
+  labelVersions: typeof schema.labelVersions;
+  labelSizes: typeof schema.labelSizes;
+  printJobs: typeof schema.printJobs;
+};
 
-// LibSQLDatabase is the canonical DB type. Both libsql (dev) and node-postgres
-// (prod) expose an async API, so the runtime contract is the same. The Postgres
-// drizzle instance is cast to this type — a safe cast since both return promises
-// from select/insert/update/delete/transaction.
-type Db = LibSQLDatabase<Schema>;
+type Db = NodePgDatabase<typeof schema>;
 
-const DATABASE_URL = process.env.DATABASE_URL || 'file:./thermal.db';
-const isPostgres = DATABASE_URL.startsWith('postgres');
+const DATABASE_URL = process.env.DATABASE_URL;
 
-// Lazy-initialized singletons
 let _db: Db | undefined;
 let _tables: Tables | undefined;
 
 async function initDb(): Promise<{ db: Db; tables: Tables }> {
   if (_db && _tables) return { db: _db, tables: _tables };
 
-  if (isPostgres) {
-    // Dynamic import — pg is only installed in prod environments
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { drizzle } = require('drizzle-orm/node-postgres');
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { Pool } = require('pg');
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const schema = require('./schema-pg');
-    const pool = new Pool({ connectionString: DATABASE_URL });
-    _db = drizzle(pool, { schema }) as Db;
-    _tables = { labels: schema.labels, labelVersions: schema.labelVersions, labelSizes: schema.labelSizes, printJobs: schema.printJobs };
-  } else {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { createClient } = require('@libsql/client');
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { drizzle } = require('drizzle-orm/libsql');
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const schema = require('./schema-sqlite') as Schema;
-    const client = createClient({ url: DATABASE_URL });
-    _db = drizzle(client, { schema }) as Db;
-    _tables = { labels: schema.labels, labelVersions: schema.labelVersions, labelSizes: schema.labelSizes, printJobs: schema.printJobs };
-  }
-
-  // Verify the expected tables exist — fails fast if migrations haven't been run
-  try {
-    await _db!.select().from(_tables!.labels).limit(0);
-  } catch (e) {
+  if (!DATABASE_URL) {
     throw new Error(
-      `Database tables not found. Run migrations first: npx tsx lib/db/migrate.ts\n${e instanceof Error ? e.message : e}`
+      'DATABASE_URL is not set. Add a postgres:// connection string to .env.local'
     );
   }
 
-  return { db: _db!, tables: _tables! };
+  const pool = new Pool({ connectionString: DATABASE_URL });
+  _db = drizzle(pool, { schema });
+  _tables = {
+    labels: schema.labels,
+    labelVersions: schema.labelVersions,
+    labelSizes: schema.labelSizes,
+    printJobs: schema.printJobs,
+  };
+
+  // Verify the expected tables exist — fails fast if migrations haven't been run
+  try {
+    await _db.select().from(_tables.labels).limit(0);
+  } catch (e) {
+    throw new Error(
+      `Database tables not found. Run migrations first: npm run db:migrate\n${e instanceof Error ? e.message : e}`
+    );
+  }
+
+  return { db: _db, tables: _tables };
 }
 
 export async function getDatabase(): Promise<{ db: Db; tables: Tables }> {
@@ -82,7 +71,7 @@ export type LabelVersionRow = {
   version: number;
   status: 'published' | null;
   document: LabelDocument;
-  thumbnail: ArrayBuffer | string | null;
+  thumbnail: Buffer | null;
   archivedAt: Date | null;
   createdAt: Date;
   updatedAt: Date | null;

@@ -45,6 +45,7 @@ export function Toolbar() {
   const showRulers = useEditorStoreContext((s) => s.showRulers);
   const toggleRulers = useEditorStoreContext((s) => s.toggleRulers);
   const currentLabelName = useEditorStoreContext((s) => s.currentLabelName);
+  const activeTabName = useTabStore((s) => s.tabs.find((t) => t.id === s.activeTabId)?.name);
   const zoom = useEditorStoreContext((s) => s.viewport.zoom);
   const storeApi = useEditorStoreApi();
 
@@ -134,9 +135,9 @@ export function Toolbar() {
     if (!store.currentLabelId) {
       setShowSaveModal(true);
     } else {
-      saveLabel(store.currentLabelName || 'Untitled Label');
+      saveLabel(store.currentLabelName || activeTabName || 'Untitled Label');
     }
-  }, [saveLabel, storeApi]);
+  }, [saveLabel, storeApi, activeTabName]);
 
   const handleOpenLabel = useCallback(async (id: string) => {
     const data = await fetchJson<{ id: string; name: string; document: unknown; version: number; status: 'published' | null }>(`/api/labels/${id}`);
@@ -202,7 +203,7 @@ export function Toolbar() {
       const tab = useTabStore.getState().tabs.find((t) => t.id === useTabStore.getState().activeTabId);
       if (tab?.latestStatus === 'published' && !tab?.dirty) return;
       if (store.currentLabelId) {
-        saveLabel(store.currentLabelName || 'Untitled Label');
+        saveLabel(store.currentLabelName || activeTabName || 'Untitled Label');
       } else {
         setShowSaveModal(true);
       }
@@ -221,7 +222,7 @@ export function Toolbar() {
       window.removeEventListener(EDITOR_EVENTS.OPEN, onOpen);
       window.removeEventListener(EDITOR_EVENTS.SHOW_SHORTCUTS, onShortcuts);
     };
-  }, [saveLabel, storeApi]);
+  }, [saveLabel, storeApi, activeTabName]);
 
   return (
     <>
@@ -269,7 +270,7 @@ export function Toolbar() {
                 <Menubar.Separator className={separatorClass} />
                 <Menubar.Item className={itemClass} onSelect={() => {
                   const store = storeApi.getState();
-                  exportDocument(store.document, store.currentLabelName || 'Untitled Label');
+                  exportDocument(store.document, store.currentLabelName || activeTabName || 'Untitled Label');
                 }}>
                   Export JSON...
                 </Menubar.Item>
@@ -445,7 +446,7 @@ export function Toolbar() {
 
       {showSaveModal && (
         <SaveNameModal
-          initialName={currentLabelName || 'Untitled Label'}
+          initialName={currentLabelName || activeTabName || 'Untitled Label'}
           onConfirm={saveLabel}
           onCancel={() => setShowSaveModal(false)}
         />
@@ -453,7 +454,7 @@ export function Toolbar() {
 
       {showRenameModal && (
         <SaveNameModal
-          initialName={currentLabelName || 'Untitled Label'}
+          initialName={currentLabelName || activeTabName || 'Untitled Label'}
           title="Rename Label"
           confirmLabel="Rename"
           onConfirm={handleRename}
@@ -463,7 +464,7 @@ export function Toolbar() {
 
       {showSaveAsModal && (
         <SaveNameModal
-          initialName={(currentLabelName || 'Untitled Label') + ' Copy'}
+          initialName={(currentLabelName || activeTabName || 'Untitled Label') + ' Copy'}
           title="Save As"
           confirmLabel="Save Copy"
           onConfirm={handleSaveAs}

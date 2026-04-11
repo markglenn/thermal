@@ -91,7 +91,7 @@ export async function PUT(
         await tx.update(tables.labelVersions)
           .set({
             document,
-            thumbnail: thumbnailData ?? latest.thumbnail as Buffer | null,
+            thumbnail: thumbnailData ?? latest.thumbnail,
             ...summary,
             updatedAt: now,
           })

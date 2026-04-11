@@ -1,4 +1,10 @@
-import { pgTable, text, integer, timestamp, jsonb, unique } from 'drizzle-orm/pg-core';
+import { pgTable, text, integer, timestamp, jsonb, customType, unique } from 'drizzle-orm/pg-core';
+
+const bytea = customType<{ data: Buffer }>({
+  dataType() {
+    return 'bytea';
+  },
+});
 
 export const labelSizes = pgTable('label_sizes', {
   id: text('id').primaryKey(),
@@ -29,7 +35,7 @@ export const labelVersions = pgTable(
     status: text('status'),
     archivedAt: timestamp('archived_at'),
     document: jsonb('document').notNull(),
-    thumbnail: text('thumbnail'),
+    thumbnail: bytea('thumbnail'),
     widthDots: integer('width_dots'),
     heightDots: integer('height_dots'),
     dpi: integer('dpi'),

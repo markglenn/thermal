@@ -2,11 +2,13 @@ import type {
   LabelDocument,
   LabelComponent,
   LabelVariable,
+  LabelUnit,
   BarcodeEncoding,
   TextJustification,
   VerticalAlign,
+  VisibilityCondition,
 } from '../types';
-import type { NlblParsedLabel, NlblTextItem, NlblBarcodeItem, NlblRectangleItem, NlblLineItem, NlblGraphicItem, NlblVariable } from './types';
+import type { NlblParsedLabel, NlblTextItem, NlblBarcodeItem, NlblRectangleItem, NlblLineItem, NlblGraphicItem, NlblVariable, NlblVisibilityCondition } from './types';
 import { computeBarcodeSize } from '../components/barcode/compute-size';
 
 // ---------------------------------------------------------------------------
@@ -93,19 +95,43 @@ function mapJustification(nlblAlign: number): TextJustification {
 // Main conversion
 // ---------------------------------------------------------------------------
 
+function resolveVisibilityCondition(
+  condition: NlblVisibilityCondition | null,
+  variableMap: Map<string, NlblVariable>,
+): VisibilityCondition | undefined {
+  if (!condition) return undefined;
+  const variable = variableMap.get(condition.variableId);
+  if (!variable) return undefined;
+  return {
+    field: variable.name,
+    operator: '==',
+    value: condition.value,
+  };
+}
+
 let idCounter = 0;
 function nextId(): string {
   return `nlbl-${Date.now()}-${++idCounter}`;
+}
+
+/** A predefined label size for matching during import. */
+export interface KnownLabelSize {
+  widthDots: number;
+  heightDots: number;
+  dpi: number;
+  unit: LabelUnit;
 }
 
 /**
  * Convert a parsed NiceLabel label into a Thermal LabelDocument.
  * @param parsed - Intermediate representation from XML parsing
  * @param dpi - Target printer DPI (default 203)
+ * @param knownSizes - Predefined label sizes to match against for unit selection
  */
 export function convertNlblToDocument(
   parsed: NlblParsedLabel,
   dpi: 203 | 300 | 600 = 203,
+  knownSizes?: KnownLabelSize[],
 ): LabelDocument {
   const variableMap = new Map<string, NlblVariable>();
   for (const v of parsed.variables) {
@@ -150,9 +176,11 @@ export function convertNlblToDocument(
   });
 
   // Build variables array from all referenced NiceLabel variables
+  // (both data sources and visibility condition variables)
   const usedVariableIds = new Set<string>();
   for (const item of [...parsed.textItems, ...parsed.barcodeItems]) {
     if (item.dataSourceId) usedVariableIds.add(item.dataSourceId);
+    if (item.visibilityCondition) usedVariableIds.add(item.visibilityCondition.variableId);
   }
 
   const variables: LabelVariable[] = [];
@@ -169,11 +197,21 @@ export function convertNlblToDocument(
   const widthDots = micronsToDots(parsed.media.widthMicrons, dpi);
   const heightDots = micronsToDots(parsed.media.heightMicrons, dpi);
 
-  // Use inches if both dimensions are clean inch values (to 1/8" precision),
-  // otherwise default to mm.
-  const widthInches = parsed.media.widthMicrons / 25400;
-  const heightInches = parsed.media.heightMicrons / 25400;
-  const isCleanInches = (widthInches * 8) % 1 < 0.01 && (heightInches * 8) % 1 < 0.01;
+  // Try to match a known label size first (exact dots + DPI match).
+  // Fall back to heuristic: inches if both dimensions are clean 1/8" values,
+  // otherwise mm.
+  const matchedSize = knownSizes?.find(
+    (s) => s.widthDots === widthDots && s.heightDots === heightDots && s.dpi === dpi,
+  );
+  let unit: LabelUnit;
+  if (matchedSize) {
+    unit = matchedSize.unit;
+  } else {
+    const widthInches = parsed.media.widthMicrons / 25400;
+    const heightInches = parsed.media.heightMicrons / 25400;
+    const isCleanInches = (widthInches * 8) % 1 < 0.01 && (heightInches * 8) % 1 < 0.01;
+    unit = isCleanInches ? 'in' : 'mm';
+  }
 
   return {
     version: 1,
@@ -183,7 +221,7 @@ export function convertNlblToDocument(
         name: 'Default',
         widthDots,
         heightDots,
-        unit: isCleanInches ? 'in' : 'mm',
+        unit,
       }],
     },
     components,
@@ -246,6 +284,7 @@ function convertTextItem(
       verticalAnchor: 'top',
     },
     ...(variable ? { fieldBinding: variable.name } : {}),
+    visibilityCondition: resolveVisibilityCondition(item.visibilityCondition, variableMap),
     typeData: {
       type: 'text',
       props: {
@@ -307,6 +346,7 @@ function convertBarcodeItem(
       verticalAnchor: 'top',
     },
     ...(variable ? { fieldBinding: variable.name } : {}),
+    visibilityCondition: resolveVisibilityCondition(item.visibilityCondition, variableMap),
     typeData: {
       type: 'barcode',
       props: {
@@ -362,6 +402,7 @@ function convertBarcodeMaskText(
       verticalAnchor: 'top',
     },
     ...(variable ? { fieldBinding: variable.name } : {}),
+    visibilityCondition: resolveVisibilityCondition(item.visibilityCondition, variableMap),
     typeData: {
       type: 'text',
       props: {

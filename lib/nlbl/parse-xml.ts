@@ -1,6 +1,7 @@
 import { XMLParser } from 'fast-xml-parser';
 import type {
   NlblVariable,
+  NlblVisibilityCondition,
   NlblTextItem,
   NlblBarcodeItem,
   NlblRectangleItem,
@@ -188,6 +189,16 @@ function extractContent(item: Record<string, unknown>): string {
   return text(item.FixedContents);
 }
 
+function parseVisibilityCondition(item: Record<string, unknown>): NlblVisibilityCondition | null {
+  if (text(item.IsVisibilityConditional) !== 'True') return null;
+  const leftValue = item.VisibilityConditionLeftValue as Record<string, unknown> | undefined;
+  const rightValue = item.VisibilityConditionRightValue as Record<string, unknown> | undefined;
+  const variableId = text((leftValue?.DataSourceReference as Record<string, unknown> | undefined)?.Id);
+  const value = text((rightValue?.FixedValue as Record<string, unknown> | undefined)?.StringValue);
+  if (!variableId) return null;
+  return { variableId, value };
+}
+
 function parseTextItem(item: Record<string, unknown>): NlblTextItem {
   const geometry = item.Geometry as Record<string, unknown> | undefined;
 
@@ -215,6 +226,7 @@ function parseTextItem(item: Record<string, unknown>): NlblTextItem {
     dataSourceId: text(
       (item.DataSourceReference as Record<string, unknown> | undefined)?.Id,
     ) || null,
+    visibilityCondition: parseVisibilityCondition(item),
   };
 }
 
@@ -240,6 +252,7 @@ function parseBarcodeItem(item: Record<string, unknown>): NlblBarcodeItem {
     dataSourceId: text(
       (item.DataSourceReference as Record<string, unknown> | undefined)?.Id,
     ) || null,
+    visibilityCondition: parseVisibilityCondition(item),
   };
 }
 

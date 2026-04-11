@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { parseNlbl } from '@/lib/nlbl';
+import { parseNlbl, type KnownLabelSize } from '@/lib/nlbl';
+import { getDatabase } from '@/lib/db';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
@@ -40,7 +41,19 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    const { document, name } = await parseNlbl(buffer, password);
+    const { db, tables } = await getDatabase();
+    const rows = await db.select({
+      widthDots: tables.labelSizes.widthDots,
+      heightDots: tables.labelSizes.heightDots,
+      dpi: tables.labelSizes.dpi,
+      unit: tables.labelSizes.unit,
+    }).from(tables.labelSizes);
+    const knownSizes: KnownLabelSize[] = rows.map((r) => ({
+      ...r,
+      unit: r.unit as 'in' | 'mm',
+    }));
+
+    const { document, name } = await parseNlbl(buffer, password, knownSizes);
 
     return NextResponse.json({ document, name });
   } catch (error) {

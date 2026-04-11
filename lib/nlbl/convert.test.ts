@@ -71,6 +71,7 @@ describe('convertNlblToDocument', () => {
         zOrder: 10001,
         dataSourceId: null,
         anchoringPoint: 0,
+        visibilityCondition: null,
       }],
     }));
 
@@ -113,10 +114,12 @@ describe('convertNlblToDocument', () => {
         fontPointSize: 10,
         fontWeight: 0,
         justification: 0,
+        textType: 1,
         bestFit: false,
         zOrder: 10001,
         dataSourceId: 'var-1',
         anchoringPoint: 0,
+        visibilityCondition: null,
       }],
     }));
 
@@ -140,12 +143,17 @@ describe('convertNlblToDocument', () => {
         name: 'Barcode',
         x: 25400,   // 1 inch
         y: 50800,   // 2 inches
+        anchoringPoint: 0,
         barcodeType: 'Code128BarcodeData',
+        baseBarWidth: 0,
         moduleHeight: 12700, // 0.5 inch
         showText: true,
+        humanFontPointSize: 10,
+        contentMask: '',
         content: '123456789012',
         zOrder: 10001,
         dataSourceId: null,
+        visibilityCondition: null,
       }],
     }));
 
@@ -170,14 +178,14 @@ describe('convertNlblToDocument', () => {
           left: 0, top: 0, width: 10000, height: 5000,
           content: 'B', contentMask: '', fontName: 'Arial', fontPointSize: 10,
           fontWeight: 0, justification: 0, textType: 1, bestFit: false,
-          zOrder: 10002, dataSourceId: null, anchoringPoint: 0,
+          zOrder: 10002, dataSourceId: null, anchoringPoint: 0, visibilityCondition: null,
         },
         {
           name: 'First',
           left: 0, top: 10000, width: 10000, height: 5000,
           content: 'A', contentMask: '', fontName: 'Arial', fontPointSize: 10,
           fontWeight: 0, justification: 0, textType: 1, bestFit: false,
-          zOrder: 10001, dataSourceId: null, anchoringPoint: 0,
+          zOrder: 10001, dataSourceId: null, anchoringPoint: 0, visibilityCondition: null,
         },
       ],
     }));
@@ -193,7 +201,7 @@ describe('convertNlblToDocument', () => {
         left: 0, top: 0, width: 50800, height: 25400,
         content: 'Center', contentMask: '', fontName: 'Arial', fontPointSize: 10,
         fontWeight: 0, justification: 2, textType: 2, bestFit: false,
-        zOrder: 10001, dataSourceId: null, anchoringPoint: 0,
+        zOrder: 10001, dataSourceId: null, anchoringPoint: 0, visibilityCondition: null,
       }],
     }));
 
@@ -215,19 +223,19 @@ describe('convertNlblToDocument', () => {
           name: 'T1', left: 0, top: 0, width: 10000, height: 5000,
           content: '', contentMask: '', fontName: 'Arial', fontPointSize: 10,
           fontWeight: 0, justification: 0, textType: 1, bestFit: false,
-          zOrder: 10001, dataSourceId: 'v1', anchoringPoint: 0,
+          zOrder: 10001, dataSourceId: 'v1', anchoringPoint: 0, visibilityCondition: null,
         },
         {
           name: 'T2', left: 0, top: 10000, width: 10000, height: 5000,
           content: '', contentMask: '', fontName: 'Arial', fontPointSize: 10,
           fontWeight: 0, justification: 0, textType: 1, bestFit: false,
-          zOrder: 10002, dataSourceId: 'v2', anchoringPoint: 0,
+          zOrder: 10002, dataSourceId: 'v2', anchoringPoint: 0, visibilityCondition: null,
         },
         {
           name: 'T3', left: 0, top: 20000, width: 10000, height: 5000,
           content: '', contentMask: '', fontName: 'Arial', fontPointSize: 10,
           fontWeight: 0, justification: 0, textType: 1, bestFit: false,
-          zOrder: 10003, dataSourceId: 'v3', anchoringPoint: 0,
+          zOrder: 10003, dataSourceId: 'v3', anchoringPoint: 0, visibilityCondition: null,
         },
       ],
     }));
@@ -247,7 +255,7 @@ describe('convertNlblToDocument', () => {
         left: 0, top: 0, width: 25400, height: 5000,
         content: 'Text Box', contentMask: 'Warranty Expiration: *******', fontName: 'Arial', fontPointSize: 14,
         fontWeight: 0, justification: 0, textType: 2, bestFit: false,
-        zOrder: 10001, dataSourceId: 'v1', anchoringPoint: 0,
+        zOrder: 10001, dataSourceId: 'v1', anchoringPoint: 0, visibilityCondition: null,
       }],
     }));
 
@@ -267,7 +275,7 @@ describe('convertNlblToDocument', () => {
         left: 0, top: 0, width: 25400, height: 5000,
         content: 'Text Box', contentMask: 'Rack ID:', fontName: 'Arial', fontPointSize: 14,
         fontWeight: 0, justification: 0, textType: 1, bestFit: false,
-        zOrder: 10001, dataSourceId: 'v1', anchoringPoint: 0,
+        zOrder: 10001, dataSourceId: 'v1', anchoringPoint: 0, visibilityCondition: null,
       }],
     }));
 
@@ -285,6 +293,25 @@ describe('convertNlblToDocument', () => {
     expect(doc.label.variants[0].widthDots).toBe(1200);
   });
 
+  it('uses unit from matching known label size', () => {
+    // 4" x 4" at 203 DPI = 812 x 812 dots — matches the known mm size
+    const knownSizes = [
+      { widthDots: 812, heightDots: 812, dpi: 203, unit: 'mm' as const },
+    ];
+    const doc = convertNlblToDocument(makeMinimalLabel(), 203, knownSizes);
+    // Would normally detect as 'in' (clean inch values), but known size says 'mm'
+    expect(doc.label.variants[0].unit).toBe('mm');
+  });
+
+  it('falls back to heuristic when no known size matches', () => {
+    const knownSizes = [
+      { widthDots: 999, heightDots: 999, dpi: 203, unit: 'mm' as const },
+    ];
+    // 4" x 4" at 203 DPI = 812 x 812 — does not match 999x999
+    const doc = convertNlblToDocument(makeMinimalLabel(), 203, knownSizes);
+    expect(doc.label.variants[0].unit).toBe('in');
+  });
+
   it('omits variables array when no variables are referenced', () => {
     const doc = convertNlblToDocument(makeMinimalLabel({
       variables: [
@@ -295,7 +322,7 @@ describe('convertNlblToDocument', () => {
         left: 0, top: 0, width: 10000, height: 5000,
         content: 'Fixed text', contentMask: '', fontName: 'Arial', fontPointSize: 10,
         fontWeight: 0, justification: 0, textType: 1, bestFit: false,
-        zOrder: 10001, dataSourceId: null, anchoringPoint: 0,
+        zOrder: 10001, dataSourceId: null, anchoringPoint: 0, visibilityCondition: null,
       }],
     }));
 
@@ -314,6 +341,7 @@ describe('convertNlblToDocument', () => {
         radius: 0,
         filled: false,
         zOrder: 10001,
+        anchoringPoint: 0,
       }],
     }));
 
@@ -338,7 +366,7 @@ describe('convertNlblToDocument', () => {
         name: 'FilledBox',
         left: 0, top: 0, width: 25400, height: 25400,
         thickness: 127, radius: 2540, filled: true,
-        zOrder: 10001,
+        zOrder: 10001, anchoringPoint: 0,
       }],
     }));
 
@@ -347,6 +375,34 @@ describe('convertNlblToDocument', () => {
       expect(comp.typeData.props.filled).toBe(true);
       expect(comp.typeData.props.cornerRadius).toBe(20);
     }
+  });
+
+  it('converts visibility conditions from NiceLabel items', () => {
+    const doc = convertNlblToDocument(makeMinimalLabel({
+      variables: [
+        { id: 'v-data', name: 'serial', sampleValue: 'SN-001', isRequired: false },
+        { id: 'v-vis', name: 'show_serial', sampleValue: '1', isRequired: false },
+      ],
+      textItems: [{
+        name: 'Serial',
+        left: 0, top: 0, width: 25400, height: 5000,
+        content: '', contentMask: 'SN *', fontName: 'Arial', fontPointSize: 10,
+        fontWeight: 0, justification: 0, textType: 2, bestFit: false,
+        zOrder: 10001, dataSourceId: 'v-data', anchoringPoint: 0,
+        visibilityCondition: { variableId: 'v-vis', value: '1' },
+      }],
+    }));
+
+    const comp = doc.components[0];
+    expect(comp.visibilityCondition).toEqual({
+      field: 'show_serial',
+      operator: '==',
+      value: '1',
+    });
+    // Both the data variable and the visibility variable should be in the document
+    expect(doc.variables).toHaveLength(2);
+    expect(doc.variables!.map(v => v.name)).toContain('serial');
+    expect(doc.variables!.map(v => v.name)).toContain('show_serial');
   });
 
   it('converts a vertical line', () => {

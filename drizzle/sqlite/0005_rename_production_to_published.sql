@@ -1,1 +1,0 @@
-UPDATE `label_versions` SET `status` = 'published' WHERE `status` = 'production';

@@ -1,1 +1,0 @@
-ALTER TABLE `label_versions` ADD `archived_at` integer;

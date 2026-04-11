@@ -80,12 +80,9 @@ function createTab(name: string = 'Untitled', labelId: string | null = null, id:
   return tab;
 }
 
-// Use a stable ID for the initial tab to avoid SSR/client hydration mismatch
-const firstTab = createTab('Untitled', null, 'tab_initial');
-
 export const useTabStore = create<TabStore>()((set, get) => ({
-  tabs: [firstTab],
-  activeTabId: firstTab.id,
+  tabs: [],
+  activeTabId: '',
 
   createTab: () => {
     const tab = createTab();

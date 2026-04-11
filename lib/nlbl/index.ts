@@ -1,7 +1,9 @@
 import type { LabelDocument } from '../types';
 import { extractNlblArchive } from './extract';
 import { parseSolutionXml, parseFormatXml } from './parse-xml';
-import { convertNlblToDocument } from './convert';
+import { convertNlblToDocument, type KnownLabelSize } from './convert';
+
+export type { KnownLabelSize } from './convert';
 
 export interface NlblImportResult {
   document: LabelDocument;
@@ -13,10 +15,12 @@ export interface NlblImportResult {
  *
  * @param data - Raw file bytes
  * @param password - AES decryption password (from NLBL_PASSWORD env var)
+ * @param knownSizes - Predefined label sizes for unit matching
  */
 export async function parseNlbl(
   data: Buffer,
   password: string,
+  knownSizes?: KnownLabelSize[],
 ): Promise<NlblImportResult> {
   const { solutionXml, formatXml, formatName } = await extractNlblArchive(data, password);
 
@@ -32,7 +36,7 @@ export async function parseNlbl(
     rectangleItems,
     lineItems,
     graphicItems,
-  }, dpi);
+  }, dpi, knownSizes);
 
   return { document, name: formatName };
 }
