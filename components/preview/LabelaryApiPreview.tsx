@@ -1,10 +1,11 @@
 'use client';
 
-import { useMemo, useEffect, useState, useRef } from 'react';
+import { useMemo, useCallback } from 'react';
 import { useDocument, useActiveVariant } from '@/lib/store/editor-context';
 import { generateZpl } from '@/lib/zpl/generator';
 import { fetchLabelaryApiPreview } from '@/lib/labelary/api-client';
 import { labelWidthDots, labelHeightDots, dotsToInches } from '@/lib/constants';
+import { useDebouncedPreview } from '@/hooks/use-debounced-preview';
 import { Spinner } from '@/components/ui/Spinner';
 
 export function LabelaryApiPreview() {
@@ -12,46 +13,20 @@ export function LabelaryApiPreview() {
   const activeVariant = useActiveVariant();
   const hasComponents = document.components.length > 0;
   const zpl = useMemo(() => generateZpl(document), [document]);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const prevUrlRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
+  const fetchPreview = useCallback(() => fetchLabelaryApiPreview({
+    zpl,
+    dpi: document.label.dpi,
+    widthInches: dotsToInches(labelWidthDots(document.label, activeVariant), document.label.dpi),
+    heightInches: dotsToInches(labelHeightDots(document.label, activeVariant), document.label.dpi),
+  }), [zpl, document.label, activeVariant]);
 
-    if (!hasComponents) {
-      setImageUrl(null);
-      setError(null);
-      return;
-    }
-
-    debounceRef.current = setTimeout(async () => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const url = await fetchLabelaryApiPreview({
-          zpl,
-          dpi: document.label.dpi,
-          widthInches: dotsToInches(labelWidthDots(document.label, activeVariant), document.label.dpi),
-          heightInches: dotsToInches(labelHeightDots(document.label, activeVariant), document.label.dpi),
-        });
-        if (prevUrlRef.current) URL.revokeObjectURL(prevUrlRef.current);
-        prevUrlRef.current = url;
-        setImageUrl(url);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Preview failed');
-      } finally {
-        setLoading(false);
-      }
-    }, 500);
-
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [zpl, hasComponents, document.label, activeVariant]);
+  const { imageUrl, error, loading } = useDebouncedPreview({
+    zpl,
+    hasComponents,
+    fetchPreview,
+    revokeUrls: true,
+  });
 
   return (
     <div className="h-full p-3 flex items-center justify-center bg-gray-50 overflow-auto relative">

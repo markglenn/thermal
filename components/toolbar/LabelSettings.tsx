@@ -295,11 +295,21 @@ export function LabelSettings({ readOnly = false }: { readOnly?: boolean }) {
               <span className="text-xs text-gray-500">DPI</span>
               <select
                 value={label.dpi}
-                onChange={(e) => updateLabelConfig({ dpi: parseInt(e.target.value) as 203 | 300 | 600 })}
+                onChange={(e) => {
+                  const newDpi = parseInt(e.target.value) as 203 | 300 | 600;
+                  const oldDpi = label.dpi;
+                  for (const v of label.variants) {
+                    updateVariant(v.name, {
+                      widthDots: Math.round(v.widthDots * newDpi / oldDpi),
+                      heightDots: Math.round(v.heightDots * newDpi / oldDpi),
+                    });
+                  }
+                  updateLabelConfig({ dpi: newDpi });
+                }}
                 className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm"
               >
                 {DPI_VALUES.map((d) => (
-                  <option key={d} value={d}>{d} DPI</option>
+                  <option key={d} value={d}>{d} DPI ({Math.round(d / 25.4)} dpmm)</option>
                 ))}
               </select>
             </label>

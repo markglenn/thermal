@@ -69,7 +69,7 @@ export function KeyboardShortcutsModal({ onClose }: { onClose: () => void }) {
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
     >
-      <div className="bg-white rounded-lg shadow-xl w-[540px] max-h-[80vh] flex flex-col overflow-hidden">
+      <div className="bg-white rounded-lg shadow-xl w-135 max-h-[80vh] flex flex-col overflow-hidden">
         <div className="px-5 py-3 border-b border-gray-200 flex items-center justify-between">
           <h2 className="text-sm font-semibold">Keyboard Shortcuts</h2>
           <button

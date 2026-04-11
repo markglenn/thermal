@@ -137,7 +137,7 @@ function SortableTab({
       }`}
     >
       <FileText size={12} className="shrink-0 text-gray-400" />
-      <span className="truncate">
+      <span className="truncate" title={tab.name}>
         {tab.name}
         {tab.latestVersion !== null && (
           <span className={`ml-1 ${tab.viewingVersion !== null ? 'text-amber-600' : 'text-gray-400'}`}>

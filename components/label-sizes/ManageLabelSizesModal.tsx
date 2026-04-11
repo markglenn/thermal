@@ -1,22 +1,15 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2, Pencil, Check, X, Plus } from 'lucide-react';
-import { fetchJson } from '@/lib/client/fetch';
 import { DPI_VALUES, dotsToUnit, unitToDots } from '@/lib/constants';
 import { CreateLabelSizeModal } from './CreateLabelSizeModal';
-import type { LabelSizeInput } from './CreateLabelSizeModal';
+import { useLabelSizes } from '@/hooks/use-label-sizes';
+import type { LabelSize } from '@/hooks/use-label-sizes';
 import type { LabelUnit } from '@/lib/types';
 
-export interface LabelSize {
-  id: string;
-  name: string;
-  widthDots: number;
-  heightDots: number;
-  unit: LabelUnit;
-  dpi: number;
-}
+export type { LabelSize };
 
 interface Props {
   onClose: () => void;
@@ -157,72 +150,7 @@ function formatSizeDisplay(dots: number, dpi: number, unit: LabelUnit): string {
 }
 
 export function ManageLabelSizesModal({ onClose, onChanged }: Props) {
-  const [sizes, setSizes] = useState<LabelSize[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [showCreate, setShowCreate] = useState(false);
-
-  const fetchSizes = useCallback(async () => {
-    const data = await fetchJson<LabelSize[]>('/api/label-sizes');
-    if (data) setSizes(data);
-    setLoading(false);
-  }, []);
-
-  const initialized = useRef<boolean | null>(null);
-  if (initialized.current === null) {
-    initialized.current = true;
-    fetchSizes();
-  }
-
-  const handleSave = async (updated: LabelSize) => {
-    const result = await fetchJson('/api/label-sizes', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updated),
-    });
-    if (result) {
-      setSizes((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
-      setEditingId(null);
-      onChanged();
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (deletingId === id) {
-      setSizes((prev) => prev.filter((s) => s.id !== id));
-      setDeletingId(null);
-      const result = await fetchJson(`/api/label-sizes?id=${id}`, { method: 'DELETE' });
-      if (result) onChanged();
-      else fetchSizes();
-    } else {
-      setDeletingId(id);
-    }
-  };
-
-  const handleCreate = async (input: LabelSizeInput) => {
-    const result = await fetchJson('/api/label-sizes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(input),
-    });
-    if (!result) return;
-    await fetchSizes();
-    onChanged();
-    setShowCreate(false);
-  };
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      if (showCreate) return; // let CreateLabelSizeModal handle its own Escape
-      if (editingId) setEditingId(null);
-      else if (deletingId) setDeletingId(null);
-      else onClose();
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [onClose, editingId, deletingId, showCreate]);
+  const ls = useLabelSizes(onChanged, onClose);
 
   return createPortal(
     <div
@@ -238,9 +166,9 @@ export function ManageLabelSizesModal({ onClose, onChanged }: Props) {
         </div>
 
         <div className="overflow-y-auto flex-1 p-4">
-          {loading ? (
+          {ls.loading ? (
             <div className="text-center text-sm text-gray-400 py-8">Loading...</div>
-          ) : sizes.length === 0 ? (
+          ) : ls.sizes.length === 0 ? (
             <div className="text-center text-sm text-gray-400 py-8">
               No label sizes defined yet.
             </div>
@@ -257,13 +185,13 @@ export function ManageLabelSizesModal({ onClose, onChanged }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {sizes.map((size) =>
-                  editingId === size.id ? (
+                {ls.sizes.map((size) =>
+                  ls.editingId === size.id ? (
                     <EditRow
                       key={size.id}
                       size={size}
-                      onSave={handleSave}
-                      onCancel={() => setEditingId(null)}
+                      onSave={ls.save}
+                      onCancel={() => ls.setEditingId(null)}
                     />
                   ) : (
                     <tr key={size.id} className="border-t border-gray-100 hover:bg-gray-50 group">
@@ -275,20 +203,20 @@ export function ManageLabelSizesModal({ onClose, onChanged }: Props) {
                       <td className="px-4 py-3">
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
-                            onClick={() => { setEditingId(size.id); setDeletingId(null); }}
+                            onClick={() => { ls.setEditingId(size.id); ls.setDeletingId(null); }}
                             className="p-1 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded"
                             title="Edit"
                           >
                             <Pencil size={14} />
                           </button>
                           <button
-                            onClick={() => handleDelete(size.id)}
+                            onClick={() => ls.remove(size.id)}
                             className={`p-1 rounded transition-colors ${
-                              deletingId === size.id
+                              ls.deletingId === size.id
                                 ? 'bg-red-100 text-red-600'
                                 : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
                             }`}
-                            title={deletingId === size.id ? 'Click again to confirm' : 'Delete'}
+                            title={ls.deletingId === size.id ? 'Click again to confirm' : 'Delete'}
                           >
                             <Trash2 size={14} />
                           </button>
@@ -304,7 +232,7 @@ export function ManageLabelSizesModal({ onClose, onChanged }: Props) {
 
         <div className="px-6 py-4 border-t border-gray-200 flex justify-between">
           <button
-            onClick={() => setShowCreate(true)}
+            onClick={() => ls.setShowCreate(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded"
           >
             <Plus size={14} />
@@ -316,10 +244,10 @@ export function ManageLabelSizesModal({ onClose, onChanged }: Props) {
         </div>
       </div>
 
-      {showCreate && (
+      {ls.showCreate && (
         <CreateLabelSizeModal
-          onConfirm={handleCreate}
-          onCancel={() => setShowCreate(false)}
+          onConfirm={ls.create}
+          onCancel={() => ls.setShowCreate(false)}
         />
       )}
     </div>,

@@ -1,25 +1,11 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ShieldCheck, ShieldOff, Archive, ArchiveRestore, Clock } from 'lucide-react';
 import { ConfirmButton } from '../ui/ConfirmButton';
 import { LabelThumbnail, formatSize } from '../ui/LabelThumbnail';
-import { useTabStore } from '@/lib/store/tab-store';
-import { fetchJson } from '@/lib/client/fetch';
-import type { LabelDocument, VersionStatus } from '@/lib/types';
-
-interface VersionEntry {
-  id: string;
-  version: number;
-  status: VersionStatus;
-  hasThumbnail: boolean;
-  widthInches: number | null;
-  heightInches: number | null;
-  archivedAt: string | null;
-  createdAt: string;
-  updatedAt: string | null;
-}
+import { useVersionHistory } from '@/hooks/use-version-history';
 
 interface Props {
   labelId: string | null;
@@ -41,141 +27,21 @@ function relativeTime(iso: string): string {
 }
 
 export function VersionHistoryPanel({ labelId, currentThumbnail, currentLabelSize, onClose }: Props) {
-  const [versions, setVersions] = useState<VersionEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
-  const [showArchived, setShowArchived] = useState(false);
+  const {
+    versions,
+    loading,
+    busy,
+    showArchived,
+    latestVersion,
+    viewingVersion,
+    tabLatestVersion,
+    toggleArchived,
+    selectVersion,
+    setPublished,
+    setArchived,
+  } = useVersionHistory(labelId, onClose);
+
   const [cacheBust] = useState(() => Date.now());
-
-  const activeTabId = useTabStore((s) => s.activeTabId);
-  const viewingVersion = useTabStore((s) => {
-    const tab = s.tabs.find((t) => t.id === s.activeTabId);
-    return tab?.viewingVersion ?? null;
-  });
-  const tabLatestVersion = useTabStore((s) => {
-    const tab = s.tabs.find((t) => t.id === s.activeTabId);
-    return tab?.latestVersion ?? null;
-  });
-
-  const fetchVersions = useCallback(async (includeArchived: boolean) => {
-    if (!labelId) {
-      setLoading(false);
-      return;
-    }
-    const url = `/api/labels/${labelId}/versions${includeArchived ? '?archived=true' : ''}`;
-    const data = await fetchJson<VersionEntry[]>(url);
-    if (data) setVersions(data);
-    setLoading(false);
-  }, [labelId]);
-
-  useEffect(() => {
-    fetchVersions(false);
-  }, [fetchVersions]);
-
-  const handleToggleArchived = (checked: boolean) => {
-    setShowArchived(checked);
-    fetchVersions(checked);
-  };
-
-  const handleClickVersion = async (version: number, isLatest: boolean) => {
-    if (!labelId) return;
-    const tabState = useTabStore.getState();
-    const tab = tabState.tabs.find((t) => t.id === activeTabId);
-    if (tab?.dirty) {
-      if (!confirm('You have unsaved changes. Discard them?')) return;
-    }
-
-    const data = await fetchJson<{ name: string; document: unknown; status: VersionStatus }>(`/api/labels/${labelId}/versions/${version}`);
-    if (!data) return;
-
-    if (isLatest) {
-      useTabStore.getState().returnToLatest(
-        activeTabId,
-        data.document as LabelDocument,
-        version,
-        data.status
-      );
-    } else {
-      const latestVersion = versions[0]?.version ?? version;
-      useTabStore.getState().openLabelVersion(
-        labelId,
-        data.name,
-        data.document as LabelDocument,
-        version,
-        latestVersion,
-        data.status
-      );
-    }
-
-    onClose();
-  };
-
-  const handleSetPublished = async (version: number, production: boolean) => {
-    setBusy(true);
-    try {
-      const result = await fetchJson(`/api/labels/${labelId}/versions/${version}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ production }),
-      });
-      if (!result) return;
-
-      await fetchVersions(showArchived);
-
-      const tabState = useTabStore.getState();
-      const tab = tabState.tabs.find((t) => t.id === activeTabId);
-      if (tab) {
-        const latestData = await fetchJson<{ version: number; status: VersionStatus }>(`/api/labels/${labelId}`);
-        if (latestData) {
-          tabState.updateTabVersionMeta(activeTabId, latestData.version, latestData.status);
-          if (viewingVersion === null) {
-            tab.store.getState().setReadOnly(latestData.status === 'published');
-          }
-        }
-      }
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleSetArchived = async (version: number, archived: boolean) => {
-    setBusy(true);
-    try {
-      const result = await fetchJson(`/api/labels/${labelId}/versions/${version}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ archived }),
-      });
-      if (!result) return;
-
-      await fetchVersions(showArchived);
-
-      // If we archived the version we're currently on, navigate to the
-      // previous non-archived version
-      if (archived) {
-        const isCurrentVersion =
-          (viewingVersion === null && version === latestVersion) ||
-          viewingVersion === version;
-
-        if (isCurrentVersion) {
-          const allVersions = await fetchJson<VersionEntry[]>(`/api/labels/${labelId}/versions`);
-          const fallback = allVersions?.[0];
-          if (fallback) {
-            const data = await fetchJson<{ document: unknown; status: VersionStatus }>(`/api/labels/${labelId}/versions/${fallback.version}`);
-            if (data) {
-              const tabState = useTabStore.getState();
-              tabState.returnToLatest(activeTabId, data.document as LabelDocument, fallback.version, fallback.status);
-              tabState.updateTabVersionMeta(activeTabId, fallback.version, fallback.status);
-            }
-          }
-        }
-      }
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const latestVersion = versions[0]?.version ?? null;
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -249,7 +115,7 @@ export function VersionHistoryPanel({ labelId, currentThumbnail, currentLabelSiz
                           : 'border-gray-200 hover:border-blue-400 hover:bg-blue-50/50 cursor-pointer'
                     }`}
                     onClick={() => {
-                      if (canClick && !isArchived) handleClickVersion(v.version, isLatest);
+                      if (canClick && !isArchived) selectVersion(v.version, isLatest);
                     }}
                   >
                     {/* Header */}
@@ -292,7 +158,7 @@ export function VersionHistoryPanel({ labelId, currentThumbnail, currentLabelSiz
                         {/* Publish */}
                         {!isPublished && !isArchived && (
                           <button
-                            onClick={(e) => { e.stopPropagation(); handleSetPublished(v.version, true); }}
+                            onClick={(e) => { e.stopPropagation(); setPublished(v.version, true); }}
                             disabled={busy}
                             className="flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-50 opacity-0 group-hover:opacity-100 transition-opacity"
                           >
@@ -304,7 +170,7 @@ export function VersionHistoryPanel({ labelId, currentThumbnail, currentLabelSiz
                         {/* Unpublish — only if single version */}
                         {isPublished && versions.length === 1 && (
                           <button
-                            onClick={(e) => { e.stopPropagation(); handleSetPublished(v.version, false); }}
+                            onClick={(e) => { e.stopPropagation(); setPublished(v.version, false); }}
                             disabled={busy}
                             className="flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium bg-amber-50 text-amber-700 hover:bg-amber-100 disabled:opacity-50 opacity-0 group-hover:opacity-100 transition-opacity"
                           >
@@ -318,7 +184,7 @@ export function VersionHistoryPanel({ labelId, currentThumbnail, currentLabelSiz
                           <ConfirmButton
                             label="Archive"
                             icon={<Archive size={12} />}
-                            onConfirm={() => handleSetArchived(v.version, true)}
+                            onConfirm={() => setArchived(v.version, true)}
                             disabled={busy}
                           />
                         )}
@@ -326,7 +192,7 @@ export function VersionHistoryPanel({ labelId, currentThumbnail, currentLabelSiz
                         {/* Unarchive */}
                         {isArchived && (
                           <button
-                            onClick={(e) => { e.stopPropagation(); handleSetArchived(v.version, false); }}
+                            onClick={(e) => { e.stopPropagation(); setArchived(v.version, false); }}
                             disabled={busy}
                             className="flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium text-gray-500 hover:bg-gray-100 disabled:opacity-50 opacity-0 group-hover:opacity-100 transition-opacity"
                           >
@@ -350,7 +216,7 @@ export function VersionHistoryPanel({ labelId, currentThumbnail, currentLabelSiz
               <input
                 type="checkbox"
                 checked={showArchived}
-                onChange={(e) => handleToggleArchived(e.target.checked)}
+                onChange={(e) => toggleArchived(e.target.checked)}
                 className="rounded border-gray-300"
               />
               Include archived versions
