@@ -7,6 +7,7 @@ import {
 } from '@/lib/server/labels';
 import { generateZplMerge } from '@/lib/zpl/generator-merge';
 import { publishPrintJob } from '@/lib/print/sqs';
+import { listSites } from '@/lib/print/discovery';
 import { validateDocument } from '@/lib/documents/validate';
 import { validatePrintRequest } from '@/lib/documents/validate-print';
 import type { LabelDocument } from '@/lib/types';
@@ -30,7 +31,7 @@ export async function POST(
     );
   }
 
-  const { data, printer, copies: copyCount } = printResult.parsed;
+  const { data, printer, copies: copyCount, siteId } = printResult.parsed;
 
   try {
     const { id } = await params;
@@ -83,6 +84,17 @@ export async function POST(
       });
     }
 
+    // Resolve queue URL from site manifest
+    let queueUrl: string | undefined;
+    if (siteId) {
+      const sites = await listSites();
+      const site = sites.find((s) => s.siteId === siteId);
+      if (!site) {
+        return NextResponse.json({ error: `Site "${siteId}" not found` }, { status: 400 });
+      }
+      queueUrl = site.queueUrl;
+    }
+
     // Queue to SQS for remote printing
     const jobId = crypto.randomUUID();
     const zpl = zplBlocks.join('\n');
@@ -97,7 +109,7 @@ export async function POST(
       labelName: label.name,
       labelSize,
       dpmm: dpiToDpmm[doc.label.dpi] || '8dpmm',
-    });
+    }, queueUrl);
 
     // Record the job
     const { db, tables } = await getDatabase();
@@ -105,6 +117,7 @@ export async function POST(
       id: jobId,
       labelId: id,
       labelVersion,
+      siteId: siteId ?? null,
       printer,
       status: 'queued',
       copies: copyCount,

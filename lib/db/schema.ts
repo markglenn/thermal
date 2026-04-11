@@ -51,9 +51,12 @@ export const printJobs = pgTable('print_jobs', {
     .notNull()
     .references(() => labels.id),
   labelVersion: integer('label_version').notNull(),
+  siteId: text('site_id'),
   printer: text('printer').notNull(),
   status: text('status').notNull(),
   copies: integer('copies').notNull().default(1),
   totalChunks: integer('total_chunks').notNull(),
+  error: text('error'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
+  completedAt: timestamp('completed_at'),
 });

@@ -183,45 +183,57 @@ export function ImagePropertiesPanel({ componentId, props }: Props) {
                 </div>
               </div>
             )}
-
-            {/* Monochrome Method */}
-            <label>
-              <span className="text-xs text-gray-500">Monochrome Method</span>
-              <select
-                value={props.monochromeMethod}
-                onChange={(e) => updateAndReconvert({ monochromeMethod: e.target.value as MonochromeMethod })}
-                className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm"
-              >
-                <option value="threshold">Closest Color</option>
-                <option value="dither">Dither (Floyd-Steinberg)</option>
-                <option value="ordered">Dither (Ordered)</option>
-              </select>
-            </label>
-
-            {(props.monochromeMethod === 'threshold' || props.monochromeMethod === 'ordered') && (
-              <label>
-                <span className="text-xs text-gray-500">Threshold ({props.threshold})</span>
-                <input
-                  type="range"
-                  min={0}
-                  max={255}
-                  value={props.threshold}
-                  onChange={(e) => updateAndReconvert({ threshold: parseInt(e.target.value) })}
-                  className="w-full mt-0.5"
-                />
-              </label>
-            )}
-
-            <label className="flex items-center gap-2 pt-1">
-              <input
-                type="checkbox"
-                checked={props.invert}
-                onChange={(e) => updateAndReconvert({ invert: e.target.checked })}
-              />
-              <span className="text-xs text-gray-500">Invert</span>
-            </label>
           </>
         )}
+
+        {/* Monochrome settings — always visible since URL images use these at print time */}
+        <label>
+          <span className="text-xs text-gray-500">Monochrome Method</span>
+          <select
+            value={props.monochromeMethod}
+            onChange={(e) => {
+              const method = e.target.value as MonochromeMethod;
+              updateProperties(componentId, { monochromeMethod: method });
+              if (hasImage) reconvert({ monochromeMethod: method });
+            }}
+            className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm"
+          >
+            <option value="threshold">Closest Color</option>
+            <option value="dither">Dither (Floyd-Steinberg)</option>
+            <option value="ordered">Dither (Ordered)</option>
+          </select>
+        </label>
+
+        {(props.monochromeMethod === 'threshold' || props.monochromeMethod === 'ordered') && (
+          <label>
+            <span className="text-xs text-gray-500">Threshold ({props.threshold})</span>
+            <input
+              type="range"
+              min={0}
+              max={255}
+              value={props.threshold}
+              onChange={(e) => {
+                const threshold = parseInt(e.target.value);
+                updateProperties(componentId, { threshold });
+                if (hasImage) reconvert({ threshold });
+              }}
+              className="w-full mt-0.5"
+            />
+          </label>
+        )}
+
+        <label className="flex items-center gap-2 pt-1">
+          <input
+            type="checkbox"
+            checked={props.invert}
+            onChange={(e) => {
+              const invert = e.target.checked;
+              updateProperties(componentId, { invert });
+              if (hasImage) reconvert({ invert });
+            }}
+          />
+          <span className="text-xs text-gray-500">Invert</span>
+        </label>
       </div>
 
       {showModal && (

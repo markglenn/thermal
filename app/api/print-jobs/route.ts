@@ -26,11 +26,14 @@ export async function GET(request: NextRequest) {
         id: j.id,
         labelId: j.labelId,
         labelVersion: j.labelVersion,
+        siteId: j.siteId,
         printer: j.printer,
         status: j.status,
         copies: j.copies,
         totalChunks: j.totalChunks,
+        error: j.error,
         createdAt: j.createdAt.toISOString(),
+        completedAt: j.completedAt?.toISOString() ?? null,
       }))
     );
   } catch (e) {

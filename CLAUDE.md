@@ -33,44 +33,13 @@ npm run lint   # ESLint
 
 Each component type lives in `lib/components/<type>/` and is fully self-contained:
 
-```
-lib/components/
-  text/         # element.tsx, properties.tsx, zpl.ts, index.ts
-  barcode/      # ...
-  qrcode/       # ...
-  rectangle/    # ...
-  line/         # ...
-  container/    # ...
-  image/        # ...
-  definition.ts # ComponentDefinition<TProps> interface
-  registry.ts   # registerComponent, getDefinition, getSizingMode
-  index.ts      # Registers all components (order = palette order)
-```
-
 **To add a new component:**
+
 1. Create `lib/components/<type>/` with `element.tsx`, `zpl.ts`, `index.ts`, and optionally `properties.tsx`
 2. Export a `ComponentDefinition` from `index.ts`
 3. Import and add to the array in `lib/components/index.ts`
 
 No other files need to be modified. The canvas, properties panel, ZPL generator, and palette all use the registry.
-
-### Key Interfaces
-
-```typescript
-// Each component plugin implements this
-interface ComponentDefinition<TProps> {
-  type: string;
-  label: string;
-  icon: string;
-  traits: { autoSized: boolean; rotatable: boolean; isContainer: boolean };
-  defaultConstraints: Constraints;
-  defaultProps: TProps;
-  Element: React.ComponentType<{ props: TProps; isSelected: boolean }>;
-  PropertiesPanel: React.ComponentType<{ componentId: string; props: TProps }> | null;
-  generateZpl: (props: TProps, bounds: ResolvedBounds) => string[];
-  getSizingMode?: (component: LabelComponent) => 'auto' | 'fixed' | 'width-only';
-}
-```
 
 ### Constraint System
 
@@ -86,6 +55,7 @@ Components have optional constraints: `top`, `bottom`, `left`, `right`, `width`,
 **Pins** are separate from position. A component can have `left: 50` as its position without being "pinned left." Pins lock an axis during drag and enable reflow behavior. They're stored in `component.pins: PinnableEdge[]`.
 
 **Sizing modes:**
+
 - `auto` — content determines both width and height (text, barcode, QR code)
 - `fixed` — constraints determine both (rectangle, line, container, image)
 - `width-only` — constraints set width, content sets height (text with field block)
@@ -104,34 +74,15 @@ Single Zustand store (`lib/store/editor-store.ts`) with Immer middleware:
 
 `Canvas.tsx` (~160 lines) composes five hooks:
 
-| Hook | Responsibility |
-|------|---------------|
+| Hook                  | Responsibility                                                         |
+| --------------------- | ---------------------------------------------------------------------- |
 | `use-canvas-zoom-pan` | Wheel zoom, trackpad pan, middle-mouse pan, fit-on-mount, pan clamping |
-| `use-canvas-drag` | Component drag with pin constraints |
-| `use-canvas-resize` | Resize handle logic |
-| `use-palette-drop` | Screen-to-dot conversion, palette drop |
-| `use-absolute-bounds` | DOM measurement + constraint resolution |
+| `use-canvas-drag`     | Component drag with pin constraints                                    |
+| `use-canvas-resize`   | Resize handle logic                                                    |
+| `use-palette-drop`    | Screen-to-dot conversion, palette drop                                 |
+| `use-absolute-bounds` | DOM measurement + constraint resolution                                |
 
 The canvas uses CSS transforms for zoom/pan. Components are rendered at absolute dot positions inside the label surface div.
-
-### ZPL Generation
-
-`lib/zpl/generator.ts` walks the component tree, resolves bounds, and calls each component's `generateZpl()`. The output is a complete ZPL document (`^XA` ... `^XZ`).
-
-### Labelary Preview
-
-`app/api/labelary/route.ts` proxies to the Labelary API (avoids CORS). DPI is converted to dpmm (203→8, 300→12, 600→24). The preview component debounces at 500ms.
-
-### Font System
-
-ZPL Font 0 (CG Triumvirate Bold Condensed) is approximated with **Roboto Condensed Bold**. Bitmap fonts A-H use **Source Code Pro Bold**. Fonts are loaded via `next/font/google` and applied through CSS variables (`--font-zpl-0`, `--font-zpl-bitmap`).
-
-Text rendering accounts for:
-- Independent height/width (`^A0N,h,w`) via CSS `scaleX`
-- Bitmap font aspect ratio scaling
-- Ascender gap compensation (`marginTop: -0.12em`)
-- Letter spacing tuning (`-0.027em` for Font 0)
-- Rotation (90/180/270) with position-preserving CSS transforms
 
 ## Testing & Linting
 
@@ -162,7 +113,6 @@ Text rendering accounts for:
 - `^BQ` (QR) includes a quiet zone at the top
 - `^FB` (field block) enables multi-line text with word wrap and justification
 - `\&` is the line break escape in `^FD` data within `^FB`
-- ZPL renders later fields on top of earlier ones (z-order matters)
 - All coordinates are in dots (1 dot = 1/DPI inches)
 
 ## Print System
@@ -178,14 +128,6 @@ The print server checks for `s3Key` in the message — if present, fetch from S3
 
 See `lib/print/` for the S3/SQS client and compression modules.
 
-## TODO
-
-- **Variables and boolean logic** — Think about how variables could support conditional visibility or content switching (e.g. show/hide a component based on a variable value, conditional text). This would enable a single label template to handle different product types or regional requirements.
-
 ## What's Not Yet Implemented
 
-- Export/import document as JSON file
-- VStack/HStack auto-layout containers
 - Print options / direct printer communication
-- Snap-to-grid during drag
-- Copy/paste between documents

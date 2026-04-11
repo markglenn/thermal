@@ -1,7 +1,10 @@
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { sendMessage as sqsQuerySend } from './sqs-query';
 import { compressData } from './compress';
 import type { PrintJobMessage, PrintJobMessageMetadata } from './types';
+
+const useQueryProtocol = !!process.env.AWS_ENDPOINT_SQS;
 
 // Inline threshold: raw data under this size is sent directly in the SQS
 // message. Above this, it's gzipped and uploaded to S3. 200 KB leaves
@@ -13,23 +16,26 @@ let _s3Client: S3Client | null = null;
 
 function getSqsClient(): SQSClient {
   if (!_sqsClient) {
-    _sqsClient = new SQSClient({});
+    const endpoint = process.env.AWS_ENDPOINT_SQS;
+    _sqsClient = new SQSClient({
+      ...(endpoint && { endpoint, forcePathStyle: true }),
+    });
   }
   return _sqsClient;
 }
 
 function getS3Client(): S3Client {
   if (!_s3Client) {
-    _s3Client = new S3Client({});
+    const endpoint = process.env.AWS_ENDPOINT_S3;
+    _s3Client = new S3Client({
+      ...(endpoint && { endpoint, forcePathStyle: true }),
+    });
   }
   return _s3Client;
 }
 
-function getQueueUrl(): string {
-  const url = process.env.PRINT_QUEUE_URL;
-  if (!url) throw new Error('PRINT_QUEUE_URL environment variable is not set');
-  return url;
-}
+/** Exported for use by discovery and events modules. */
+export { getSqsClient, getS3Client };
 
 function getBucket(): string {
   const bucket = process.env.PRINT_BUCKET;
@@ -52,7 +58,8 @@ export async function publishPrintJob(
   printer: string,
   copies: number,
   contentType: string,
-  metadata: PrintJobMessageMetadata
+  metadata: PrintJobMessageMetadata,
+  queueUrl?: string
 ): Promise<void> {
   const rawSize = Buffer.byteLength(data, 'utf-8');
 
@@ -74,10 +81,17 @@ export async function publishPrintJob(
     message = { jobId, chunkIndex: 0, totalChunks: 1, printer, contentType, copies, s3Key, metadata };
   }
 
-  await getSqsClient().send(new SendMessageCommand({
-    QueueUrl: getQueueUrl(),
-    MessageBody: JSON.stringify(message),
-  }));
+  const resolvedUrl = queueUrl || process.env.PRINT_QUEUE_URL;
+  if (!resolvedUrl) throw new Error('No queue URL provided and PRINT_QUEUE_URL is not set');
+
+  if (useQueryProtocol) {
+    await sqsQuerySend(resolvedUrl, JSON.stringify(message));
+  } else {
+    await getSqsClient().send(new SendMessageCommand({
+      QueueUrl: resolvedUrl,
+      MessageBody: JSON.stringify(message),
+    }));
+  }
 }
 
 /** Exported for tests. */

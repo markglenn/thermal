@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import * as Menubar from '@radix-ui/react-menubar';
-import { Flame, History, Check } from 'lucide-react';
+import { Flame, History, Check, Printer } from 'lucide-react';
 import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
 import { EDITOR_EVENTS } from '@/hooks/use-keyboard-shortcuts';
 import { MIN_ZOOM, MAX_ZOOM, labelWidthDots, labelHeightDots, dotsToInches } from '@/lib/constants';
@@ -19,6 +19,8 @@ import { LabelBrowserModal } from '@/components/documents/LabelBrowserModal';
 import { VersionHistoryPanel } from '@/components/documents/VersionHistoryPanel';
 import { KeyboardShortcutsModal } from '@/components/editor/KeyboardShortcutsModal';
 import { ManageLabelSizesModal } from '@/components/label-sizes/ManageLabelSizesModal';
+import { PrintDialog } from '@/components/print/PrintDialog';
+import { PrintHistory } from '@/components/print/PrintHistory';
 import type { LabelComponent, LabelDocument } from '@/lib/types';
 
 const triggerClass = 'px-2 py-1 text-xs rounded outline-none select-none data-[highlighted]:bg-gray-100 data-[state=open]:bg-gray-100';
@@ -66,6 +68,8 @@ export function Toolbar() {
   const [versionLabelSize, setVersionLabelSize] = useState<{ widthInches: number; heightInches: number } | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showLabelSizes, setShowLabelSizes] = useState(false);
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
+  const [showPrintHistory, setShowPrintHistory] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const saveLabel = useCallback(async (name: string) => {
@@ -267,6 +271,9 @@ export function Toolbar() {
                 <Menubar.Item className={itemClass} onSelect={() => setShowLabelSizes(true)}>
                   Label Sizes...
                 </Menubar.Item>
+                <Menubar.Item className={itemClass} onSelect={() => setShowPrintHistory(true)}>
+                  Print History...
+                </Menubar.Item>
                 <Menubar.Separator className={separatorClass} />
                 <Menubar.Item className={itemClass} onSelect={() => {
                   const store = storeApi.getState();
@@ -416,6 +423,18 @@ export function Toolbar() {
         {/* Spacer */}
         <div className="flex-1" />
 
+        {/* Print */}
+        {currentLabelId && (
+          <button
+            onClick={() => setShowPrintDialog(true)}
+            className="flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 text-xs"
+            title="Print"
+          >
+            <Printer size={14} />
+            Print
+          </button>
+        )}
+
         {/* Versions */}
         <button
           onClick={async () => {
@@ -496,6 +515,21 @@ export function Toolbar() {
         <ManageLabelSizesModal
           onClose={() => setShowLabelSizes(false)}
           onChanged={() => {}}
+        />
+      )}
+
+      {showPrintDialog && currentLabelId && (
+        <PrintDialog
+          labelId={currentLabelId}
+          document={storeApi.getState().document}
+          onClose={() => setShowPrintDialog(false)}
+        />
+      )}
+
+      {showPrintHistory && (
+        <PrintHistory
+          labelId={currentLabelId ?? undefined}
+          onClose={() => setShowPrintHistory(false)}
         />
       )}
     </>

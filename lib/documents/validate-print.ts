@@ -23,6 +23,7 @@ export const MAX_COPIES = 1_000;
 export interface PrintRequest {
   data: Record<string, string>[];
   printer?: string;
+  siteId?: string;
   copies: number;
 }
 
@@ -94,6 +95,18 @@ export function validatePrintRequest(body: unknown): ValidationResult & { parsed
     }
   }
 
+  // --- siteId ---
+  let siteId: string | undefined;
+  if (obj.siteId !== undefined) {
+    if (typeof obj.siteId !== 'string') {
+      errors.push({ path: 'siteId', message: 'must be a string' });
+    } else if (obj.siteId.length === 0) {
+      errors.push({ path: 'siteId', message: 'must not be empty' });
+    } else {
+      siteId = obj.siteId;
+    }
+  }
+
   // --- copies ---
   let copies = 1;
   if (obj.copies !== undefined) {
@@ -113,6 +126,6 @@ export function validatePrintRequest(body: unknown): ValidationResult & { parsed
   return {
     valid: true,
     errors: [],
-    parsed: { data: parsedData, printer, copies },
+    parsed: { data: parsedData, printer, siteId, copies },
   };
 }
