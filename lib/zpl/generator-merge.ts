@@ -4,6 +4,7 @@ import { resolveDocument } from '../constraints/resolver';
 import { getDefinition } from '../components';
 import { recomputeContentSize } from '../components/recompute-size';
 import { fieldOrigin } from './commands';
+import { generateRfidZpl } from './rfid';
 import { convertImageUrlToMonochrome } from '@/lib/components/image/convert-server';
 import { resolveImageLayout } from '@/lib/components/image/fit';
 import { mergeFieldData, evaluateCondition } from '../variables/resolve';
@@ -67,6 +68,13 @@ export async function generateZplMerge(document: LabelDocument, fieldData: Recor
   lines.push('^XA');
   lines.push(`^PW${widthDots}`);
   lines.push(`^LL${heightDots}`);
+
+  if (reflowed.label.rfid) {
+    const rfidData = reflowed.label.rfid.fieldBinding
+      ? merged[reflowed.label.rfid.fieldBinding]
+      : undefined;
+    lines.push(...generateRfidZpl(reflowed.label.rfid, rfidData));
+  }
 
   for (const comp of reflowed.components) {
     // Evaluate visibility condition — skip hidden components

@@ -4,6 +4,7 @@ import { PanelRightClose } from 'lucide-react';
 import { useSelectedComponent, useEditorStoreContext } from '@/lib/store/editor-context';
 import { getDefinition } from '@/lib/components';
 import { LabelSettings } from '../toolbar/LabelSettings';
+import { RfidSettings } from '../toolbar/RfidSettings';
 import { ConstraintEditor } from './ConstraintEditor';
 import { FieldBindingEditor } from './FieldBindingEditor';
 import { VisibilityConditionEditor } from './VisibilityConditionEditor';
@@ -42,6 +43,7 @@ export function PropertiesPanel({ onCollapse }: Props) {
         </div>
       )}
       <LabelSettings readOnly={readOnly} />
+      <RfidSettings readOnly={readOnly} />
 
       {selected ? (
         <div className={readOnly ? 'pointer-events-none opacity-60' : ''}>

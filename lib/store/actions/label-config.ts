@@ -1,12 +1,32 @@
-import type { LabelConfig } from '../../types';
+import type { LabelConfig, RfidConfig } from '../../types';
 import type { LabelSizeVariant } from '../../types';
 import type { EditorStore } from '../editor-store';
 import type { ImmerSet } from '../undo';
+
+const DEFAULT_RFID: RfidConfig = {
+  enabled: false,
+  writeMode: 'epc',
+  data: '',
+  dataFormat: 'hex',
+  memoryBank: 'epc',
+  startBlock: 0,
+  retries: 3,
+  errorHandling: 'none',
+};
 
 export function createLabelConfigActions(set: ImmerSet<EditorStore>) {
   return {
     updateLabelConfig: (config: Partial<LabelConfig>) => {
       set((state) => { Object.assign(state.document.label, config); });
+    },
+
+    updateRfidConfig: (config: Partial<RfidConfig>) => {
+      set((state) => {
+        if (!state.document.label.rfid) {
+          state.document.label.rfid = { ...DEFAULT_RFID };
+        }
+        Object.assign(state.document.label.rfid, config);
+      });
     },
 
     setActiveVariant: (name: string) => {

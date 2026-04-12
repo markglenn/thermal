@@ -9,6 +9,7 @@ import type {
   ComponentLayout,
   ComponentType,
   LabelConfig,
+  RfidConfig,
   HorizontalAnchor,
   VerticalAnchor,
   VisibilityCondition,
@@ -79,6 +80,7 @@ export interface EditorActions {
 
   // Label settings
   updateLabelConfig: (config: Partial<LabelConfig>) => void;
+  updateRfidConfig: (config: Partial<RfidConfig>) => void;
   setActiveVariant: (name: string) => void;
   addVariant: (variant: LabelSizeVariant) => void;
   updateVariant: (name: string, updates: Partial<Omit<LabelSizeVariant, 'name'>>) => void;

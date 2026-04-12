@@ -70,7 +70,7 @@ function EditorInner() {
   useUndoFlash();
 
   return (
-    <div className="h-screen flex flex-col bg-white text-gray-900" onContextMenu={(e) => e.preventDefault()}>
+    <div className="h-screen flex flex-col bg-white text-gray-900">
       <DragGhost />
       <Toolbar />
       <TabBar />

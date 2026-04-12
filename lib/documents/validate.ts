@@ -15,6 +15,10 @@ import type {
   ConditionOperator,
   VariableType,
   LabelUnit,
+  RfidWriteMode,
+  RfidDataFormat,
+  RfidMemoryBank,
+  RfidErrorHandling,
 } from '../types';
 
 // ---------------------------------------------------------------------------
@@ -79,6 +83,10 @@ const VALID_H_ANCHORS: readonly HorizontalAnchor[] = ['left', 'center', 'right']
 const VALID_V_ANCHORS: readonly VerticalAnchor[] = ['top', 'bottom'];
 const VALID_CONDITION_OPS: readonly ConditionOperator[] = ['==', '!=', 'isEmpty', 'isNotEmpty'];
 const VALID_VARIABLE_TYPES: readonly VariableType[] = ['text', 'date', 'counter'];
+const VALID_RFID_WRITE_MODES: readonly RfidWriteMode[] = ['epc', 'raw'];
+const VALID_RFID_DATA_FORMATS: readonly RfidDataFormat[] = ['hex', 'ascii'];
+const VALID_RFID_MEMORY_BANKS: readonly RfidMemoryBank[] = ['epc', 'user'];
+const VALID_RFID_ERROR_HANDLING: readonly RfidErrorHandling[] = ['none', 'overstrike', 'eject'];
 
 // ---------------------------------------------------------------------------
 // Sub-validators
@@ -91,6 +99,19 @@ function validateVariant(v: unknown, ctx: Ctx): void {
   if (typeof o.widthDots !== 'number' || o.widthDots <= 0) err(child(ctx, 'widthDots'), 'must be a positive number');
   if (typeof o.heightDots !== 'number' || o.heightDots <= 0) err(child(ctx, 'heightDots'), 'must be a positive number');
   if (!isOneOf(o.unit, VALID_UNITS)) err(child(ctx, 'unit'), `must be one of: ${VALID_UNITS.join(', ')}`);
+}
+
+function validateRfidConfig(v: unknown, ctx: Ctx): void {
+  if (!isObject(v)) { err(ctx, 'must be an object'); return; }
+  const o = v as Record<string, unknown>;
+  if (typeof o.enabled !== 'boolean') err(child(ctx, 'enabled'), 'must be a boolean');
+  if (!isOneOf(o.writeMode, VALID_RFID_WRITE_MODES)) err(child(ctx, 'writeMode'), `must be one of: ${VALID_RFID_WRITE_MODES.join(', ')}`);
+  if (typeof o.data !== 'string') err(child(ctx, 'data'), 'must be a string');
+  if (!isOneOf(o.dataFormat, VALID_RFID_DATA_FORMATS)) err(child(ctx, 'dataFormat'), `must be one of: ${VALID_RFID_DATA_FORMATS.join(', ')}`);
+  if (!isOneOf(o.memoryBank, VALID_RFID_MEMORY_BANKS)) err(child(ctx, 'memoryBank'), `must be one of: ${VALID_RFID_MEMORY_BANKS.join(', ')}`);
+  if (typeof o.startBlock !== 'number') err(child(ctx, 'startBlock'), 'must be a number');
+  if (typeof o.retries !== 'number') err(child(ctx, 'retries'), 'must be a number');
+  if (!isOneOf(o.errorHandling, VALID_RFID_ERROR_HANDLING)) err(child(ctx, 'errorHandling'), `must be one of: ${VALID_RFID_ERROR_HANDLING.join(', ')}`);
 }
 
 function validateLabelConfig(v: unknown, ctx: Ctx): void {
@@ -113,6 +134,10 @@ function validateLabelConfig(v: unknown, ctx: Ctx): void {
     for (let i = 0; i < variants.length; i++) {
       validateVariant(variants[i], child(ctx, `variants[${i}]`));
     }
+  }
+
+  if ('rfid' in o && o.rfid != null) {
+    validateRfidConfig(o.rfid, child(ctx, 'rfid'));
   }
 }
 

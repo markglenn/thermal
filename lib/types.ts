@@ -135,6 +135,23 @@ export interface EllipseProperties {
   circle: boolean;
 }
 
+export type RfidWriteMode = 'epc' | 'raw';
+export type RfidDataFormat = 'hex' | 'ascii';
+export type RfidMemoryBank = 'epc' | 'user';
+export type RfidErrorHandling = 'none' | 'overstrike' | 'eject';
+
+export interface RfidConfig {
+  enabled: boolean;
+  writeMode: RfidWriteMode;
+  data: string;
+  fieldBinding?: string;    // variable name to source data from at print time
+  dataFormat: RfidDataFormat;
+  memoryBank: RfidMemoryBank;
+  startBlock: number;
+  retries: number;
+  errorHandling: RfidErrorHandling;
+}
+
 export type ComponentProperties =
   | { type: 'text'; props: TextProperties }
   | { type: 'barcode'; props: BarcodeProperties }
@@ -200,6 +217,7 @@ export interface LabelSizeVariant {
 export interface LabelConfig {
   dpi: 203 | 300 | 600;
   variants: LabelSizeVariant[];
+  rfid?: RfidConfig;
 }
 
 export interface LabelDocument {

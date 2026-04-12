@@ -110,8 +110,8 @@ export function useKeyboardShortcuts() {
       // In read-only mode, only allow copy (not cut, paste, delete, duplicate, nudge)
       const { readOnly } = state;
 
-      // Copy
-      if (e.key === 'c' && mod && selectedComponentIds.length > 0) {
+      // Copy — let the browser handle it when the user has text selected (e.g. ZPL output)
+      if (e.key === 'c' && mod && selectedComponentIds.length > 0 && !window.getSelection()?.toString()) {
         e.preventDefault();
         const components = selectedComponentIds
           .map((id) => findComponent(state.document.components, id))

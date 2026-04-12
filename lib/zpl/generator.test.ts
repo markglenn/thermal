@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { generateZpl, generateZplWithMap } from './generator';
-import type { LabelDocument } from '../types';
+import { generateRfidZpl } from './rfid';
+import type { LabelDocument, RfidConfig } from '../types';
 
 // Must import to register components before generateZpl uses getDefinition
 import '../components';
@@ -159,5 +160,116 @@ describe('generateZplWithMap', () => {
     };
     const { zpl } = generateZplWithMap(doc);
     expect(zpl).toBe(generateZpl(doc));
+  });
+});
+
+describe('generateRfidZpl', () => {
+  it('returns empty array when disabled', () => {
+    const config: RfidConfig = {
+      enabled: false, writeMode: 'epc', data: 'AABB', dataFormat: 'hex',
+      memoryBank: 'epc', startBlock: 0, retries: 3, errorHandling: 'none',
+    };
+    expect(generateRfidZpl(config)).toEqual([]);
+  });
+
+  it('generates EPC write with ^RFW', () => {
+    const config: RfidConfig = {
+      enabled: true, writeMode: 'epc', data: '3034257BF4000000001234AB', dataFormat: 'hex',
+      memoryBank: 'epc', startBlock: 0, retries: 3, errorHandling: 'none',
+    };
+    expect(generateRfidZpl(config)).toEqual([
+      '^RS8,,N,3,N',
+      '^RFW,H,1,0,12',
+      '^FD3034257BF4000000001234AB^FS',
+    ]);
+  });
+
+  it('generates raw hex write to user bank', () => {
+    const config: RfidConfig = {
+      enabled: true, writeMode: 'raw', data: 'AABBCCDD', dataFormat: 'hex',
+      memoryBank: 'user', startBlock: 2, retries: 5, errorHandling: 'overstrike',
+    };
+    expect(generateRfidZpl(config)).toEqual([
+      '^RS8,,N,5,O',
+      '^RFW,H,3,2,4',
+      '^FDAABBCCDD^FS',
+    ]);
+  });
+
+  it('generates raw ascii write', () => {
+    const config: RfidConfig = {
+      enabled: true, writeMode: 'raw', data: 'HELLO', dataFormat: 'ascii',
+      memoryBank: 'user', startBlock: 0, retries: 2, errorHandling: 'eject',
+    };
+    expect(generateRfidZpl(config)).toEqual([
+      '^RS8,,N,2,E',
+      '^RFW,A,3,0,5',
+      '^FDHELLO^FS',
+    ]);
+  });
+
+  it('uses override data when provided', () => {
+    const config: RfidConfig = {
+      enabled: true, writeMode: 'epc', data: 'default', dataFormat: 'hex',
+      memoryBank: 'epc', startBlock: 0, retries: 0, errorHandling: 'none',
+    };
+    const result = generateRfidZpl(config, 'OVERRIDE');
+    expect(result).toContain('^FDOVERRIDE^FS');
+    expect(result.join('')).not.toContain('default');
+  });
+
+  it('only emits ^RS when data is empty', () => {
+    const config: RfidConfig = {
+      enabled: true, writeMode: 'epc', data: '', dataFormat: 'hex',
+      memoryBank: 'epc', startBlock: 0, retries: 3, errorHandling: 'none',
+    };
+    expect(generateRfidZpl(config)).toEqual(['^RS8,,N,3,N']);
+  });
+});
+
+describe('generateZpl with RFID', () => {
+  const baseDoc: LabelDocument = {
+    version: 1,
+    label: { dpi: 203, variants: [{ name: 'Default', widthDots: 406, heightDots: 203, unit: 'in' }] },
+    components: [],
+  };
+
+  it('includes RFID commands when rfid is enabled', () => {
+    const doc: LabelDocument = {
+      ...baseDoc,
+      label: {
+        ...baseDoc.label,
+        rfid: {
+          enabled: true, writeMode: 'epc', data: 'AABB', dataFormat: 'hex',
+          memoryBank: 'epc', startBlock: 0, retries: 3, errorHandling: 'none',
+        },
+      },
+    };
+    const zpl = generateZpl(doc);
+    expect(zpl).toContain('^RS8,,N,3,N');
+    expect(zpl).toContain('^RFW,H,1,0,2');
+    expect(zpl).toContain('^FDAABB^FS');
+  });
+
+  it('omits RFID commands when rfid is disabled', () => {
+    const doc: LabelDocument = {
+      ...baseDoc,
+      label: {
+        ...baseDoc.label,
+        rfid: {
+          enabled: false, writeMode: 'epc', data: 'AABB', dataFormat: 'hex',
+          memoryBank: 'epc', startBlock: 0, retries: 3, errorHandling: 'none',
+        },
+      },
+    };
+    const zpl = generateZpl(doc);
+    expect(zpl).not.toContain('^RS');
+    expect(zpl).not.toContain('^RFW');
+  });
+
+  it('omits RFID commands when rfid is undefined', () => {
+    const zpl = generateZpl(baseDoc);
+    expect(zpl).not.toContain('^RS');
+    expect(zpl).not.toContain('^RFW');
   });
 });

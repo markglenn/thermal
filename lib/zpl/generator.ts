@@ -3,6 +3,7 @@ import { labelWidthDots, labelHeightDots } from '../constants';
 import { resolveDocument } from '../constraints/resolver';
 import { getDefinition } from '../components';
 import { assignFieldNumbers } from './field-numbers';
+import { generateRfidZpl } from './rfid';
 
 function generateComponentZpl(
   component: LabelComponent,
@@ -39,6 +40,10 @@ export function generateZplWithMap(document: LabelDocument): {
   lines.push('^XA');
   lines.push(`^PW${widthDots}`);
   lines.push(`^LL${heightDots}`);
+
+  if (document.label.rfid) {
+    lines.push(...generateRfidZpl(document.label.rfid));
+  }
 
   for (const component of document.components) {
     const start = lines.length;
@@ -81,6 +86,10 @@ export function generateZplTemplate(document: LabelDocument, formatName: string 
   lines.push(`^DF${formatName}^FS`);
   lines.push(`^PW${widthDots}`);
   lines.push(`^LL${heightDots}`);
+
+  if (document.label.rfid) {
+    lines.push(...generateRfidZpl(document.label.rfid));
+  }
 
   for (const comp of document.components) {
     const bounds = boundsMap.get(comp.id);
