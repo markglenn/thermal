@@ -424,16 +424,14 @@ export function Toolbar() {
         <div className="flex-1" />
 
         {/* Print */}
-        {currentLabelId && (
-          <button
-            onClick={() => setShowPrintDialog(true)}
-            className="flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 text-xs"
-            title="Print"
-          >
-            <Printer size={14} />
-            Print
-          </button>
-        )}
+        <button
+          onClick={() => setShowPrintDialog(true)}
+          className="flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 text-xs"
+          title="Print"
+        >
+          <Printer size={14} />
+          Print
+        </button>
 
         {/* Versions */}
         <button
@@ -518,9 +516,10 @@ export function Toolbar() {
         />
       )}
 
-      {showPrintDialog && currentLabelId && (
+      {showPrintDialog && (
         <PrintDialog
-          labelId={currentLabelId}
+          labelId={currentLabelId ?? undefined}
+          labelName={currentLabelName || activeTabName || undefined}
           document={storeApi.getState().document}
           onClose={() => setShowPrintDialog(false)}
         />

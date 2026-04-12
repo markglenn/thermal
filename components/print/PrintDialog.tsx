@@ -10,7 +10,8 @@ import type { LabelDocument } from '@/lib/types';
 import type { Site } from '@/hooks/use-printers';
 
 interface Props {
-  labelId: string;
+  labelId?: string;
+  labelName?: string;
   document: LabelDocument;
   onClose: () => void;
 }
@@ -75,7 +76,7 @@ function extractFieldNames(doc: LabelDocument): string[] {
   return Array.from(names);
 }
 
-export function PrintDialog({ labelId, document: doc, onClose }: Props) {
+export function PrintDialog({ labelId, labelName, document: doc, onClose }: Props) {
   const printers = usePrinters();
   const fieldNames = useMemo(() => extractFieldNames(doc), [doc]);
   const hasFields = fieldNames.length > 0;
@@ -109,6 +110,8 @@ export function PrintDialog({ labelId, document: doc, onClose }: Props) {
     let stopped = false;
     const poll = async () => {
       while (!stopped) {
+        // SQS long-poll blocks server-side until a message arrives (up to WaitTimeSeconds),
+        // so no client-side sleep needed — responses come back immediately when events arrive
         await fetchJson('/api/print-events', { method: 'POST' });
         const job = await fetchJson<{ status: string; error: string | null }>(`/api/print-jobs/${jobId}`);
         if (job && (job.status === 'completed' || job.status === 'failed')) {
@@ -120,7 +123,6 @@ export function PrintDialog({ labelId, document: doc, onClose }: Props) {
           }
           return;
         }
-        await new Promise((r) => setTimeout(r, 2000));
       }
     };
     poll();
@@ -132,14 +134,17 @@ export function PrintDialog({ labelId, document: doc, onClose }: Props) {
     if (!printers.selectedSite || !printers.selectedPrinter) return;
 
     setPrinting(true);
-    const result = await fetchJson<{ jobId: string }>(`/api/labels/${labelId}/print`, {
+    const result = await fetchJson<{ jobId: string }>('/api/print', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        document: doc,
         data: dataRows,
         printer: printers.selectedPrinter,
         siteId: printers.selectedSite.siteId,
         copies,
+        ...(labelId && { labelId }),
+        ...(labelName && { labelName }),
       }),
     });
 

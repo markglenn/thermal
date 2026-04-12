@@ -81,26 +81,39 @@ export async function generateZplMerge(document: LabelDocument, fieldData: Recor
     // Image bindings need async conversion — handle separately
     if (comp.fieldBinding && comp.fieldBinding in fieldData && comp.typeData.type === 'image') {
       const imageUrl = fieldData[comp.fieldBinding];
+      if (!imageUrl) continue;
       const imageProps = comp.typeData.props as ImageProperties;
       const imgLayout = resolveImageLayout(
         bounds.width, bounds.height,
         imageProps.originalWidth, imageProps.originalHeight,
         imageProps.objectFit, imageProps.objectPosition,
       );
-      const result = await convertImageUrlToMonochrome(
-        imageUrl,
-        imgLayout.width,
-        imgLayout.height,
-        imageProps.threshold,
-        imageProps.invert,
-        imageProps.monochromeMethod
-      );
-      const totalBytes = result.bytesPerRow * result.height;
-      compLines = [
-        fieldOrigin(bounds.x + imgLayout.offsetX, bounds.y + imgLayout.offsetY),
-        `^GFA,${totalBytes},${totalBytes},${result.bytesPerRow},${result.hex}`,
-        '^FS',
-      ];
+      try {
+        const result = await convertImageUrlToMonochrome(
+          imageUrl,
+          imgLayout.width,
+          imgLayout.height,
+          imageProps.threshold,
+          imageProps.invert,
+          imageProps.monochromeMethod
+        );
+        const totalBytes = result.bytesPerRow * result.height;
+        compLines = [
+          fieldOrigin(bounds.x + imgLayout.offsetX, bounds.y + imgLayout.offsetY),
+          `^GFA,${totalBytes},${totalBytes},${result.bytesPerRow},${result.hex}`,
+          '^FS',
+        ];
+      } catch {
+        // Render a visible error on the label so the operator knows
+        const fontSize = Math.min(bounds.height, 20);
+        compLines = [
+          fieldOrigin(bounds.x, bounds.y),
+          `^GB${bounds.width},${bounds.height},1^FS`,
+          fieldOrigin(bounds.x + 2, bounds.y + 2),
+          `^A0N,${fontSize},${fontSize}^FB${bounds.width - 4},${Math.ceil(bounds.height / fontSize)},,`,
+          '^FDBAD IMAGE URL^FS',
+        ];
+      }
     }
 
     lines.push(...compLines);

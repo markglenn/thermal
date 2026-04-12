@@ -48,9 +48,8 @@ export const labelVersions = pgTable(
 export const printJobs = pgTable('print_jobs', {
   id: text('id').primaryKey(),
   labelId: text('label_id')
-    .notNull()
     .references(() => labels.id),
-  labelVersion: integer('label_version').notNull(),
+  labelVersion: integer('label_version'),
   siteId: text('site_id'),
   printer: text('printer').notNull(),
   status: text('status').notNull(),

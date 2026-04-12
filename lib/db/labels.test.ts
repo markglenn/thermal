@@ -6,7 +6,9 @@ import { Pool } from 'pg';
 import * as schema from './schema';
 import type { LabelDocument } from '../types';
 
-const DATABASE_URL = process.env.DATABASE_URL || 'postgres://thermal:thermal@localhost:5433/thermal';
+// Use a separate test database to avoid wiping dev data
+const devUrl = process.env.DATABASE_URL || 'postgres://thermal:thermal@localhost:5433/thermal';
+const DATABASE_URL = devUrl.replace(/\/thermal$/, '/thermal_test');
 
 const pool = new Pool({ connectionString: DATABASE_URL });
 

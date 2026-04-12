@@ -58,11 +58,11 @@ function parseEventBody(raw: string): PrintEvent | null {
  * Poll the response queue for print events.
  * Returns up to `maxMessages` events and deletes them from the queue.
  */
-export async function pollEvents(maxMessages = 10): Promise<PrintEvent[]> {
+export async function pollEvents(maxMessages = 10, waitTimeSeconds = 5): Promise<PrintEvent[]> {
   const queueUrl = getResponseQueueUrl();
 
   if (useQueryProtocol) {
-    const messages = await sqsQueryReceive(queueUrl, maxMessages, 1);
+    const messages = await sqsQueryReceive(queueUrl, maxMessages, waitTimeSeconds);
     const events: PrintEvent[] = [];
     for (const msg of messages) {
       const event = parseEventBody(msg.body);
@@ -76,7 +76,7 @@ export async function pollEvents(maxMessages = 10): Promise<PrintEvent[]> {
   const result = await sqs.send(new ReceiveMessageCommand({
     QueueUrl: queueUrl,
     MaxNumberOfMessages: maxMessages,
-    WaitTimeSeconds: 1,
+    WaitTimeSeconds: waitTimeSeconds,
   }));
 
   const messages = result.Messages ?? [];
