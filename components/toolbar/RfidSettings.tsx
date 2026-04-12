@@ -3,6 +3,7 @@
 import { Nfc } from 'lucide-react';
 import { useEditorStoreContext, usePauseTracking, useResumeTracking } from '@/lib/store/editor-context';
 import { CollapsibleSection } from '../ui/CollapsibleSection';
+import { AutosuggestInput } from '../ui/AutosuggestInput';
 import { NumberInput } from '../properties/NumberInput';
 import type {
   RfidWriteMode,
@@ -12,7 +13,7 @@ import type {
   RfidConfig,
 } from '@/lib/types';
 
-export function RfidSettings({ readOnly = false }: { readOnly?: boolean }) {
+export function RfidSettings({ readOnly = false, suggestions = [] }: { readOnly?: boolean; suggestions?: string[] }) {
   const rfid = useEditorStoreContext((s) => s.document.label.rfid);
   const updateRfidConfig = useEditorStoreContext((s) => s.updateRfidConfig);
   const pauseTracking = usePauseTracking();
@@ -62,12 +63,13 @@ export function RfidSettings({ readOnly = false }: { readOnly?: boolean }) {
 
             <label>
               <span className="text-xs text-gray-500">Source Variable</span>
-              <input
+              <AutosuggestInput
                 value={rfid.fieldBinding ?? ''}
-                onChange={(e) => {
-                  const v = e.target.value.replace(/[^a-zA-Z0-9_-]/g, '').replace(/^[^a-zA-Z]+/, '');
+                onChange={(value) => {
+                  const v = value.replace(/[^a-zA-Z0-9_-]/g, '').replace(/^[^a-zA-Z]+/, '');
                   update({ fieldBinding: v || undefined });
                 }}
+                suggestions={suggestions}
                 onFocus={pauseTracking}
                 onBlur={resumeTracking}
                 placeholder="None"

@@ -3,11 +3,14 @@
 import { PanelRightClose } from 'lucide-react';
 import { useSelectedComponent, useEditorStoreContext } from '@/lib/store/editor-context';
 import { getDefinition } from '@/lib/components';
+import { useFieldSuggestions } from '@/hooks/use-field-suggestions';
+import { useVariableBankFields } from '@/hooks/use-variable-bank-fields';
 import { LabelSettings } from '../toolbar/LabelSettings';
 import { RfidSettings } from '../toolbar/RfidSettings';
 import { ConstraintEditor } from './ConstraintEditor';
 import { FieldBindingEditor } from './FieldBindingEditor';
 import { VisibilityConditionEditor } from './VisibilityConditionEditor';
+import { VariableBankSelector } from './VariableBankSelector';
 import { CollapsibleSection } from '../ui/CollapsibleSection';
 
 interface Props {
@@ -28,6 +31,9 @@ function MultiSelectOrEmptyMessage() {
 export function PropertiesPanel({ onCollapse }: Props) {
   const selected = useSelectedComponent();
   const readOnly = useEditorStoreContext((s) => s.readOnly);
+  const variableBankId = useEditorStoreContext((s) => s.document.label.variableBankId);
+  const bankFields = useVariableBankFields(variableBankId);
+  const suggestions = useFieldSuggestions(bankFields);
 
   const def = selected ? getDefinition(selected.typeData.type) : null;
   const Panel = def?.PropertiesPanel;
@@ -43,7 +49,8 @@ export function PropertiesPanel({ onCollapse }: Props) {
         </div>
       )}
       <LabelSettings readOnly={readOnly} />
-      <RfidSettings readOnly={readOnly} />
+      <RfidSettings readOnly={readOnly} suggestions={suggestions} />
+      <VariableBankSelector />
 
       {selected ? (
         <div className={readOnly ? 'pointer-events-none opacity-60' : ''}>
@@ -56,10 +63,10 @@ export function PropertiesPanel({ onCollapse }: Props) {
           )}
 
           {def?.traits.bindable && (
-            <FieldBindingEditor componentId={selected.id} binding={selected.fieldBinding} />
+            <FieldBindingEditor componentId={selected.id} binding={selected.fieldBinding} suggestions={suggestions} />
           )}
 
-          <VisibilityConditionEditor componentId={selected.id} condition={selected.visibilityCondition} />
+          <VisibilityConditionEditor componentId={selected.id} condition={selected.visibilityCondition} suggestions={suggestions} />
         </div>
       ) : (
         <MultiSelectOrEmptyMessage />

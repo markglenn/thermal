@@ -205,6 +205,12 @@ export interface LabelVariable {
   counter?: CounterConfig;
 }
 
+export interface VariableBank {
+  id: string;
+  name: string;
+  fields: string[];
+}
+
 export type LabelUnit = 'in' | 'mm';
 
 export interface LabelSizeVariant {
@@ -218,6 +224,7 @@ export interface LabelConfig {
   dpi: 203 | 300 | 600;
   variants: LabelSizeVariant[];
   rfid?: RfidConfig;
+  variableBankId?: string;
 }
 
 export interface LabelDocument {

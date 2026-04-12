@@ -4,12 +4,13 @@ import { Link } from 'lucide-react';
 import { useEditorStoreContext, useDocument, usePauseTracking, useResumeTracking } from '@/lib/store/editor-context';
 import { resolveVariables } from '@/lib/variables/resolve';
 import { CollapsibleSection } from '../ui/CollapsibleSection';
+import { AutosuggestInput } from '../ui/AutosuggestInput';
 import { NumberInput } from './NumberInput';
 import type { VariableType, CounterConfig, LabelVariable } from '@/lib/types';
 
 const DEFAULT_COUNTER: CounterConfig = { start: 1, increment: 1, padding: 5, prefix: '', suffix: '' };
 
-export function FieldBindingEditor({ componentId, binding }: { componentId: string; binding?: string }) {
+export function FieldBindingEditor({ componentId, binding, suggestions = [] }: { componentId: string; binding?: string; suggestions?: string[] }) {
   const updateFieldBinding = useEditorStoreContext((s) => s.updateFieldBinding);
   const addVariable = useEditorStoreContext((s) => s.addVariable);
   const updateVariable = useEditorStoreContext((s) => s.updateVariable);
@@ -82,9 +83,10 @@ export function FieldBindingEditor({ componentId, binding }: { componentId: stri
       <div className="px-3 pb-3 space-y-2">
         {/* Field name input */}
         <div>
-          <input
+          <AutosuggestInput
             value={binding ?? ''}
-            onChange={(e) => handleBindingChange(e.target.value)}
+            onChange={handleBindingChange}
+            suggestions={suggestions}
             onFocus={pauseTracking}
             onBlur={resumeTracking}
             placeholder="None"

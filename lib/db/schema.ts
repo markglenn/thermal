@@ -45,6 +45,13 @@ export const labelVersions = pgTable(
   (table) => [unique().on(table.labelId, table.version)]
 );
 
+export const variableBanks = pgTable('variable_banks', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  fields: jsonb('fields').notNull(),  // string[]
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
 export const printJobs = pgTable('print_jobs', {
   id: text('id').primaryKey(),
   labelId: text('label_id')

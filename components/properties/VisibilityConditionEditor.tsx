@@ -4,9 +4,10 @@ import { Eye } from 'lucide-react';
 import { useEditorStoreContext, usePauseTracking, useResumeTracking } from '@/lib/store/editor-context';
 import { CONDITION_OPERATORS } from '@/lib/utils';
 import { CollapsibleSection } from '../ui/CollapsibleSection';
+import { AutosuggestInput } from '../ui/AutosuggestInput';
 import type { VisibilityCondition, ConditionOperator } from '@/lib/types';
 
-export function VisibilityConditionEditor({ componentId, condition }: { componentId: string; condition?: VisibilityCondition }) {
+export function VisibilityConditionEditor({ componentId, condition, suggestions = [] }: { componentId: string; condition?: VisibilityCondition; suggestions?: string[] }) {
   const updateVisibilityCondition = useEditorStoreContext((s) => s.updateVisibilityCondition);
   const pauseTracking = usePauseTracking();
   const resumeTracking = useResumeTracking();
@@ -66,9 +67,10 @@ export function VisibilityConditionEditor({ componentId, condition }: { componen
 
         {isConditional && condition && (
           <div className="space-y-1.5">
-            <input
+            <AutosuggestInput
               value={condition.field}
-              onChange={(e) => handleFieldChange(e.target.value)}
+              onChange={handleFieldChange}
+              suggestions={suggestions}
               onFocus={pauseTracking}
               onBlur={resumeTracking}
               placeholder="field name"

@@ -7,6 +7,7 @@ type Tables = {
   labels: typeof schema.labels;
   labelVersions: typeof schema.labelVersions;
   labelSizes: typeof schema.labelSizes;
+  variableBanks: typeof schema.variableBanks;
   printJobs: typeof schema.printJobs;
 };
 
@@ -32,6 +33,7 @@ async function initDb(): Promise<{ db: Db; tables: Tables }> {
     labels: schema.labels,
     labelVersions: schema.labelVersions,
     labelSizes: schema.labelSizes,
+    variableBanks: schema.variableBanks,
     printJobs: schema.printJobs,
   };
 

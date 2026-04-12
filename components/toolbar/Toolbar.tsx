@@ -19,6 +19,7 @@ import { LabelBrowserModal } from '@/components/documents/LabelBrowserModal';
 import { VersionHistoryPanel } from '@/components/documents/VersionHistoryPanel';
 import { KeyboardShortcutsModal } from '@/components/editor/KeyboardShortcutsModal';
 import { ManageLabelSizesModal } from '@/components/label-sizes/ManageLabelSizesModal';
+import { ManageVariableBanksModal } from '@/components/variable-banks/ManageVariableBanksModal';
 import { PrintDialog } from '@/components/print/PrintDialog';
 import { PrintHistory } from '@/components/print/PrintHistory';
 import type { LabelComponent, LabelDocument } from '@/lib/types';
@@ -68,6 +69,7 @@ export function Toolbar() {
   const [versionLabelSize, setVersionLabelSize] = useState<{ widthInches: number; heightInches: number } | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showLabelSizes, setShowLabelSizes] = useState(false);
+  const [showVariableBanks, setShowVariableBanks] = useState(false);
   const [showPrintDialog, setShowPrintDialog] = useState(false);
   const [showPrintHistory, setShowPrintHistory] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -270,6 +272,9 @@ export function Toolbar() {
                 <Menubar.Separator className={separatorClass} />
                 <Menubar.Item className={itemClass} onSelect={() => setShowLabelSizes(true)}>
                   Label Sizes...
+                </Menubar.Item>
+                <Menubar.Item className={itemClass} onSelect={() => setShowVariableBanks(true)}>
+                  Variable Banks...
                 </Menubar.Item>
                 <Menubar.Item className={itemClass} onSelect={() => setShowPrintHistory(true)}>
                   Print History...
@@ -513,6 +518,12 @@ export function Toolbar() {
         <ManageLabelSizesModal
           onClose={() => setShowLabelSizes(false)}
           onChanged={() => {}}
+        />
+      )}
+
+      {showVariableBanks && (
+        <ManageVariableBanksModal
+          onClose={() => setShowVariableBanks(false)}
         />
       )}
 
