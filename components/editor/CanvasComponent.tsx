@@ -89,7 +89,7 @@ export const CanvasComponent = memo(function CanvasComponent({ component, bounds
       }}
       onContextMenu={handleContextMenu}
     >
-      <Element props={component.typeData.props} isSelected={isSelected} />
+      <Element props={component.typeData.props} isSelected={isSelected} componentName={component.name} />
       {hasCondition && (
         <div className="absolute -top-1 -right-1 group/badge pointer-events-auto">
           <div className="w-3.5 h-3.5 rounded-full bg-amber-400 flex items-center justify-center">

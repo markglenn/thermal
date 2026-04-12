@@ -17,7 +17,7 @@ export interface ComponentDefinition<TProps = unknown> {
   defaultProps: TProps;
 
   /** Canvas rendering component */
-  Element: React.ComponentType<{ props: TProps; isSelected: boolean }>;
+  Element: React.ComponentType<{ props: TProps; isSelected: boolean; componentName?: string }>;
 
   /** Properties panel component (null = no type-specific properties) */
   PropertiesPanel: React.ComponentType<{ componentId: string; props: TProps }> | null;

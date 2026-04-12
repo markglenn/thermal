@@ -18,15 +18,16 @@ const CSS_OBJECT_POSITION: Record<ImageObjectPosition, string> = {
 interface Props {
   props: ImageProperties;
   isSelected: boolean;
+  componentName?: string;
 }
 
-export function ImageElement({ props }: Props) {
+export function ImageElement({ props, componentName }: Props) {
   const isResizing = useEditorStoreContext((s) => s.resizeState !== null);
 
   if (!props.data) {
     return (
-      <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-500 text-xs">
-        Image
+      <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 text-[5cqmin]" style={{ containerType: 'size' }}>
+        {componentName || 'Image'}
       </div>
     );
   }
