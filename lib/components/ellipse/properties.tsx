@@ -3,6 +3,7 @@
 import type { EllipseProperties } from '@/lib/types';
 import { useEditorStoreContext } from '@/lib/store/editor-context';
 import { findComponent } from '@/lib/utils';
+import { Toggle } from '@/components/ui/Toggle';
 import { useEditorStoreApi } from '@/lib/store/editor-context';
 
 interface Props {
@@ -67,14 +68,7 @@ export function EllipsePropertiesPanel({ componentId, props }: Props) {
             className="w-full"
           />
         </label>
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={props.filled}
-            onChange={(e) => updateProperties(componentId, { filled: e.target.checked })}
-          />
-          <span className="text-xs text-gray-500">Filled</span>
-        </label>
+        <Toggle checked={props.filled} onChange={(v) => updateProperties(componentId, { filled: v })} label="Filled" />
       </div>
     </div>
   );

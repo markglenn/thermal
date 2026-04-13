@@ -3,6 +3,7 @@
 import type { TextProperties as TextPropsType, ZplFont, Rotation, TextJustification, VerticalAlign, FieldBlockProperties } from '@/lib/types';
 import { useEditorStoreContext, usePauseTracking, useResumeTracking } from '@/lib/store/editor-context';
 import { NumberInput } from '@/components/properties/NumberInput';
+import { Toggle } from '@/components/ui/Toggle';
 
 interface Props {
   componentId: string;
@@ -116,14 +117,7 @@ export function TextProperties({ componentId, props }: Props) {
 
         {/* Field Block */}
         <div className="pt-1 border-t border-gray-100">
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={hasFieldBlock}
-              onChange={toggleFieldBlock}
-            />
-            <span className="text-xs text-gray-500">Field Block (multi-line)</span>
-          </label>
+          <Toggle checked={hasFieldBlock} onChange={toggleFieldBlock} label="Field Block (multi-line)" />
         </div>
 
         {hasFieldBlock && fb && (

@@ -5,6 +5,7 @@ import type { ImageProperties as ImagePropsType, MonochromeMethod, ImageObjectFi
 import { useEditorStoreContext, useEditorStoreApi } from '@/lib/store/editor-context';
 import { findComponent } from '@/lib/utils';
 import { ImageUploadModal } from '@/components/image-upload/ImageUploadModal';
+import { Toggle } from '@/components/ui/Toggle';
 import { Upload, Replace, Trash2 } from 'lucide-react';
 import { convertImageToMonochrome, generateMonochromePreview } from './convert';
 import { resolveImageLayout } from './fit';
@@ -222,18 +223,16 @@ export function ImagePropertiesPanel({ componentId, props }: Props) {
           </label>
         )}
 
-        <label className="flex items-center gap-2 pt-1">
-          <input
-            type="checkbox"
+        <div className="pt-1">
+          <Toggle
             checked={props.invert}
-            onChange={(e) => {
-              const invert = e.target.checked;
+            onChange={(invert) => {
               updateProperties(componentId, { invert });
               if (hasImage) reconvert({ invert });
             }}
+            label="Invert"
           />
-          <span className="text-xs text-gray-500">Invert</span>
-        </label>
+        </div>
       </div>
 
       {showModal && (

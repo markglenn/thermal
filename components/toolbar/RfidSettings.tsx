@@ -5,6 +5,7 @@ import { useEditorStoreContext, usePauseTracking, useResumeTracking } from '@/li
 import { CollapsibleSection } from '../ui/CollapsibleSection';
 import { AutosuggestInput } from '../ui/AutosuggestInput';
 import { NumberInput } from '../properties/NumberInput';
+import { Toggle } from '../ui/Toggle';
 import type {
   RfidWriteMode,
   RfidDataFormat,
@@ -26,14 +27,12 @@ export function RfidSettings({ readOnly = false, suggestions = [] }: { readOnly?
   return (
     <CollapsibleSection title="RFID" icon={<Nfc size={12} />} defaultOpen={enabled}>
       <div className="px-3 pb-3 space-y-2">
-        <label className={`flex items-center gap-2 ${readOnly ? 'pointer-events-none opacity-60' : ''}`}>
-          <input
-            type="checkbox"
-            checked={enabled}
-            onChange={(e) => update({ enabled: e.target.checked })}
-          />
-          <span className="text-xs text-gray-600">Write RFID tag</span>
-        </label>
+        <Toggle
+          checked={enabled}
+          onChange={(v) => update({ enabled: v })}
+          label="Write RFID tag"
+          disabled={readOnly}
+        />
 
         {enabled && rfid && (
           <div className={`space-y-2 ${readOnly ? 'pointer-events-none opacity-60' : ''}`}>
@@ -113,7 +112,15 @@ export function RfidSettings({ readOnly = false, suggestions = [] }: { readOnly?
 
             <label>
               <span className="text-xs text-gray-500">Retries</span>
-              <NumberInput value={rfid.retries} onChange={(v) => update({ retries: v })} min={0} max={10} fallback={3} />
+              <select
+                value={rfid.retries}
+                onChange={(e) => update({ retries: parseInt(e.target.value) })}
+                className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm"
+              >
+                {Array.from({ length: 11 }, (_, i) => (
+                  <option key={i} value={i}>{i}</option>
+                ))}
+              </select>
             </label>
 
             <label>

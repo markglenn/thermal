@@ -11,6 +11,7 @@ import { useCanvasResize } from '@/hooks/use-canvas-resize';
 import { usePaletteDrop } from '@/hooks/use-palette-drop';
 import { useAbsoluteBounds } from '@/hooks/use-absolute-bounds';
 import { useMarqueeSelect } from '@/hooks/use-marquee-select';
+import { Nfc } from 'lucide-react';
 import { CanvasComponent } from './CanvasComponent';
 import { SelectionOverlay } from './SelectionOverlay';
 import { ConstraintGuides } from './ConstraintGuides';
@@ -32,6 +33,7 @@ export function Canvas() {
   const setDragState = useEditorStoreContext((s) => s.setDragState);
   const setResizeState = useEditorStoreContext((s) => s.setResizeState);
   const readOnly = useEditorStoreContext((s) => s.readOnly);
+  const rfidEnabled = useEditorStoreContext((s) => s.document.label.rfid?.enabled ?? false);
   // Read snap guides directly — updated by the drag hook before layout updates,
   // so they're fresh when Canvas re-renders from the layout change. No subscription
   // needed, which avoids a double render per pointer move.
@@ -150,6 +152,23 @@ export function Canvas() {
           transformOrigin: `${Math.round(widthDots / 2)}px ${Math.round(heightDots / 2)}px`,
         }}
       >
+        {/* RFID indicator above label */}
+        {rfidEnabled && (
+          <button
+            onClick={() => window.dispatchEvent(new Event(EDITOR_EVENTS.SHOW_RFID))}
+            className="absolute flex items-center gap-[0.3em] bg-amber-50 border border-amber-300 text-amber-700 rounded-[0.3em] hover:bg-amber-100 transition-colors cursor-pointer"
+            style={{
+              fontSize: `${Math.round(Math.min(widthDots, heightDots) * 0.03)}px`,
+              padding: '0.2em 0.5em',
+              top: `${-Math.round(Math.min(widthDots, heightDots) * 0.06)}px`,
+              right: 0,
+            }}
+          >
+            <Nfc style={{ width: '1.2em', height: '1.2em' }} />
+            <span style={{ fontWeight: 600 }}>RFID</span>
+          </button>
+        )}
+
         {/* Label surface */}
         <div
           ref={labelRef}

@@ -1,6 +1,6 @@
 'use client';
 
-import { PanelRightClose } from 'lucide-react';
+import { MousePointerClick } from 'lucide-react';
 import { useSelectedComponent, useEditorStoreContext } from '@/lib/store/editor-context';
 import { getDefinition } from '@/lib/components';
 import { useFieldSuggestions } from '@/hooks/use-field-suggestions';
@@ -13,22 +13,25 @@ import { VisibilityConditionEditor } from './VisibilityConditionEditor';
 import { VariableBankSelector } from './VariableBankSelector';
 import { CollapsibleSection } from '../ui/CollapsibleSection';
 
+export type PropertiesView = 'component' | 'data' | 'label';
+
 interface Props {
-  onCollapse?: () => void;
+  activeView: PropertiesView;
 }
 
-function MultiSelectOrEmptyMessage() {
+function NoSelectionMessage() {
   const count = useEditorStoreContext((s) => s.selectedComponentIds.length);
   return (
-    <div className="p-3 text-sm text-gray-400 text-center mt-8" data-testid="properties-empty">
-      {count > 1
-        ? `${count} components selected`
-        : 'Select a component to edit its properties'}
+    <div className="flex-1 flex flex-col items-center justify-center text-gray-300 py-16 gap-3" data-testid="properties-empty">
+      <MousePointerClick size={32} strokeWidth={1.5} />
+      <span className="text-xs text-gray-400">
+        {count > 1 ? `${count} components selected` : 'Select a component'}
+      </span>
     </div>
   );
 }
 
-export function PropertiesPanel({ onCollapse }: Props) {
+export function PropertiesPanel({ activeView }: Props) {
   const selected = useSelectedComponent();
   const readOnly = useEditorStoreContext((s) => s.readOnly);
   const variableBankId = useEditorStoreContext((s) => s.document.label.variableBankId);
@@ -39,37 +42,46 @@ export function PropertiesPanel({ onCollapse }: Props) {
   const Panel = def?.PropertiesPanel;
 
   return (
-    <div className="flex-1 flex flex-col overflow-y-auto" data-testid="properties-panel">
-      {onCollapse && (
-        <div className="px-3 py-1.5 border-b border-gray-200 flex items-center gap-2 shrink-0">
-          <button onClick={onCollapse} className="text-gray-400 hover:text-gray-600" title="Collapse panel">
-            <PanelRightClose size={14} />
-          </button>
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Properties</h2>
-        </div>
+    <div className="flex-1 overflow-y-auto flex flex-col" data-testid="properties-panel">
+      {activeView === 'component' && (
+        selected ? (
+          <div className={readOnly ? 'pointer-events-none opacity-60' : ''}>
+            <ConstraintEditor component={selected} />
+            {Panel && (
+              <CollapsibleSection title={def?.label ?? selected.typeData.type}>
+                <Panel componentId={selected.id} props={selected.typeData.props} />
+              </CollapsibleSection>
+            )}
+          </div>
+        ) : (
+          <NoSelectionMessage />
+        )
       )}
-      <LabelSettings readOnly={readOnly} />
-      <RfidSettings readOnly={readOnly} suggestions={suggestions} />
-      <VariableBankSelector />
 
-      {selected ? (
-        <div className={readOnly ? 'pointer-events-none opacity-60' : ''}>
-          <ConstraintEditor component={selected} />
+      {activeView === 'data' && (
+        selected ? (
+          <>
+            <VariableBankSelector />
+            <div className={readOnly ? 'pointer-events-none opacity-60' : ''}>
+              {def?.traits.bindable && (
+                <FieldBindingEditor componentId={selected.id} binding={selected.fieldBinding} suggestions={suggestions} />
+              )}
+              <VisibilityConditionEditor componentId={selected.id} condition={selected.visibilityCondition} suggestions={suggestions} />
+            </div>
+          </>
+        ) : (
+          <>
+            <VariableBankSelector />
+            <NoSelectionMessage />
+          </>
+        )
+      )}
 
-          {Panel && (
-            <CollapsibleSection title={def?.label ?? selected.typeData.type}>
-              <Panel componentId={selected.id} props={selected.typeData.props} />
-            </CollapsibleSection>
-          )}
-
-          {def?.traits.bindable && (
-            <FieldBindingEditor componentId={selected.id} binding={selected.fieldBinding} suggestions={suggestions} />
-          )}
-
-          <VisibilityConditionEditor componentId={selected.id} condition={selected.visibilityCondition} suggestions={suggestions} />
-        </div>
-      ) : (
-        <MultiSelectOrEmptyMessage />
+      {activeView === 'label' && (
+        <>
+          <LabelSettings readOnly={readOnly} />
+          <RfidSettings readOnly={readOnly} suggestions={suggestions} />
+        </>
       )}
     </div>
   );

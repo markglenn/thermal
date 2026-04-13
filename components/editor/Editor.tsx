@@ -13,14 +13,15 @@ import { ZplPreview } from '../preview/ZplPreview';
 import { LabelaryPreview } from '../preview/LabelaryPreview';
 import { LabelaryApiPreview } from '../preview/LabelaryApiPreview';
 import { PanelResizeHandle } from './PanelResizeHandle';
-import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
+import { useKeyboardShortcuts, EDITOR_EVENTS } from '@/hooks/use-keyboard-shortcuts';
 import { useUndoFlash } from '@/hooks/use-undo-flash';
 import { DragGhost } from './DragGhost';
 import { ContextMenuProvider } from '../ui/ContextMenu';
 import { Toasts } from '../ui/Toasts';
 import { ReadOnlyBanner } from './ReadOnlyBanner';
 import { LabelBrowserModal } from '../documents/LabelBrowserModal';
-import { PanelLeftOpen, PanelRightOpen, PanelBottomClose, PanelBottomOpen, FilePlus, FolderOpen, Flame, Upload } from 'lucide-react';
+import { PanelLeftOpen, PanelBottomClose, PanelBottomOpen, FilePlus, FolderOpen, Flame, Upload, SlidersHorizontal, Database, Tag } from 'lucide-react';
+import type { PropertiesView } from '../properties/PropertiesPanel';
 import { fetchJson } from '@/lib/client/fetch';
 import { importNlblDocument } from '@/lib/documents/file-io';
 import type { LabelDocument } from '@/lib/types';
@@ -171,30 +172,62 @@ function BottomPanel() {
   );
 }
 
+const PROPERTY_VIEWS: { id: PropertiesView; icon: typeof SlidersHorizontal; label: string }[] = [
+  { id: 'component', icon: SlidersHorizontal, label: 'Component' },
+  { id: 'data', icon: Database, label: 'Data' },
+  { id: 'label', icon: Tag, label: 'Label' },
+];
+
 function RightPanel() {
   const [width, setWidth] = useState(256);
-  const [collapsed, setCollapsed] = useState(false);
+  const [activeView, setActiveView] = useState<PropertiesView | null>('label');
 
-  if (collapsed) {
-    return (
-      <button
-        onClick={() => setCollapsed(false)}
-        className="shrink-0 w-7 border-l border-gray-200 bg-white flex flex-col items-center hover:bg-gray-50 transition-colors cursor-pointer"
-        title="Show properties panel"
-      >
-        <PanelRightOpen size={14} className="text-gray-400 mt-2 mb-3" />
-        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest [writing-mode:vertical-lr]">
-          Properties
-        </span>
-      </button>
-    );
-  }
+  const collapsed = activeView === null;
+
+  const handleIconClick = (view: PropertiesView) => {
+    if (activeView === view) {
+      setActiveView(null);
+    } else {
+      setActiveView(view);
+    }
+  };
+
+  useEffect(() => {
+    const onShowRfid = () => setActiveView('label');
+    window.addEventListener(EDITOR_EVENTS.SHOW_RFID, onShowRfid);
+    return () => window.removeEventListener(EDITOR_EVENTS.SHOW_RFID, onShowRfid);
+  }, []);
 
   return (
     <>
-      <PanelResizeHandle direction="horizontal" size={width} onSizeChange={setWidth} min={200} max={450} invert onDoubleClick={() => setCollapsed(true)} />
-      <div style={{ width }} className="shrink-0 border-l border-gray-200 bg-white flex flex-col overflow-y-auto">
-        <PropertiesPanel onCollapse={() => setCollapsed(true)} />
+      {!collapsed && (
+        <PanelResizeHandle direction="horizontal" size={width} onSizeChange={setWidth} min={200} max={450} invert onDoubleClick={() => setActiveView(null)} />
+      )}
+      {!collapsed && (
+        <div style={{ width }} className="shrink-0 bg-white flex flex-col overflow-hidden">
+          <PropertiesPanel activeView={activeView} />
+        </div>
+      )}
+      {/* Activity bar — always visible on the right edge */}
+      <div className="shrink-0 w-10 border-l border-gray-200 bg-gray-50/80 flex flex-col items-center pt-2 gap-0.5">
+        {PROPERTY_VIEWS.map((view) => {
+          const Icon = view.icon;
+          const isActive = activeView === view.id;
+          return (
+            <button
+              key={view.id}
+              onClick={() => handleIconClick(view.id)}
+              title={view.label}
+              className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${
+                isActive
+                  ? 'bg-white text-gray-800 shadow-sm ring-1 ring-gray-200'
+                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <Icon size={15} />
+            </button>
+          );
+        })}
       </div>
     </>
   );

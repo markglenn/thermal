@@ -3,6 +3,7 @@
 import type { BarcodeProperties as BarcodePropsType, BarcodeEncoding, Rotation } from '@/lib/types';
 import { useEditorStoreContext, usePauseTracking, useResumeTracking } from '@/lib/store/editor-context';
 import { NumberInput } from '@/components/properties/NumberInput';
+import { Toggle } from '@/components/ui/Toggle';
 
 interface Props {
   componentId: string;
@@ -94,14 +95,7 @@ export function BarcodeProperties({ componentId, props }: Props) {
             </select>
           </label>
         </div>
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={props.showText}
-            onChange={(e) => update({ showText: e.target.checked })}
-          />
-          <span className="text-xs text-gray-500">Show text below barcode</span>
-        </label>
+        <Toggle checked={props.showText} onChange={(v) => update({ showText: v })} label="Show text below barcode" />
       </div>
     </div>
   );

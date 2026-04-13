@@ -91,9 +91,9 @@ export const CanvasComponent = memo(function CanvasComponent({ component, bounds
     >
       <Element props={component.typeData.props} isSelected={isSelected} componentName={component.name} />
       {hasCondition && (
-        <div className="absolute -top-1 -right-1 group/badge pointer-events-auto">
-          <div className="w-3.5 h-3.5 rounded-full bg-amber-400 flex items-center justify-center">
-            <Eye size={8} className="text-white" />
+        <div className="absolute top-0 right-0 -translate-y-1/3 translate-x-1/3 group/badge pointer-events-auto" style={{ width: `${Math.round(Math.sqrt(bounds.width * bounds.height) * 0.08)}px`, height: `${Math.round(Math.sqrt(bounds.width * bounds.height) * 0.08)}px` }}>
+          <div className="w-full h-full rounded-full bg-amber-400 flex items-center justify-center">
+            <Eye className="text-white" style={{ width: '60%', height: '60%' }} />
           </div>
           <div className="hidden group-hover/badge:block absolute top-full right-0 mt-1 px-2 py-1 bg-gray-800 text-white text-[10px] rounded shadow-lg whitespace-nowrap z-50">
             Show when <span className="font-mono">{component.visibilityCondition!.field || '?'}</span>

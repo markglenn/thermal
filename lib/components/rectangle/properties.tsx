@@ -3,6 +3,7 @@
 import type { RectangleProperties } from '@/lib/types';
 import { useEditorStoreContext } from '@/lib/store/editor-context';
 import { NumberInput } from '@/components/properties/NumberInput';
+import { Toggle } from '@/components/ui/Toggle';
 
 interface Props {
   componentId: string;
@@ -23,14 +24,7 @@ export function RectanglePropertiesPanel({ componentId, props }: Props) {
           <span className="text-xs text-gray-500">Corner Radius</span>
           <NumberInput value={props.cornerRadius} onChange={(v) => updateProperties(componentId, { cornerRadius: v })} min={0} max={20} fallback={0} />
         </label>
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={props.filled}
-            onChange={(e) => updateProperties(componentId, { filled: e.target.checked })}
-          />
-          <span className="text-xs text-gray-500">Filled</span>
-        </label>
+        <Toggle checked={props.filled} onChange={(v) => updateProperties(componentId, { filled: v })} label="Filled" />
       </div>
     </div>
   );

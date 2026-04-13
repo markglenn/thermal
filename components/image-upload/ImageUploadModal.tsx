@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import type { ImageProperties, MonochromeMethod } from '@/lib/types';
 import { useImageUpload } from '@/hooks/use-image-upload';
+import { Toggle } from '../ui/Toggle';
 
 interface Props {
   initialProps?: Partial<ImageProperties>;
@@ -172,14 +173,13 @@ export function ImageUploadModal({ initialProps, onConfirm, onCancel }: Props) {
                   </label>
                 )}
 
-                <label className="flex items-center gap-2 pt-1">
-                  <input
-                    type="checkbox"
+                <div className="pt-1">
+                  <Toggle
                     checked={img.invert}
-                    onChange={(e) => img.setInvert(e.target.checked)}
+                    onChange={img.setInvert}
+                    label="Invert"
                   />
-                  <span className="text-xs text-gray-500">Invert</span>
-                </label>
+                </div>
               </div>
 
               <button

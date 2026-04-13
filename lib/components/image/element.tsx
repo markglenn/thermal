@@ -25,8 +25,14 @@ export function ImageElement({ props, componentName }: Props) {
   const isResizing = useEditorStoreContext((s) => s.resizeState !== null);
 
   if (!props.data) {
+    const inverted = props.invert;
     return (
-      <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 text-[5cqmin]" style={{ containerType: 'size' }}>
+      <div
+        className={`w-full h-full flex items-center justify-center text-[5cqmin] ${
+          inverted ? 'bg-gray-800 text-gray-400' : 'bg-gray-200 text-gray-400'
+        }`}
+        style={{ containerType: 'size' }}
+      >
         {componentName || 'Image'}
       </div>
     );

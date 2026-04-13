@@ -14,6 +14,7 @@ export const EDITOR_EVENTS = {
   OPEN: 'editor:open',
   FIT_TO_VIEW: 'editor:fit-to-view',
   SHOW_SHORTCUTS: 'editor:show-shortcuts',
+  SHOW_RFID: 'editor:show-rfid',
 } as const;
 
 export function useKeyboardShortcuts() {
