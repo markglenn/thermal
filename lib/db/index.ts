@@ -9,6 +9,7 @@ type Tables = {
   labelSizes: typeof schema.labelSizes;
   variableBanks: typeof schema.variableBanks;
   printJobs: typeof schema.printJobs;
+  auditEvents: typeof schema.auditEvents;
 };
 
 type Db = NodePgDatabase<typeof schema>;
@@ -35,6 +36,7 @@ async function initDb(): Promise<{ db: Db; tables: Tables }> {
     labelSizes: schema.labelSizes,
     variableBanks: schema.variableBanks,
     printJobs: schema.printJobs,
+    auditEvents: schema.auditEvents,
   };
 
   // Verify the expected tables exist — fails fast if migrations haven't been run

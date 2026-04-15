@@ -8,11 +8,16 @@ import {
   summaryFieldsFromDocument,
 } from '@/lib/server/labels';
 import { validateDocumentDeep } from '@/lib/documents/validate';
+import { requireRole, isAuthError } from '@/lib/auth/require-role';
+import { logAudit } from '@/lib/auth/audit';
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await requireRole('viewer');
+  if (isAuthError(session)) return session;
+
   try {
     const { id } = await params;
     const label = await findLabel(id);
@@ -43,6 +48,9 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await requireRole('editor');
+  if (isAuthError(session)) return session;
+
   let body: Record<string, unknown>;
   try {
     body = await request.json();
@@ -110,6 +118,8 @@ export async function PUT(
       }
     });
 
+    logAudit(session, 'label.updated', id, { name: labelName });
+
     return NextResponse.json({
       id,
       name: labelName,
@@ -126,6 +136,9 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await requireRole('editor');
+  if (isAuthError(session)) return session;
+
   let body: Record<string, unknown>;
   try {
     body = await request.json();
@@ -150,6 +163,8 @@ export async function PATCH(
       .set({ name: name.trim(), updatedAt: new Date() })
       .where(eq(tables.labels.id, id));
 
+    logAudit(session, 'label.renamed', id, { name: name.trim() });
+
     return NextResponse.json({ id, name: name.trim() });
   } catch (e) {
     console.error('PATCH /api/labels/[id] failed:', e);
@@ -162,6 +177,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await requireRole('editor');
+  if (isAuthError(session)) return session;
+
   try {
     const { id } = await params;
     const label = await findLabel(id);
@@ -176,6 +194,8 @@ export async function DELETE(
     await db.update(tables.labels)
       .set({ archivedAt: unarchive ? null : now, updatedAt: now })
       .where(eq(tables.labels.id, id));
+
+    logAudit(session, unarchive ? 'label.unarchived' : 'label.archived', id);
 
     return NextResponse.json({ ok: true, archived: !unarchive });
   } catch (e) {

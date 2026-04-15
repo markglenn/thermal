@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { validateDocument } from '@/lib/documents/validate';
 import { validatePrintRequest } from '@/lib/documents/validate-print';
 import { executePrint } from '@/lib/print/execute';
+import { requireRole, isAuthError } from '@/lib/auth/require-role';
 import type { LabelDocument } from '@/lib/types';
 
 export async function POST(request: NextRequest) {
+  const session = await requireRole('editor');
+  if (isAuthError(session)) return session;
+
   let body: unknown;
   try {
     body = await request.json();

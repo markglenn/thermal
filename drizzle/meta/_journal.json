@@ -29,6 +29,13 @@
       "when": 1776034887330,
       "tag": "0003_common_madripoor",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1776088029081,
+      "tag": "0004_gray_black_bird",
+      "breakpoints": true
     }
   ]
 }

@@ -9,6 +9,7 @@ import type { LabelDocument, VersionStatus } from '@/lib/types';
 
 export function ReadOnlyBanner() {
   const readOnly = useEditorStoreContext((s) => s.readOnly);
+  const roleReadOnly = useEditorStoreContext((s) => s.roleReadOnly);
   const storeApi = useEditorStoreApi();
   const activeTabId = useTabStore((s) => s.activeTabId);
   const viewingVersion = useTabStore((s) => {
@@ -25,6 +26,15 @@ export function ReadOnlyBanner() {
   });
 
   if (!readOnly) return null;
+
+  if (roleReadOnly) {
+    return (
+      <div className="h-8 bg-gray-100 border-b border-gray-200 flex items-center justify-center gap-2 text-xs">
+        <Eye size={14} className="text-gray-500" />
+        <span className="text-gray-600 font-medium">View only</span>
+      </div>
+    );
+  }
 
   const isViewingOldVersion = viewingVersion !== null;
   const isLatestPublished = latestStatus === 'published' && !isViewingOldVersion;

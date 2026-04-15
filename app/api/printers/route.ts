@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { listSites, printerStateLabel } from '@/lib/print/discovery';
+import { requireRole, isAuthError } from '@/lib/auth/require-role';
 
 export async function GET() {
+  const session = await requireRole('viewer');
+  if (isAuthError(session)) return session;
+
   try {
     const sites = await listSites();
 

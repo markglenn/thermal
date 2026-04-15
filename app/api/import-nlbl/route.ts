@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parseNlbl, type KnownLabelSize } from '@/lib/nlbl';
 import { getDatabase } from '@/lib/db';
+import { requireRole, isAuthError } from '@/lib/auth/require-role';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 export async function POST(request: NextRequest) {
+  const session = await requireRole('editor');
+  if (isAuthError(session)) return session;
+
   try {
     const password = process.env.NLBL_PASSWORD;
     if (!password) {

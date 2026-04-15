@@ -291,4 +291,6 @@ export interface EditorState {
   currentLabelId: string | null;
   currentLabelName: string | null;
   readOnly: boolean;
+  /** True when readOnly is caused by the user's role (viewer) — cannot be escaped via New Version/Save As */
+  roleReadOnly: boolean;
 }

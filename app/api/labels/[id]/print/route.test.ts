@@ -19,6 +19,17 @@ const mockGetDatabase = vi.fn().mockResolvedValue({
   tables: { printJobs: 'printJobs' },
 });
 
+vi.mock('@/lib/auth/require-role', () => ({
+  requireRole: vi.fn().mockResolvedValue({
+    user: { sub: 'test-user', email: 'test@example.com', role: 'editor' },
+  }),
+  isAuthError: () => false,
+}));
+
+vi.mock('@/lib/auth/audit', () => ({
+  logAudit: vi.fn(),
+}));
+
 vi.mock('@/lib/server/labels', () => ({
   findLabel: (...args: unknown[]) => mockFindLabel(...args),
   findPublishedOrLatestVersion: (...args: unknown[]) => mockFindPublishedOrLatestVersion(...args),

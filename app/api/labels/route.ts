@@ -2,8 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { desc, isNull } from 'drizzle-orm';
 import { getDatabase, parseThumbnail, listLatestVersionSummaries, summaryFieldsFromDocument } from '@/lib/server/labels';
 import { validateDocumentDeep } from '@/lib/documents/validate';
+import { requireRole, isAuthError } from '@/lib/auth/require-role';
+import { logAudit } from '@/lib/auth/audit';
 
 export async function GET(request: NextRequest) {
+  const session = await requireRole('viewer');
+  if (isAuthError(session)) return session;
+
   try {
     const { db, tables } = await getDatabase();
     const includeArchived = request.nextUrl.searchParams.get('archived') === 'true';
@@ -37,6 +42,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const session = await requireRole('editor');
+  if (isAuthError(session)) return session;
+
   let body: Record<string, unknown>;
   try {
     body = await request.json();
@@ -82,6 +90,8 @@ export async function POST(request: NextRequest) {
         createdAt: now,
       });
     });
+
+    logAudit(session, 'label.created', labelId, { name });
 
     return NextResponse.json({
       id: labelId,

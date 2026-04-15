@@ -10,11 +10,15 @@ import {
   summaryFieldsFromDocument,
 } from '@/lib/server/labels';
 import { validateDocumentDeep } from '@/lib/documents/validate';
+import { requireRole, isAuthError } from '@/lib/auth/require-role';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await requireRole('viewer');
+  if (isAuthError(session)) return session;
+
   try {
     const { id } = await params;
     const includeArchived = request.nextUrl.searchParams.get('archived') === 'true';
@@ -37,6 +41,9 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await requireRole('editor');
+  if (isAuthError(session)) return session;
+
   let body: Record<string, unknown>;
   try {
     body = await request.json();

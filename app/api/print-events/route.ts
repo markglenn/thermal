@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { getDatabase } from '@/lib/db';
 import { pollEvents } from '@/lib/print/events';
 import { invalidateCache } from '@/lib/print/discovery';
+import { requireRole, isAuthError } from '@/lib/auth/require-role';
 import type { JobStatusEvent } from '@/lib/print/events';
 
 async function handleJobStatus(event: JobStatusEvent) {
@@ -17,6 +18,9 @@ async function handleJobStatus(event: JobStatusEvent) {
 }
 
 export async function POST() {
+  const session = await requireRole('editor');
+  if (isAuthError(session)) return session;
+
   try {
     const events = await pollEvents();
 

@@ -53,6 +53,7 @@ export function Toolbar() {
   const storeApi = useEditorStoreApi();
 
   const readOnly = useEditorStoreContext((s) => s.readOnly);
+  const roleReadOnly = useEditorStoreContext((s) => s.roleReadOnly);
   const currentLabelId = useEditorStoreContext((s) => s.currentLabelId);
   const latestStatus = useTabStore((s) => {
     const tab = s.tabs.find((t) => t.id === s.activeTabId);
@@ -245,29 +246,35 @@ export function Toolbar() {
             <Menubar.Trigger className={triggerClass}>File</Menubar.Trigger>
             <Menubar.Portal>
               <Menubar.Content className={contentClass} align="start" sideOffset={4}>
-                <Menubar.Item className={itemClass} onSelect={() => useTabStore.getState().createTab()}>
-                  New
-                </Menubar.Item>
+                {!roleReadOnly && (
+                  <Menubar.Item className={itemClass} onSelect={() => useTabStore.getState().createTab()}>
+                    New
+                  </Menubar.Item>
+                )}
                 <Menubar.Item className={itemClass} onSelect={() => setShowBrowserModal(true)}>
                   Open...<Shortcut keys="⌘O" />
                 </Menubar.Item>
-                <Menubar.Separator className={separatorClass} />
-                {isPublished && !readOnly ? (
-                  <Menubar.Item className={`${itemClass} text-blue-600`} disabled={isSaving} onSelect={createNewDraft}>
-                    {isSaving ? 'Creating...' : 'New Version'}
-                  </Menubar.Item>
-                ) : (
-                  <Menubar.Item className={itemClass} disabled={isSaving} onSelect={handleSaveClick}>
-                    Save<Shortcut keys="⌘S" />
-                  </Menubar.Item>
-                )}
-                <Menubar.Item className={itemClass} onSelect={() => setShowSaveAsModal(true)}>
-                  Save As...<Shortcut keys="⌘⇧S" />
-                </Menubar.Item>
-                {currentLabelId && (
-                  <Menubar.Item className={itemClass} onSelect={() => setShowRenameModal(true)}>
-                    Rename...
-                  </Menubar.Item>
+                {!roleReadOnly && (
+                  <>
+                    <Menubar.Separator className={separatorClass} />
+                    {isPublished && !readOnly ? (
+                      <Menubar.Item className={`${itemClass} text-blue-600`} disabled={isSaving} onSelect={createNewDraft}>
+                        {isSaving ? 'Creating...' : 'New Version'}
+                      </Menubar.Item>
+                    ) : (
+                      <Menubar.Item className={itemClass} disabled={isSaving} onSelect={handleSaveClick}>
+                        Save<Shortcut keys="⌘S" />
+                      </Menubar.Item>
+                    )}
+                    <Menubar.Item className={itemClass} onSelect={() => setShowSaveAsModal(true)}>
+                      Save As...<Shortcut keys="⌘⇧S" />
+                    </Menubar.Item>
+                    {currentLabelId && (
+                      <Menubar.Item className={itemClass} onSelect={() => setShowRenameModal(true)}>
+                        Rename...
+                      </Menubar.Item>
+                    )}
+                  </>
                 )}
                 <Menubar.Separator className={separatorClass} />
                 <Menubar.Item className={itemClass} onSelect={() => setShowLabelSizes(true)}>
@@ -286,32 +293,36 @@ export function Toolbar() {
                 }}>
                   Export JSON...
                 </Menubar.Item>
-                <Menubar.Item className={itemClass} onSelect={() => {
-                  importDocument(validateDocument).then((result) => {
-                    if (!result) return;
-                    const tabId = useTabStore.getState().createTab();
-                    const tab = useTabStore.getState().tabs.find((t) => t.id === tabId);
-                    if (tab) {
-                      tab.store.getState().loadDocument(result.document);
-                      useTabStore.getState().updateTabName(tabId, result.name);
-                    }
-                  });
-                }}>
-                  Import JSON...
-                </Menubar.Item>
-                <Menubar.Item className={itemClass} onSelect={() => {
-                  importNlblDocument().then((result) => {
-                    if (!result) return;
-                    const tabId = useTabStore.getState().createTab();
-                    const tab = useTabStore.getState().tabs.find((t) => t.id === tabId);
-                    if (tab) {
-                      tab.store.getState().loadDocument(result.document);
-                      useTabStore.getState().updateTabName(tabId, result.name);
-                    }
-                  });
-                }}>
-                  Import NiceLabel...
-                </Menubar.Item>
+                {!roleReadOnly && (
+                  <>
+                    <Menubar.Item className={itemClass} onSelect={() => {
+                      importDocument(validateDocument).then((result) => {
+                        if (!result) return;
+                        const tabId = useTabStore.getState().createTab();
+                        const tab = useTabStore.getState().tabs.find((t) => t.id === tabId);
+                        if (tab) {
+                          tab.store.getState().loadDocument(result.document);
+                          useTabStore.getState().updateTabName(tabId, result.name);
+                        }
+                      });
+                    }}>
+                      Import JSON...
+                    </Menubar.Item>
+                    <Menubar.Item className={itemClass} onSelect={() => {
+                      importNlblDocument().then((result) => {
+                        if (!result) return;
+                        const tabId = useTabStore.getState().createTab();
+                        const tab = useTabStore.getState().tabs.find((t) => t.id === tabId);
+                        if (tab) {
+                          tab.store.getState().loadDocument(result.document);
+                          useTabStore.getState().updateTabName(tabId, result.name);
+                        }
+                      });
+                    }}>
+                      Import NiceLabel...
+                    </Menubar.Item>
+                  </>
+                )}
                 <Menubar.Separator className={separatorClass} />
                 <Menubar.Item className={itemClass} onSelect={() => {
                   const state = useTabStore.getState();
@@ -327,8 +338,8 @@ export function Toolbar() {
             </Menubar.Portal>
           </Menubar.Menu>
 
-          {/* Edit */}
-          <Menubar.Menu>
+          {/* Edit — hidden for viewers */}
+          {!roleReadOnly && <Menubar.Menu>
             <Menubar.Trigger className={triggerClass}>Edit</Menubar.Trigger>
             <Menubar.Portal>
               <Menubar.Content className={contentClass} align="start" sideOffset={4}>
@@ -384,7 +395,7 @@ export function Toolbar() {
                 </Menubar.Item>
               </Menubar.Content>
             </Menubar.Portal>
-          </Menubar.Menu>
+          </Menubar.Menu>}
 
           {/* View */}
           <Menubar.Menu>
@@ -428,15 +439,17 @@ export function Toolbar() {
         {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Print */}
-        <button
-          onClick={() => setShowPrintDialog(true)}
-          className="flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 text-xs"
-          title="Print"
-        >
-          <Printer size={14} />
-          Print
-        </button>
+        {/* Print — hidden for viewers */}
+        {!roleReadOnly && (
+          <button
+            onClick={() => setShowPrintDialog(true)}
+            className="flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 text-xs"
+            title="Print"
+          >
+            <Printer size={14} />
+            Print
+          </button>
+        )}
 
         {/* Versions */}
         <button

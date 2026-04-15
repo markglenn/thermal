@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { createEditorStore, type EditorStoreApi } from './editor-store';
 import type { LabelDocument, VersionStatus } from '../types';
+import type { Role } from '../auth/roles';
 
 export interface TabInfo {
   id: string;
@@ -25,6 +26,7 @@ export interface TabInfo {
 interface TabManagerState {
   tabs: TabInfo[];
   activeTabId: string;
+  userRole: Role;
 }
 
 interface TabManagerActions {
@@ -40,6 +42,7 @@ interface TabManagerActions {
   updateTabLabelId: (tabId: string, labelId: string) => void;
   updateTabVersionMeta: (tabId: string, version: number, status: VersionStatus) => void;
   reorderTabs: (fromIndex: number, toIndex: number) => void;
+  setUserRole: (role: Role) => void;
 }
 
 type TabStore = TabManagerState & TabManagerActions;
@@ -83,9 +86,12 @@ function createTab(name: string = 'Untitled', labelId: string | null = null, id:
 export const useTabStore = create<TabStore>()((set, get) => ({
   tabs: [],
   activeTabId: '',
+  userRole: 'editor' as Role,
 
   createTab: () => {
     const tab = createTab();
+    const isViewer = get().userRole === 'viewer';
+    if (isViewer) tab.store.getState().setRoleReadOnly(true);
     set((state) => ({
       tabs: [...state.tabs, tab],
       activeTabId: tab.id,
@@ -108,9 +114,14 @@ export const useTabStore = create<TabStore>()((set, get) => ({
     if (activeTab && !activeTab.dirty && !activeTab.labelId) {
       const editorState = activeTab.store.getState();
       if (editorState.document.components.length === 0) {
+        const isViewer = get().userRole === 'viewer';
         activeTab.store.getState().loadDocument(doc);
         activeTab.store.getState().setLabelMeta(labelId, name);
-        activeTab.store.getState().setReadOnly(status === 'published');
+        if (isViewer) {
+          activeTab.store.getState().setRoleReadOnly(true);
+        } else {
+          activeTab.store.getState().setReadOnly(status === 'published');
+        }
         const cleanRef = activeTab.store.getState().document;
         set((s) => ({
           tabs: s.tabs.map((t) =>
@@ -131,10 +142,15 @@ export const useTabStore = create<TabStore>()((set, get) => ({
     }
 
     // Otherwise create a new tab
+    const isViewer = get().userRole === 'viewer';
     const tab = createTab(name, labelId);
     tab.store.getState().loadDocument(doc);
     tab.store.getState().setLabelMeta(labelId, name);
-    tab.store.getState().setReadOnly(status === 'published');
+    if (isViewer) {
+      tab.store.getState().setRoleReadOnly(true);
+    } else {
+      tab.store.getState().setReadOnly(status === 'published');
+    }
     tab.cleanDocumentRef = tab.store.getState().document;
     tab.latestVersion = version ?? null;
     tab.latestStatus = status ?? null;
@@ -165,8 +181,11 @@ export const useTabStore = create<TabStore>()((set, get) => ({
     const tab = get().tabs.find((t) => t.id === tabId);
     if (!tab) return;
 
+    const isViewer = get().userRole === 'viewer';
     tab.store.getState().loadDocument(doc);
-    tab.store.getState().setReadOnly(latestStatus === 'published');
+    if (!isViewer) {
+      tab.store.getState().setReadOnly(latestStatus === 'published');
+    }
     const cleanRef = tab.store.getState().document;
     set((s) => ({
       tabs: s.tabs.map((t) =>
@@ -252,5 +271,16 @@ export const useTabStore = create<TabStore>()((set, get) => ({
       tabs.splice(toIndex, 0, moved);
       return { tabs };
     });
+  },
+
+  setUserRole: (role) => {
+    set({ userRole: role });
+    // Apply role-based readOnly to all existing tabs
+    if (role === 'viewer') {
+      const state = get();
+      for (const tab of state.tabs) {
+        tab.store.getState().setRoleReadOnly(true);
+      }
+    }
   },
 }));

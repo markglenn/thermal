@@ -45,6 +45,7 @@ export const initialState: EditorState = {
   currentLabelId: null,
   currentLabelName: null,
   readOnly: false,
+  roleReadOnly: false,
 };
 
 export interface EditorActions {
@@ -103,6 +104,7 @@ export interface EditorActions {
   // Label persistence
   setLabelMeta: (id: string | null, name: string | null) => void;
   setReadOnly: (readOnly: boolean) => void;
+  setRoleReadOnly: (roleReadOnly: boolean) => void;
 }
 
 export type EditorStore = EditorState & EditorActions & {
@@ -152,6 +154,9 @@ export function createEditorStore() {
         },
         setReadOnly: (readOnly) => {
           set((state) => { state.readOnly = readOnly; });
+        },
+        setRoleReadOnly: (roleReadOnly) => {
+          set((state) => { state.roleReadOnly = roleReadOnly; state.readOnly = true; });
         },
       })),
       {
