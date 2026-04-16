@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { eq, and } from 'drizzle-orm';
 import { getDatabase } from '@/lib/db';
+import { requireRole, isAuthError } from '@/lib/auth/require-role';
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string; version: string }> }
 ) {
+  const session = await requireRole('viewer');
+  if (isAuthError(session)) return session;
+
   try {
     const { id, version: versionStr } = await params;
     const version = parseInt(versionStr, 10);

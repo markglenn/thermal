@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import '@/lib/components'; // Register all component plugins
 import { useTabStore } from '@/lib/store/tab-store';
+import { useRole } from '@/lib/auth/use-session';
 import { EditorStoreProvider } from '@/lib/store/editor-context';
 import { TabBar } from './TabBar';
 import { ComponentPalette } from '../palette/ComponentPalette';
@@ -27,6 +28,13 @@ import { importNlblDocument } from '@/lib/documents/file-io';
 import type { LabelDocument } from '@/lib/types';
 
 export function Editor() {
+  const role = useRole();
+  const setUserRole = useTabStore((s) => s.setUserRole);
+
+  useEffect(() => {
+    setUserRole(role);
+  }, [role, setUserRole]);
+
   const activeTabId = useTabStore((s) => s.activeTabId);
   const activeTabName = useTabStore((s) => {
     const tab = s.tabs.find((t) => t.id === s.activeTabId);
@@ -235,6 +243,8 @@ function RightPanel() {
 
 function EmptyState() {
   const createTab = useTabStore((s) => s.createTab);
+  const userRole = useTabStore((s) => s.userRole);
+  const isViewer = userRole === 'viewer';
   const [showBrowser, setShowBrowser] = useState(false);
 
   const handleOpenLabel = async (id: string) => {
@@ -251,13 +261,15 @@ function EmptyState() {
         <div className="text-center space-y-4">
           <p className="text-gray-400 text-sm">No labels open</p>
           <div className="flex gap-3 justify-center">
-            <button
-              onClick={createTab}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
-            >
-              <FilePlus size={16} />
-              New Label
-            </button>
+            {!isViewer && (
+              <button
+                onClick={createTab}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+              >
+                <FilePlus size={16} />
+                New Label
+              </button>
+            )}
             <button
               onClick={() => setShowBrowser(true)}
               className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded hover:bg-gray-100 text-sm text-gray-700"
@@ -266,25 +278,27 @@ function EmptyState() {
               Open Label
             </button>
           </div>
-          <div className="flex justify-center">
-            <button
-              onClick={() => {
-                importNlblDocument().then((result) => {
-                  if (!result) return;
-                  const tabId = useTabStore.getState().createTab();
-                  const tab = useTabStore.getState().tabs.find((t) => t.id === tabId);
-                  if (tab) {
-                    tab.store.getState().loadDocument(result.document);
-                    useTabStore.getState().updateTabName(tabId, result.name);
-                  }
-                });
-              }}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded hover:bg-gray-100 text-sm text-gray-700"
-            >
-              <Upload size={16} />
-              Import NiceLabel
-            </button>
-          </div>
+          {!isViewer && (
+            <div className="flex justify-center">
+              <button
+                onClick={() => {
+                  importNlblDocument().then((result) => {
+                    if (!result) return;
+                    const tabId = useTabStore.getState().createTab();
+                    const tab = useTabStore.getState().tabs.find((t) => t.id === tabId);
+                    if (tab) {
+                      tab.store.getState().loadDocument(result.document);
+                      useTabStore.getState().updateTabName(tabId, result.name);
+                    }
+                  });
+                }}
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded hover:bg-gray-100 text-sm text-gray-700"
+              >
+                <Upload size={16} />
+                Import NiceLabel
+              </button>
+            </div>
+          )}
         </div>
       </div>
       {showBrowser && (

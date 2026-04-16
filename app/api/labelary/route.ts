@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireRole, isAuthError } from '@/lib/auth/require-role';
 
 export async function POST(request: NextRequest) {
+  const session = await requireRole('viewer');
+  if (isAuthError(session)) return session;
+
   try {
     const { zpl, dpi, widthInches, heightInches } = await request.json();
 

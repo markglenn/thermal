@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { eq, and } from 'drizzle-orm';
 import { findLabel, getDatabase } from '@/lib/server/labels';
+import { requireRole, isAuthError } from '@/lib/auth/require-role';
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string; version: string }> }
 ) {
+  const session = await requireRole('viewer');
+  if (isAuthError(session)) return session;
+
   try {
     const { id, version: versionStr } = await params;
     const version = parseInt(versionStr, 10);
@@ -59,6 +63,9 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; version: string }> }
 ) {
+  const session = await requireRole('editor');
+  if (isAuthError(session)) return session;
+
   let body: Record<string, unknown>;
   try {
     body = await request.json();

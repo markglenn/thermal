@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { eq, desc } from 'drizzle-orm';
 import { getDatabase } from '@/lib/db';
+import { requireRole, isAuthError } from '@/lib/auth/require-role';
 
 export async function GET(request: NextRequest) {
+  const session = await requireRole('viewer');
+  if (isAuthError(session)) return session;
+
   try {
     const { db, tables } = await getDatabase();
 

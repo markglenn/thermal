@@ -10,12 +10,17 @@ import { publishPrintJob } from '@/lib/print/sqs';
 import { listSites } from '@/lib/print/discovery';
 import { validateDocument } from '@/lib/documents/validate';
 import { validatePrintRequest } from '@/lib/documents/validate-print';
+import { requireRole, isAuthError } from '@/lib/auth/require-role';
+import { logAudit } from '@/lib/auth/audit';
 import type { LabelDocument } from '@/lib/types';
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await requireRole('editor');
+  if (isAuthError(session)) return session;
+
   let body: unknown;
   try {
     body = await request.json();
@@ -124,6 +129,8 @@ export async function POST(
       totalChunks: 1,
       createdAt: new Date(),
     });
+
+    logAudit(session, 'label.printed', id, { printer, copies: copyCount, jobId });
 
     return NextResponse.json({
       jobId,

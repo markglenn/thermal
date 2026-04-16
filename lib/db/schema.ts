@@ -52,6 +52,16 @@ export const variableBanks = pgTable('variable_banks', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
+export const auditEvents = pgTable('audit_events', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  userEmail: text('user_email'),
+  action: text('action').notNull(),
+  targetId: text('target_id'),
+  detail: jsonb('detail'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
 export const printJobs = pgTable('print_jobs', {
   id: text('id').primaryKey(),
   labelId: text('label_id')

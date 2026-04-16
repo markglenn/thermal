@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { getDatabase } from '@/lib/db';
+import { requireRole, isAuthError } from '@/lib/auth/require-role';
 
 export async function GET() {
+  const session = await requireRole('viewer');
+  if (isAuthError(session)) return session;
+
   try {
     const { db, tables } = await getDatabase();
     const sizes = await db.select().from(tables.labelSizes);
@@ -21,6 +25,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const session = await requireRole('admin');
+  if (isAuthError(session)) return session;
+
   let body: Record<string, unknown>;
   try {
     body = await request.json();
@@ -67,6 +74,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
+  const session = await requireRole('admin');
+  if (isAuthError(session)) return session;
+
   let body: Record<string, unknown>;
   try {
     body = await request.json();
@@ -106,6 +116,9 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const session = await requireRole('admin');
+  if (isAuthError(session)) return session;
+
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
 

@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireRole, isAuthError } from '@/lib/auth/require-role';
 
 export async function GET(request: NextRequest) {
+  const session = await requireRole('viewer');
+  if (isAuthError(session)) return session;
+
   const url = request.nextUrl.searchParams.get('url');
   if (!url) {
     return NextResponse.json({ error: 'Missing url parameter' }, { status: 400 });
