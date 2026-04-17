@@ -35,6 +35,8 @@ export interface PrintJobMessage {
   printer: string;
   contentType: string;
   copies: number;
+  /** SQS queue the print server sends the job_status reply to. */
+  replyToQueueUrl: string;
   /** Raw content for inline delivery (small jobs). */
   data?: string;
   /** S3 key for the gzipped payload (large jobs). */

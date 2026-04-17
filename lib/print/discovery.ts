@@ -18,10 +18,27 @@ export interface SiteManifest {
   queueUrl: string;
   printers: SitePrinter[];
   updatedAt: string;
+  /** true if (S3 response Date − object LastModified) ≤ staleness threshold. */
+  online: boolean;
+  /** Milliseconds between the manifest's LastModified and S3's "now" at read time. */
+  manifestAgeMs: number;
+  /** ISO timestamp of the S3 object's LastModified. */
+  lastModified: string;
 }
 
 let _cache: { sites: SiteManifest[]; fetchedAt: number } | null = null;
 const CACHE_TTL_MS = 60_000;
+
+// Default staleness threshold: 3× the print server's default 60s heartbeat
+// interval. Override via env for sites with known-flaky networking.
+const DEFAULT_STALENESS_MS = 180_000;
+
+function getStalenessThresholdMs(): number {
+  const raw = process.env.THERMAL_SITE_STALENESS_MS;
+  if (!raw) return DEFAULT_STALENESS_MS;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_STALENESS_MS;
+}
 
 function getBucket(): string {
   const bucket = process.env.PRINT_BUCKET;
@@ -31,8 +48,8 @@ function getBucket(): string {
 
 /**
  * Rewrite internal Docker hostnames to localhost endpoints for local dev.
- * In Docker, the print server writes queueUrl as "http://goaws:4100/..."
- * but Thermal on the host needs "http://localhost:4100/...".
+ * In Docker, the print server writes queueUrl as "http://elasticmq:9324/..."
+ * but Thermal on the host needs "http://localhost:9324/...".
  */
 function rewriteQueueUrl(url: string): string {
   const sqsEndpoint = process.env.AWS_ENDPOINT_SQS;
@@ -50,7 +67,7 @@ function rewriteQueueUrl(url: string): string {
   }
 }
 
-async function fetchManifest(key: string): Promise<SiteManifest | null> {
+async function fetchManifest(key: string, stalenessMs: number): Promise<SiteManifest | null> {
   try {
     const s3 = getS3Client();
     const result = await s3.send(new GetObjectCommand({
@@ -59,9 +76,21 @@ async function fetchManifest(key: string): Promise<SiteManifest | null> {
     }));
     const body = await result.Body?.transformToString();
     if (!body) return null;
-    const manifest = JSON.parse(body) as SiteManifest;
-    manifest.queueUrl = rewriteQueueUrl(manifest.queueUrl);
-    return manifest;
+
+    const parsed = JSON.parse(body) as Omit<SiteManifest, 'online' | 'manifestAgeMs' | 'lastModified'>;
+
+    const lastModified = result.LastModified ?? new Date(0);
+    const responseDateRaw = (result.$metadata as { responseDate?: string }).responseDate;
+    const responseDate = responseDateRaw ? new Date(responseDateRaw) : new Date();
+    const manifestAgeMs = responseDate.getTime() - lastModified.getTime();
+
+    return {
+      ...parsed,
+      queueUrl: rewriteQueueUrl(parsed.queueUrl),
+      online: manifestAgeMs >= 0 && manifestAgeMs <= stalenessMs,
+      manifestAgeMs,
+      lastModified: lastModified.toISOString(),
+    };
   } catch {
     return null;
   }
@@ -80,17 +109,14 @@ export async function listSites(forceRefresh = false): Promise<SiteManifest[]> {
   }));
 
   const prefixes = listResult.CommonPrefixes?.map((p) => p.Prefix).filter(Boolean) as string[] ?? [];
+  const stalenessMs = getStalenessThresholdMs();
   const manifests = await Promise.all(
-    prefixes.map((prefix) => fetchManifest(`${prefix}manifest.json`))
+    prefixes.map((prefix) => fetchManifest(`${prefix}manifest.json`, stalenessMs))
   );
 
   const sites = manifests.filter((m): m is SiteManifest => m !== null);
   _cache = { sites, fetchedAt: Date.now() };
   return sites;
-}
-
-export function invalidateCache(): void {
-  _cache = null;
 }
 
 export function printerStateLabel(state: number | null): string {

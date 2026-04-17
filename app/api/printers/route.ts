@@ -15,6 +15,9 @@ export async function GET() {
         siteName: site.siteName,
         queueUrl: site.queueUrl,
         updatedAt: site.updatedAt,
+        online: site.online,
+        manifestAgeMs: site.manifestAgeMs,
+        lastModified: site.lastModified,
         printers: site.printers.map((p) => ({
           name: p.name,
           state: p.state,

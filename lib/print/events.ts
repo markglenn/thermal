@@ -14,58 +14,34 @@ export interface JobStatusEvent {
   timestamp: string;
 }
 
-export interface PrinterChangeEvent {
-  eventType: 'printer_change';
-  siteId: string;
-  printers: unknown[];
-  timestamp: string;
-}
-
-export interface HeartbeatEvent {
-  eventType: 'heartbeat';
-  siteId: string;
-  printerCount: number;
-  uptimeSeconds: number;
-  timestamp: string;
-}
-
-export type PrintEvent = JobStatusEvent | PrinterChangeEvent | HeartbeatEvent;
-
-function getResponseQueueUrl(): string {
-  const url = process.env.RESPONSE_QUEUE_URL;
-  if (!url) throw new Error('RESPONSE_QUEUE_URL environment variable is not set');
+function getReplyQueueUrl(): string {
+  const url = process.env.THERMAL_REPLY_QUEUE_URL;
+  if (!url) throw new Error('THERMAL_REPLY_QUEUE_URL environment variable is not set');
   return url;
 }
 
-function parseEventBody(raw: string): PrintEvent | null {
+function parseJobStatus(raw: string): JobStatusEvent | null {
   try {
-    let parsed = JSON.parse(raw);
-
-    // In production, SNS wraps the message in an envelope with a "Message" field.
-    // In local dev (goaws with Raw: true), the event is the message directly.
-    if (typeof parsed.Message === 'string') {
-      parsed = JSON.parse(parsed.Message);
-    }
-
-    if (!parsed.eventType) return null;
-    return parsed as PrintEvent;
+    const parsed = JSON.parse(raw);
+    if (parsed.eventType !== 'job_status') return null;
+    return parsed as JobStatusEvent;
   } catch {
     return null;
   }
 }
 
 /**
- * Poll the response queue for print events.
+ * Poll the reply queue for job_status messages.
  * Returns up to `maxMessages` events and deletes them from the queue.
  */
-export async function pollEvents(maxMessages = 10, waitTimeSeconds = 5): Promise<PrintEvent[]> {
-  const queueUrl = getResponseQueueUrl();
+export async function pollEvents(maxMessages = 10, waitTimeSeconds = 20): Promise<JobStatusEvent[]> {
+  const queueUrl = getReplyQueueUrl();
 
   if (useQueryProtocol) {
     const messages = await sqsQueryReceive(queueUrl, maxMessages, waitTimeSeconds);
-    const events: PrintEvent[] = [];
+    const events: JobStatusEvent[] = [];
     for (const msg of messages) {
-      const event = parseEventBody(msg.body);
+      const event = parseJobStatus(msg.body);
       if (event) events.push(event);
       await sqsQueryDelete(queueUrl, msg.receiptHandle);
     }
@@ -80,12 +56,12 @@ export async function pollEvents(maxMessages = 10, waitTimeSeconds = 5): Promise
   }));
 
   const messages = result.Messages ?? [];
-  const events: PrintEvent[] = [];
+  const events: JobStatusEvent[] = [];
 
   for (const msg of messages) {
     if (!msg.Body || !msg.ReceiptHandle) continue;
 
-    const event = parseEventBody(msg.Body);
+    const event = parseJobStatus(msg.Body);
     if (event) events.push(event);
 
     await sqs.send(new DeleteMessageCommand({

@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { getDatabase } from '@/lib/db';
 import { pollEvents } from '@/lib/print/events';
-import { invalidateCache } from '@/lib/print/discovery';
 import { requireRole, isAuthError } from '@/lib/auth/require-role';
 import type { JobStatusEvent } from '@/lib/print/events';
 
@@ -25,11 +24,7 @@ export async function POST() {
     const events = await pollEvents();
 
     for (const event of events) {
-      if (event.eventType === 'job_status') {
-        await handleJobStatus(event);
-      } else if (event.eventType === 'printer_change') {
-        invalidateCache();
-      }
+      await handleJobStatus(event);
     }
 
     return NextResponse.json({
@@ -37,7 +32,8 @@ export async function POST() {
       events: events.map((e) => ({
         eventType: e.eventType,
         siteId: e.siteId,
-        ...('jobId' in e && { jobId: e.jobId, status: e.status }),
+        jobId: e.jobId,
+        status: e.status,
       })),
     });
   } catch (e) {

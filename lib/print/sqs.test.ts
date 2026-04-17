@@ -21,6 +21,7 @@ describe('PrintJobMessage — inline path', () => {
       printer: 'printer-1',
       contentType: 'application/vnd.zebra.zpl',
       copies: 1,
+      replyToQueueUrl: 'https://sqs.test/thermal-replies-dev',
       data,
       metadata,
     };
@@ -30,6 +31,7 @@ describe('PrintJobMessage — inline path', () => {
     expect(message.chunkIndex).toBe(0);
     expect(message.totalChunks).toBe(1);
     expect(message.contentType).toBe('application/vnd.zebra.zpl');
+    expect(message.replyToQueueUrl).toBe('https://sqs.test/thermal-replies-dev');
     expect(JSON.stringify(message).length).toBeLessThan(1000);
   });
 });
@@ -45,12 +47,14 @@ describe('PrintJobMessage — S3 path', () => {
       printer: 'printer-1',
       contentType: 'application/vnd.zebra.zpl',
       copies: 1,
+      replyToQueueUrl: 'https://sqs.test/thermal-replies-dev',
       s3Key,
       metadata,
     };
 
     expect(message.data).toBeUndefined();
     expect(message.s3Key).toBe(s3Key);
+    expect(message.replyToQueueUrl).toBe('https://sqs.test/thermal-replies-dev');
     expect(JSON.stringify(message).length).toBeLessThan(500);
   });
 });

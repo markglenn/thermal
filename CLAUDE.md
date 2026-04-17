@@ -122,11 +122,18 @@ Print jobs are sent to a separate Elixir print server (thermal-printer) via SQS 
 - **Small jobs (< 200 KB raw):** sent as `data` inline in the SQS message. One AWS API call, fastest path.
 - **Large jobs (≥ 200 KB, e.g. labels with `^GFA` images):** gzip-compressed and uploaded to S3 (`print-jobs/{jobId}.zpl.gz`), then a small SQS message with the S3 key is sent. Gzip only on this path where it matters — image hex data compresses 70%+. The S3 bucket should have a lifecycle rule to auto-delete objects after 24 hours.
 
-The print server checks for `s3Key` in the message — if present, fetch from S3 and gunzip. Otherwise, use the `data` field directly. Messages include `contentType` (e.g. `"application/vnd.zebra.zpl"`), `chunkIndex`, `totalChunks`, and a `metadata` block with `labelSize` and `dpmm`. Authentication is handled by SQS IAM (no HMAC signing).
+The print server checks for `s3Key` in the message — if present, fetch from S3 and gunzip. Otherwise, use the `data` field directly. Messages include `contentType` (e.g. `"application/vnd.zebra.zpl"`), `chunkIndex`, `totalChunks`, `replyToQueueUrl`, and a `metadata` block with `labelSize` and `dpmm`. Authentication is handled by SQS IAM (no HMAC signing).
 
-**Environment variables:** `PRINT_QUEUE_URL`, `PRINT_BUCKET`
+### Replies and site state (SQS + S3 manifests)
 
-See `lib/print/` for the S3/SQS client and compression modules.
+- **Job status replies:** every print request includes `replyToQueueUrl` pointing at Thermal's reply queue (`thermal-replies-{env}`). The server posts a `job_status` message there on completion or failure. Thermal polls the reply queue (20s long-poll), correlates by `jobId`, and updates the `printJobs` table. No SNS topics, no fan-out.
+- **Printer list & site liveness:** the print server writes per-site `s3://{PRINT_BUCKET}/sites/{siteId}/manifest.json` on startup, on printer changes, and every heartbeat tick. Thermal polls with a 60s cache TTL and computes site liveness as `online = (S3 response Date − object LastModified) ≤ staleness threshold` (default 180s via `THERMAL_SITE_STALENESS_MS`). Using S3's own clock on both sides avoids host clock-skew issues.
+
+**Environment variables:** `PRINT_QUEUE_URL`, `PRINT_BUCKET`, `THERMAL_REPLY_QUEUE_URL`, optional `THERMAL_SITE_STALENESS_MS`.
+
+**IAM:** Thermal's role needs `sqs:ReceiveMessage` + `sqs:DeleteMessage` on its reply queue, `sqs:SendMessage` on each print server's request queue, and `s3:GetObject` + `s3:ListBucket` on the manifest prefix. The print server's role should have `sqs:SendMessage` scoped to `thermal-replies-*` so a compromised sender can't redirect replies elsewhere.
+
+See `lib/print/` for the S3/SQS client, event poller, and compression modules.
 
 ## What's Not Yet Implemented
 

@@ -163,6 +163,9 @@ export function PrintDialog({ labelId, labelName, document: doc, onClose }: Prop
       return;
     }
 
+    // Reset prior job state so a repeat print doesn't inherit stale status
+    setJobId(null);
+    setJobStatus(null);
     setPrinting(true);
     const result = await fetchJson<{ jobId: string }>('/api/print', {
       method: 'POST',
@@ -338,39 +341,39 @@ export function PrintDialog({ labelId, labelName, document: doc, onClose }: Prop
                   Fill in all required fields before printing.
                 </div>
               )}
-
-              {/* Status */}
-              {jobStatus && (
-                <div className={`rounded-lg px-3 py-2 text-xs ${
-                  jobStatus === 'completed' ? 'bg-green-50 text-green-700' :
-                  jobStatus === 'failed' ? 'bg-red-50 text-red-700' :
-                  'bg-blue-50 text-blue-700'
-                }`}>
-                  {jobStatus === 'queued' && 'Print job queued. Waiting for printer...'}
-                  {jobStatus === 'completed' && 'Print job completed successfully.'}
-                  {jobStatus === 'failed' && 'Print job failed.'}
-                </div>
-              )}
             </>
           )}
         </div>
 
-        <div className="px-4 py-3 border-t border-gray-200 flex justify-end gap-2">
-          <button
-            onClick={onClose}
-            className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded"
-          >
-            {jobStatus ? 'Close' : 'Cancel'}
-          </button>
-          {!jobStatus && (
-            <button
-              onClick={handlePrint}
-              disabled={!printers.selectedPrinter || printing}
-              className="px-4 py-1.5 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded disabled:opacity-50"
-            >
-              {printing ? 'Sending...' : dataRows.length > 1 ? `Print ${dataRows.length} Labels` : 'Print'}
-            </button>
+        <div className="px-4 py-3 border-t border-gray-200 flex items-center gap-2">
+          {jobStatus && (
+            <span className={`text-xs truncate flex-1 ${
+              jobStatus === 'completed' ? 'text-green-700' :
+              jobStatus === 'failed' ? 'text-red-700' :
+              'text-blue-700'
+            }`}>
+              {jobStatus === 'queued' && 'Print job queued. Waiting for printer...'}
+              {jobStatus === 'completed' && 'Print job completed successfully.'}
+              {jobStatus === 'failed' && 'Print job failed.'}
+            </span>
           )}
+          <div className={`flex gap-2 ${jobStatus ? '' : 'ml-auto'}`}>
+            <button
+              onClick={onClose}
+              className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded"
+            >
+              {jobStatus ? 'Close' : 'Cancel'}
+            </button>
+            {jobStatus !== 'queued' && (
+              <button
+                onClick={handlePrint}
+                disabled={!printers.selectedPrinter || printing}
+                className="px-4 py-1.5 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded disabled:opacity-50"
+              >
+                {printing ? 'Sending...' : dataRows.length > 1 ? `Print ${dataRows.length} Labels` : 'Print'}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>,

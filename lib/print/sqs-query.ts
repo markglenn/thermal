@@ -1,9 +1,9 @@
 /**
  * Lightweight SQS client using the legacy query/XML protocol.
  *
- * AWS SDK v3 uses the JSON protocol which goaws doesn't support.
- * This module provides SendMessage, ReceiveMessage, and DeleteMessage
- * using raw HTTP form posts for local dev with goaws.
+ * Retained as a fallback for local dev when AWS_ENDPOINT_SQS is set.
+ * ElasticMQ supports the SDK v3 JSON protocol in recent versions, so
+ * this shim may become removable — verify before deleting.
  */
 
 function decodeXmlEntities(s: string): string {

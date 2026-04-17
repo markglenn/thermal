@@ -30,6 +30,22 @@ function getS3Client(): S3Client {
     _s3Client = new S3Client({
       ...(endpoint && { endpoint, forcePathStyle: true }),
     });
+
+    // Capture S3's response `Date` header so discovery can compute
+    // clock-skew-free liveness (comparing LastModified to S3's "now").
+    _s3Client.middlewareStack.add(
+      (next) => async (args) => {
+        const result = await next(args);
+        const response = (result as { response?: { headers?: Record<string, string> } }).response;
+        const headers = response?.headers ?? {};
+        const output = result.output as { $metadata?: Record<string, unknown> } | undefined;
+        if (output?.$metadata) {
+          output.$metadata.responseDate = headers.date ?? headers.Date;
+        }
+        return result;
+      },
+      { step: 'deserialize', name: 'captureResponseDate' },
+    );
   }
   return _s3Client;
 }
@@ -43,6 +59,12 @@ function getBucket(): string {
   return bucket;
 }
 
+function getReplyQueueUrl(): string {
+  const url = process.env.THERMAL_REPLY_QUEUE_URL;
+  if (!url) throw new Error('THERMAL_REPLY_QUEUE_URL environment variable is not set');
+  return url;
+}
+
 /**
  * Publish a print job.
  *
@@ -50,7 +72,8 @@ function getBucket(): string {
  * Large jobs (≥ 200 KB raw): gzip to S3, send pointer via SQS.
  *
  * The print server checks for `s3Key` — if present, fetch from S3 and gunzip.
- * Otherwise, use `data` directly.
+ * Otherwise, use `data` directly. On completion or failure, it posts a
+ * job_status message to `replyToQueueUrl`.
  */
 export async function publishPrintJob(
   jobId: string,
@@ -62,12 +85,13 @@ export async function publishPrintJob(
   queueUrl?: string
 ): Promise<void> {
   const rawSize = Buffer.byteLength(data, 'utf-8');
+  const replyToQueueUrl = getReplyQueueUrl();
 
   let message: PrintJobMessage;
 
   if (rawSize < INLINE_THRESHOLD_BYTES) {
     // Inline: data directly in the message
-    message = { jobId, chunkIndex: 0, totalChunks: 1, printer, contentType, copies, data, metadata };
+    message = { jobId, chunkIndex: 0, totalChunks: 1, printer, contentType, copies, replyToQueueUrl, data, metadata };
   } else {
     // S3: gzip and upload, send pointer
     const s3Key = `print-jobs/${jobId}.zpl.gz`;
@@ -78,7 +102,7 @@ export async function publishPrintJob(
       Body: compressed,
       ContentType: 'application/gzip',
     }));
-    message = { jobId, chunkIndex: 0, totalChunks: 1, printer, contentType, copies, s3Key, metadata };
+    message = { jobId, chunkIndex: 0, totalChunks: 1, printer, contentType, copies, replyToQueueUrl, s3Key, metadata };
   }
 
   const resolvedUrl = queueUrl || process.env.PRINT_QUEUE_URL;
