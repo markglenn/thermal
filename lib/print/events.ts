@@ -1,6 +1,8 @@
 import { ReceiveMessageCommand, DeleteMessageCommand } from '@aws-sdk/client-sqs';
+import { eq } from 'drizzle-orm';
 import { receiveMessages as sqsQueryReceive, deleteMessage as sqsQueryDelete } from './sqs-query';
 import { getSqsClient } from './sqs';
+import { getDatabase } from '@/lib/db';
 import { logger } from '@/lib/logger';
 
 const useQueryProtocol = !!process.env.AWS_ENDPOINT_SQS;
@@ -19,6 +21,22 @@ function getReplyQueueUrl(): string {
   const url = process.env.THERMAL_REPLY_QUEUE_URL;
   if (!url) throw new Error('THERMAL_REPLY_QUEUE_URL environment variable is not set');
   return url;
+}
+
+/**
+ * Apply a job_status event to the DB — flipping the matching printJobs
+ * row to the event's status. Used by the API route and by integration
+ * tests.
+ */
+export async function applyJobStatus(event: JobStatusEvent): Promise<void> {
+  const { db, tables } = await getDatabase();
+  await db.update(tables.printJobs)
+    .set({
+      status: event.status,
+      error: event.error,
+      completedAt: new Date(event.timestamp),
+    })
+    .where(eq(tables.printJobs.id, event.jobId));
 }
 
 function parseJobStatus(raw: string): JobStatusEvent | null {
