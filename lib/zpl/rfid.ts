@@ -1,4 +1,5 @@
 import type { RfidConfig, RfidMemoryBank } from '../types';
+import { emitFieldData } from './escape';
 
 const MEMORY_BANK: Record<RfidMemoryBank, number> = {
   epc: 1,
@@ -25,7 +26,7 @@ export function generateRfidZpl(config: RfidConfig, data?: string): string[] {
   if (config.writeMode === 'epc') {
     const numBytes = Math.ceil(writeData.length / 2);
     lines.push(`^RFW,H,1,0,${numBytes}`);
-    lines.push(`^FD${writeData}^FS`);
+    lines.push(emitFieldData(writeData));
   } else {
     const format = config.dataFormat === 'hex' ? 'H' : 'A';
     const bank = MEMORY_BANK[config.memoryBank];
@@ -33,7 +34,7 @@ export function generateRfidZpl(config: RfidConfig, data?: string): string[] {
       ? Math.ceil(writeData.length / 2)
       : writeData.length;
     lines.push(`^RFW,${format},${bank},${config.startBlock},${numBytes}`);
-    lines.push(`^FD${writeData}^FS`);
+    lines.push(emitFieldData(writeData));
   }
 
   return lines;

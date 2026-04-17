@@ -1,5 +1,6 @@
 import type { TextProperties, ResolvedBounds } from '@/lib/types';
 import { fieldOrigin } from '@/lib/zpl/commands';
+import { emitFieldData } from '@/lib/zpl/escape';
 import { getZplFontWithRotation } from '@/lib/zpl/fonts';
 
 export function generateTextZpl(props: TextProperties, bounds: ResolvedBounds): string[] {
@@ -36,6 +37,6 @@ export function generateTextZpl(props: TextProperties, bounds: ResolvedBounds): 
   const content = props.fieldBlock
     ? props.content.replace(/\n/g, '\\&')
     : props.content;
-  lines.push(`^FD${content}^FS`);
+  lines.push(emitFieldData(content));
   return lines;
 }

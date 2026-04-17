@@ -6,6 +6,7 @@ import { Printer, Circle, MapPin, AlertCircle, Plus, Minus, Trash2, ChevronDown,
 import { usePrinters } from '@/hooks/use-printers';
 import { fetchJson } from '@/lib/client/fetch';
 import { toast } from '@/lib/toast-store';
+import { MAX_PRINT_ROWS } from '@/lib/print/limits';
 import type { LabelDocument } from '@/lib/types';
 import type { Site, Printer as PrinterInfo } from '@/hooks/use-printers';
 
@@ -363,6 +364,13 @@ export function PrintDialog({ labelId, labelName, document: doc, onClose }: Prop
         ? 'Include a header row matching variable names (paste from Excel with headers).'
         : 'CSV headers didn\'t match any variable names.';
       toast(msg, 'error');
+      return;
+    }
+    if (result.rows.length > MAX_PRINT_ROWS) {
+      toast(
+        `Too many rows: ${result.rows.length} (max ${MAX_PRINT_ROWS} per job). Split into smaller batches.`,
+        'error',
+      );
       return;
     }
     setDataRows(result.rows);

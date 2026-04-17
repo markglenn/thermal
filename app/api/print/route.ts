@@ -3,6 +3,7 @@ import { validateDocument } from '@/lib/documents/validate';
 import { validatePrintRequest } from '@/lib/documents/validate-print';
 import { validateRequiredFields } from '@/lib/documents/validate-required';
 import { executePrint } from '@/lib/print/execute';
+import { MAX_PRINT_ROWS } from '@/lib/print/limits';
 import { requireRole, isAuthError } from '@/lib/auth/require-role';
 import type { LabelDocument } from '@/lib/types';
 
@@ -44,6 +45,16 @@ export async function POST(request: NextRequest) {
 
   if (!printer) {
     return NextResponse.json({ error: 'printer is required' }, { status: 400 });
+  }
+
+  if (data.length > MAX_PRINT_ROWS) {
+    return NextResponse.json(
+      {
+        error: 'Too many labels in one job',
+        details: [`Max ${MAX_PRINT_ROWS} labels per print job; received ${data.length}.`],
+      },
+      { status: 400 },
+    );
   }
 
   const doc = rawDoc as LabelDocument;

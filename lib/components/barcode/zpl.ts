@@ -1,5 +1,6 @@
 import type { BarcodeProperties, ResolvedBounds } from '@/lib/types';
 import { fieldOrigin } from '@/lib/zpl/commands';
+import { emitFieldData } from '@/lib/zpl/escape';
 import { getZplRotation } from '@/lib/zpl/fonts';
 import { computeTotalModules, deriveFitModuleWidth } from './compute-size';
 
@@ -56,6 +57,6 @@ export function barcodeCommand(props: BarcodeProperties, bounds: ResolvedBounds)
       break;
   }
 
-  lines.push(`^FD${props.content}^FS`);
+  lines.push(emitFieldData(props.content));
   return lines;
 }

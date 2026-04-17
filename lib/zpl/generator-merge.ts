@@ -8,6 +8,7 @@ import { generateRfidZpl } from './rfid';
 import { convertImageUrlToMonochrome } from '@/lib/components/image/convert-server';
 import { resolveImageLayout } from '@/lib/components/image/fit';
 import { mergeFieldData, evaluateCondition } from '../variables/resolve';
+import type { BatchImageLoader } from '@/lib/print/image-loader';
 
 /**
  * Deep-clone a document and substitute field data into bound component props.
@@ -55,7 +56,12 @@ function substituteContent(comp: LabelComponent, value: string): void {
  * 3. Resolve layout with updated sizes (bounds now reflect real data)
  * 4. Generate ZPL with reflowed bounds
  */
-export async function generateZplMerge(document: LabelDocument, fieldData: Record<string, string>, index = 0): Promise<string> {
+export async function generateZplMerge(
+  document: LabelDocument,
+  fieldData: Record<string, string>,
+  index = 0,
+  imageLoader?: BatchImageLoader,
+): Promise<string> {
   // Merge caller-supplied field data with resolved variables (date, counter)
   const merged = mergeFieldData(document.variables ?? [], fieldData, index);
   // Apply field data and recompute sizes (handles text, barcode, qrcode)
@@ -97,14 +103,23 @@ export async function generateZplMerge(document: LabelDocument, fieldData: Recor
         imageProps.objectFit, imageProps.objectPosition,
       );
       try {
-        const result = await convertImageUrlToMonochrome(
-          imageUrl,
-          imgLayout.width,
-          imgLayout.height,
-          imageProps.threshold,
-          imageProps.invert,
-          imageProps.monochromeMethod
-        );
+        const result = imageLoader
+          ? await imageLoader.convert(
+              imageUrl,
+              imgLayout.width,
+              imgLayout.height,
+              imageProps.threshold,
+              imageProps.invert,
+              imageProps.monochromeMethod,
+            )
+          : await convertImageUrlToMonochrome(
+              imageUrl,
+              imgLayout.width,
+              imgLayout.height,
+              imageProps.threshold,
+              imageProps.invert,
+              imageProps.monochromeMethod,
+            );
         const totalBytes = result.bytesPerRow * result.height;
         compLines = [
           fieldOrigin(bounds.x + imgLayout.offsetX, bounds.y + imgLayout.offsetY),

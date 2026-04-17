@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { getDatabase } from '@/lib/db';
 import { requireRole, isAuthError } from '@/lib/auth/require-role';
+
+// A queued job with no reply after this long is treated as stuck. The
+// server lazily flips it to `failed` on the next GET so stranded jobs
+// don't poll forever and so reopening the dialog surfaces the truth.
+const JOB_TIMEOUT_MS = 5 * 60_000;
+const JOB_TIMEOUT_ERROR = 'Print server did not respond within 5 minutes.';
 
 export async function GET(
   _request: NextRequest,
@@ -24,7 +30,19 @@ export async function GET(
       return NextResponse.json({ error: 'Print job not found' }, { status: 404 });
     }
 
-    const j = rows[0];
+    let j = rows[0];
+
+    if (j.status === 'queued' && Date.now() - j.createdAt.getTime() > JOB_TIMEOUT_MS) {
+      const now = new Date();
+      // Conditional update: only flip rows that are still queued, so we
+      // don't race a legitimate job_status reply that landed in parallel.
+      await db
+        .update(tables.printJobs)
+        .set({ status: 'failed', error: JOB_TIMEOUT_ERROR, completedAt: now })
+        .where(and(eq(tables.printJobs.id, id), eq(tables.printJobs.status, 'queued')));
+      j = { ...j, status: 'failed', error: JOB_TIMEOUT_ERROR, completedAt: now };
+    }
+
     return NextResponse.json({
       id: j.id,
       labelId: j.labelId,
