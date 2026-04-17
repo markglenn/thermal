@@ -1,6 +1,7 @@
 import { ReceiveMessageCommand, DeleteMessageCommand } from '@aws-sdk/client-sqs';
 import { receiveMessages as sqsQueryReceive, deleteMessage as sqsQueryDelete } from './sqs-query';
 import { getSqsClient } from './sqs';
+import { logger } from '@/lib/logger';
 
 const useQueryProtocol = !!process.env.AWS_ENDPOINT_SQS;
 
@@ -23,9 +24,13 @@ function getReplyQueueUrl(): string {
 function parseJobStatus(raw: string): JobStatusEvent | null {
   try {
     const parsed = JSON.parse(raw);
-    if (parsed.eventType !== 'job_status') return null;
+    if (parsed.eventType !== 'job_status') {
+      logger.warn({ eventType: parsed.eventType }, 'reply queue received unexpected event type');
+      return null;
+    }
     return parsed as JobStatusEvent;
-  } catch {
+  } catch (err) {
+    logger.warn({ err, rawPreview: raw.slice(0, 200) }, 'failed to parse reply queue message');
     return null;
   }
 }

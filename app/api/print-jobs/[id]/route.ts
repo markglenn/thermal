@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { and, eq } from 'drizzle-orm';
 import { getDatabase } from '@/lib/db';
 import { requireRole, isAuthError } from '@/lib/auth/require-role';
+import { logger } from '@/lib/logger';
 
 // A queued job with no reply after this long is treated as stuck. The
 // server lazily flips it to `failed` on the next GET so stranded jobs
@@ -41,6 +42,10 @@ export async function GET(
         .set({ status: 'failed', error: JOB_TIMEOUT_ERROR, completedAt: now })
         .where(and(eq(tables.printJobs.id, id), eq(tables.printJobs.status, 'queued')));
       j = { ...j, status: 'failed', error: JOB_TIMEOUT_ERROR, completedAt: now };
+      logger.warn(
+        { jobId: id, siteId: j.siteId, printer: j.printer, ageMs: Date.now() - j.createdAt.getTime() },
+        'print job timed out waiting for reply',
+      );
     }
 
     return NextResponse.json({
@@ -56,8 +61,8 @@ export async function GET(
       createdAt: j.createdAt.toISOString(),
       completedAt: j.completedAt?.toISOString() ?? null,
     });
-  } catch (e) {
-    console.error('GET /api/print-jobs/[id] failed:', e);
+  } catch (err) {
+    logger.error({ err }, 'failed to read print job');
     return NextResponse.json({ error: 'Failed to get print job' }, { status: 500 });
   }
 }

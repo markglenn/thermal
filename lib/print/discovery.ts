@@ -1,5 +1,6 @@
 import { ListObjectsV2Command, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getS3Client } from './sqs';
+import { logger } from '@/lib/logger';
 
 export interface SitePrinter {
   name: string;
@@ -91,7 +92,8 @@ async function fetchManifest(key: string, stalenessMs: number): Promise<SiteMani
       manifestAgeMs,
       lastModified: lastModified.toISOString(),
     };
-  } catch {
+  } catch (err) {
+    logger.warn({ err, key }, 'failed to fetch site manifest');
     return null;
   }
 }

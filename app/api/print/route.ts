@@ -5,6 +5,7 @@ import { validateRequiredFields } from '@/lib/documents/validate-required';
 import { executePrint } from '@/lib/print/execute';
 import { MAX_PRINT_ROWS } from '@/lib/print/limits';
 import { requireRole, isAuthError } from '@/lib/auth/require-role';
+import { logger } from '@/lib/logger';
 import type { LabelDocument } from '@/lib/types';
 
 export async function POST(request: NextRequest) {
@@ -77,9 +78,13 @@ export async function POST(request: NextRequest) {
       labelName: typeof labelName === 'string' ? labelName : undefined,
     });
 
+    logger.info(
+      { jobId, siteId, printer, rows: data.length, copies: copyCount, labelId },
+      'print job accepted',
+    );
     return NextResponse.json({ jobId, status: 'queued', printer }, { status: 202 });
-  } catch (e) {
-    console.error('POST /api/print failed:', e);
+  } catch (err) {
+    logger.error({ err, siteId, printer }, 'print job failed to queue');
     return NextResponse.json({ error: 'Failed to print' }, { status: 500 });
   }
 }

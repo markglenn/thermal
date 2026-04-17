@@ -4,6 +4,7 @@ import { publishPrintJob } from './sqs';
 import { listSites } from './discovery';
 import { createBatchImageLoader } from './image-loader';
 import { getDatabase } from '@/lib/db';
+import { logger } from '@/lib/logger';
 import type { LabelDocument } from '@/lib/types';
 
 const DPI_TO_DPMM: Record<number, string> = { 203: '8dpmm', 300: '12dpmm', 600: '24dpmm' };
@@ -85,8 +86,16 @@ export async function executePrint(opts: ExecutePrintOptions): Promise<ExecutePr
     await db.update(tables.printJobs)
       .set({ status: 'failed', error: message, completedAt: new Date() })
       .where(eq(tables.printJobs.id, jobId));
+    logger.error(
+      { err, jobId, siteId, printer, zplBytes: Buffer.byteLength(zpl, 'utf-8') },
+      'SQS send failed; marked job as failed',
+    );
     throw err;
   }
 
+  logger.info(
+    { jobId, siteId, printer, rows: data.length, zplBytes: Buffer.byteLength(zpl, 'utf-8') },
+    'print job dispatched to SQS',
+  );
   return { jobId, zpl };
 }

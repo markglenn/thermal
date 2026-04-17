@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { listSites, printerStateLabel } from '@/lib/print/discovery';
 import { requireRole, isAuthError } from '@/lib/auth/require-role';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   const session = await requireRole('viewer');
@@ -32,8 +33,8 @@ export async function GET(request: NextRequest) {
         })),
       })),
     });
-  } catch (e) {
-    console.error('GET /api/printers failed:', e);
+  } catch (err) {
+    logger.error({ err, forceRefresh }, 'failed to list printers');
     return NextResponse.json({ error: 'Failed to list printers' }, { status: 500 });
   }
 }
