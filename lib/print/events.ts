@@ -12,6 +12,13 @@ export interface JobStatusEvent {
   siteId: string;
   jobId: string;
   status: 'completed' | 'failed';
+  /**
+   * Optional finer-grained state from the print server (e.g. 'canceled',
+   * 'blocked'). `status` always collapses these to 'completed' | 'failed'
+   * for backwards compatibility; clients that want the precise state read
+   * `terminalState`.
+   */
+  terminalState?: string;
   printer: string | null;
   error: string | null;
   timestamp: string;
@@ -32,7 +39,10 @@ export async function applyJobStatus(event: JobStatusEvent): Promise<void> {
   const { db, tables } = await getDatabase();
   await db.update(tables.printJobs)
     .set({
-      status: event.status,
+      // Coerce any unexpected status to 'failed' so a future server-side
+      // status value (e.g. a new terminal bucket) can't strand the UI in
+      // 'queued'. `parseJobStatus` already filters empty/invalid shapes.
+      status: event.status === 'completed' ? 'completed' : 'failed',
       error: event.error,
       completedAt: new Date(event.timestamp),
     })
@@ -44,6 +54,10 @@ function parseJobStatus(raw: string): JobStatusEvent | null {
     const parsed = JSON.parse(raw);
     if (parsed.eventType !== 'job_status') {
       logger.warn({ eventType: parsed.eventType }, 'reply queue received unexpected event type');
+      return null;
+    }
+    if (typeof parsed.jobId !== 'string' || typeof parsed.status !== 'string') {
+      logger.warn({ parsed }, 'reply queue message missing jobId/status');
       return null;
     }
     return parsed as JobStatusEvent;
