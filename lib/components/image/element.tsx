@@ -28,12 +28,16 @@ export function ImageElement({ props, componentName }: Props) {
     const inverted = props.invert;
     return (
       <div
-        className={`w-full h-full flex items-center justify-center text-[5cqmin] ${
-          inverted ? 'bg-gray-800 text-gray-400' : 'bg-gray-200 text-gray-400'
-        }`}
+        className="w-full h-full"
         style={{ containerType: 'size' }}
       >
-        {componentName || 'Image'}
+        <div
+          className={`w-full h-full flex items-center justify-center overflow-hidden text-[20cqmin] ${
+            inverted ? 'bg-gray-800 text-gray-400' : 'bg-gray-200 text-gray-400'
+          }`}
+        >
+          {componentName || 'Image'}
+        </div>
       </div>
     );
   }
