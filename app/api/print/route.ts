@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateDocument } from '@/lib/documents/validate';
 import { validatePrintRequest } from '@/lib/documents/validate-print';
+import { validateRequiredFields } from '@/lib/documents/validate-required';
 import { executePrint } from '@/lib/print/execute';
 import { requireRole, isAuthError } from '@/lib/auth/require-role';
 import type { LabelDocument } from '@/lib/types';
@@ -45,8 +46,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'printer is required' }, { status: 400 });
   }
 
+  const doc = rawDoc as LabelDocument;
+  const requiredErrors = validateRequiredFields(doc, data as Record<string, string>[]);
+  if (requiredErrors.length > 0) {
+    return NextResponse.json(
+      { error: 'Missing required fields', details: requiredErrors },
+      { status: 400 }
+    );
+  }
+
   try {
-    const doc = rawDoc as LabelDocument;
     const { jobId } = await executePrint({
       doc,
       data: data as Record<string, string>[],

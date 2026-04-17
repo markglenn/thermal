@@ -73,12 +73,25 @@ function extractFieldNames(doc: LabelDocument): string[] {
   for (const comp of doc.components) {
     if (comp.fieldBinding) names.add(comp.fieldBinding);
   }
+  // Include required variables even if not bound to a component (e.g. RFID-only)
+  for (const v of doc.variables ?? []) {
+    if (v.required) names.add(v.name);
+  }
   return Array.from(names);
+}
+
+function extractRequiredFields(doc: LabelDocument): Set<string> {
+  const required = new Set<string>();
+  for (const v of doc.variables ?? []) {
+    if (v.required) required.add(v.name);
+  }
+  return required;
 }
 
 export function PrintDialog({ labelId, labelName, document: doc, onClose }: Props) {
   const printers = usePrinters();
   const fieldNames = useMemo(() => extractFieldNames(doc), [doc]);
+  const requiredFields = useMemo(() => extractRequiredFields(doc), [doc]);
   const hasFields = fieldNames.length > 0;
 
   const makeEmptyRow = () => Object.fromEntries(fieldNames.map((f) => [f, '']));
@@ -90,6 +103,19 @@ export function PrintDialog({ labelId, labelName, document: doc, onClose }: Prop
   const [printing, setPrinting] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
   const [jobStatus, setJobStatus] = useState<string | null>(null);
+  const [showErrors, setShowErrors] = useState(false);
+
+  const missingByRow = useMemo(() => {
+    return dataRows.map((row) => {
+      const missing = new Set<string>();
+      for (const field of requiredFields) {
+        if (!(row[field] ?? '').trim()) missing.add(field);
+      }
+      return missing;
+    });
+  }, [dataRows, requiredFields]);
+
+  const hasMissing = missingByRow.some((m) => m.size > 0);
 
   const updateField = (rowIndex: number, field: string, value: string) => {
     setDataRows((prev) => prev.map((row, i) =>
@@ -132,6 +158,10 @@ export function PrintDialog({ labelId, labelName, document: doc, onClose }: Prop
 
   const handlePrint = async () => {
     if (!printers.selectedSite || !printers.selectedPrinter) return;
+    if (hasMissing) {
+      setShowErrors(true);
+      return;
+    }
 
     setPrinting(true);
     const result = await fetchJson<{ jobId: string }>('/api/print', {
@@ -231,6 +261,11 @@ export function PrintDialog({ labelId, labelName, document: doc, onClose }: Prop
                   <span className="text-xs text-gray-500 block mb-1">
                     Data
                     {dataRows.length > 1 && <span className="text-gray-400"> ({dataRows.length} labels)</span>}
+                    {requiredFields.size > 0 && (
+                      <span className="text-gray-400 ml-1">
+                        — <span className="text-red-500">*</span> required
+                      </span>
+                    )}
                   </span>
                   <div className="space-y-2">
                     {dataRows.map((row, rowIndex) => (
@@ -247,18 +282,27 @@ export function PrintDialog({ labelId, labelName, document: doc, onClose }: Prop
                             </button>
                           </div>
                         )}
-                        {fieldNames.map((field) => (
-                          <label key={field} className="flex items-center gap-2">
-                            <span className="text-xs text-gray-500 w-24 shrink-0 truncate" title={field}>{field}</span>
-                            <input
-                              type="text"
-                              value={row[field] ?? ''}
-                              onChange={(e) => updateField(rowIndex, field, e.target.value)}
-                              placeholder={field}
-                              className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
-                            />
-                          </label>
-                        ))}
+                        {fieldNames.map((field) => {
+                          const isRequired = requiredFields.has(field);
+                          const isInvalid = showErrors && missingByRow[rowIndex]?.has(field);
+                          return (
+                            <label key={field} className="flex items-center gap-2">
+                              <span className="text-xs text-gray-500 w-24 shrink-0 truncate" title={field}>
+                                {field}
+                                {isRequired && <span className="text-red-500 ml-0.5">*</span>}
+                              </span>
+                              <input
+                                type="text"
+                                value={row[field] ?? ''}
+                                onChange={(e) => updateField(rowIndex, field, e.target.value)}
+                                placeholder={field}
+                                className={`flex-1 px-2 py-1 border rounded text-sm ${
+                                  isInvalid ? 'border-red-400 bg-red-50' : 'border-gray-300'
+                                }`}
+                              />
+                            </label>
+                          );
+                        })}
                       </div>
                     ))}
                   </div>
@@ -284,6 +328,14 @@ export function PrintDialog({ labelId, labelName, document: doc, onClose }: Prop
                     onChange={(e) => setCopies(Math.max(1, parseInt(e.target.value) || 1))}
                     className="w-20 px-2 py-1.5 border border-gray-300 rounded text-sm"
                   />
+                </div>
+              )}
+
+              {/* Required field errors */}
+              {showErrors && hasMissing && !jobStatus && (
+                <div className="rounded-lg px-3 py-2 text-xs bg-red-50 text-red-700 flex items-center gap-1.5">
+                  <AlertCircle size={12} />
+                  Fill in all required fields before printing.
                 </div>
               )}
 

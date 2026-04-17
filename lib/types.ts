@@ -201,6 +201,7 @@ export interface LabelVariable {
   name: string;
   type: VariableType;
   defaultValue: string;
+  required?: boolean;
   format?: string;       // date format string (e.g., "YYYY-MM-DD")
   counter?: CounterConfig;
 }

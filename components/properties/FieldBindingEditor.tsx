@@ -44,11 +44,10 @@ export function FieldBindingEditor({ componentId, binding, suggestions = [] }: {
       }
     }
 
-    // Auto-create variable entry for date/counter types
-    // (text type doesn't need an entry — content is the default)
+    // Auto-create variable entry for date/counter types or required text
+    // (plain text without required doesn't need an entry — content is the default)
     if (sanitized && !variables.some((v) => v.name === sanitized)) {
-      // Only create if we had a non-text variable before (preserve type on rename)
-      if (variable && variable.type !== 'text') {
+      if (variable && (variable.type !== 'text' || variable.required)) {
         addVariable({ ...variable, name: sanitized });
       }
     }
@@ -57,19 +56,33 @@ export function FieldBindingEditor({ componentId, binding, suggestions = [] }: {
   const handleTypeChange = (type: VariableType) => {
     if (!binding) return;
 
-    if (type === 'text') {
-      // Text type doesn't need a variable entry — remove it
+    if (type === 'text' && !variable?.required) {
+      // Plain text doesn't need a variable entry — remove it
       removeVariable(binding);
-    } else {
-      const updates: Partial<LabelVariable> = { type };
-      if (type === 'counter') updates.counter = { ...DEFAULT_COUNTER };
-      if (type === 'date') updates.format = 'YYYY-MM-DD';
+      return;
+    }
 
-      if (variable) {
-        updateVariable(binding, updates);
-      } else {
-        addVariable({ name: binding, type, defaultValue: '', ...updates });
-      }
+    const updates: Partial<LabelVariable> = { type };
+    if (type === 'counter') updates.counter = { ...DEFAULT_COUNTER };
+    if (type === 'date') updates.format = 'YYYY-MM-DD';
+
+    if (variable) {
+      updateVariable(binding, updates);
+    } else {
+      addVariable({ name: binding, type, defaultValue: '', ...updates });
+    }
+  };
+
+  const handleRequiredChange = (checked: boolean) => {
+    if (!binding) return;
+    if (!checked && variableType === 'text') {
+      removeVariable(binding);
+      return;
+    }
+    if (variable) {
+      updateVariable(binding, { required: checked });
+    } else {
+      addVariable({ name: binding, type: 'text', defaultValue: '', required: checked });
     }
   };
 
@@ -108,6 +121,16 @@ export function FieldBindingEditor({ componentId, binding, suggestions = [] }: {
                 <option value="date">Date</option>
                 <option value="counter">Counter</option>
               </select>
+            </label>
+
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={variable?.required ?? false}
+                onChange={(e) => handleRequiredChange(e.target.checked)}
+                className="cursor-pointer"
+              />
+              <span className="text-[10px] text-gray-600">Required at print time</span>
             </label>
 
             {variableType === 'date' && (
