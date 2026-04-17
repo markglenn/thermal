@@ -18,6 +18,8 @@ export function resolveLayout(
 
   const y = layout.verticalAnchor === 'bottom'
     ? parentHeight - layout.y - layout.height
+    : layout.verticalAnchor === 'center'
+    ? Math.round((parentHeight - layout.height) / 2) + layout.y
     : layout.y;
 
   // Clamp to non-negative — ZPL ^FO coordinates are clamped to 0 by the

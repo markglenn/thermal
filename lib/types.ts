@@ -1,6 +1,6 @@
 // Layout system - all values in dots
 export type HorizontalAnchor = 'left' | 'center' | 'right';
-export type VerticalAnchor = 'top' | 'bottom';
+export type VerticalAnchor = 'top' | 'center' | 'bottom';
 
 export interface ComponentLayout {
   x: number;           // distance from anchored horizontal edge

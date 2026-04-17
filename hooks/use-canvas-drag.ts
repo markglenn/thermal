@@ -190,7 +190,9 @@ function computeMove(
     newX = Math.min(newX, labelWidth - startLayout.width);
   }
 
-  if (startLayout.verticalAnchor === 'top') {
+  if (startLayout.verticalAnchor === 'center') {
+    newY = 0;
+  } else if (startLayout.verticalAnchor === 'top') {
     newY = Math.max(0, newY);
   } else {
     newY = Math.min(newY, labelHeight - startLayout.height);

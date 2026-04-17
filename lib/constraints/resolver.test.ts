@@ -129,6 +129,24 @@ describe('resolveLayout', () => {
       );
       expect(result.y).toBe(170); // 200 - 0 - 30
     });
+
+    it('center-anchored with y=0: component is vertically centered', () => {
+      const result = resolveLayout(
+        defaultLayout({ y: 0, height: 40, verticalAnchor: 'center' }),
+        parentWidth,
+        parentHeight
+      );
+      expect(result.y).toBe(80); // (200 - 40) / 2
+    });
+
+    it('center-anchored with y offset: shifts relative to centered position', () => {
+      const result = resolveLayout(
+        defaultLayout({ y: 5, height: 40, verticalAnchor: 'center' }),
+        parentWidth,
+        parentHeight
+      );
+      expect(result.y).toBe(85); // (200 - 40) / 2 + 5
+    });
   });
 
   describe('combined anchors', () => {

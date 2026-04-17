@@ -177,6 +177,8 @@ export function createComponentActions(set: ImmerSet<EditorStore>, get: StoreGet
           comp.layout.verticalAnchor = vertical;
           if (vertical === 'bottom') {
             comp.layout.y = Math.max(0, lh - bounds.y - bounds.height);
+          } else if (vertical === 'center') {
+            comp.layout.y = 0;
           } else {
             comp.layout.y = bounds.y;
           }

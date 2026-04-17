@@ -22,6 +22,7 @@ export function useCanvasResize() {
 
       const update: Partial<ComponentLayout> = {};
       const isCenter = sl.horizontalAnchor === 'center';
+      const isVCenter = sl.verticalAnchor === 'center';
       const anchorIsLeft = sl.horizontalAnchor === 'left';
       const anchorIsTop = sl.verticalAnchor === 'top';
 
@@ -68,9 +69,14 @@ export function useCanvasResize() {
       }
 
       if (handle.includes('bottom')) {
-        update.height = Math.round(Math.max(MIN_RESIZE_SIZE, sl.height + dy));
+        let newHeight = Math.round(Math.max(MIN_RESIZE_SIZE, sl.height + dy));
+        // V-center: growing down also pushes visual top up — clamp so top stays >= 0
+        if (isVCenter) {
+          newHeight = Math.min(newHeight, labelH + 2 * sl.y);
+        }
+        update.height = newHeight;
         // Bottom-anchored: bottom handle is anchor side, adjust y (no clamp needed)
-        if (!anchorIsTop) {
+        if (!anchorIsTop && !isVCenter) {
           update.y = Math.round(sl.y + sl.height - update.height);
         }
       }
@@ -78,9 +84,14 @@ export function useCanvasResize() {
       if (handle.startsWith('top')) {
         let newHeight = Math.round(Math.max(MIN_RESIZE_SIZE, sl.height - dy));
         // Top handle moves visual top edge — clamp so it doesn't go past 0
-        // Top-anchored: visual top = y = sl.y + sl.height - newHeight → max = sl.y + sl.height
-        // Bottom-anchored: visual top = labelH - sl.y - newHeight → max = labelH - sl.y
-        const maxH = anchorIsTop ? sl.y + sl.height : labelH - sl.y;
+        let maxH: number;
+        if (isVCenter) {
+          maxH = labelH + 2 * sl.y;
+        } else if (anchorIsTop) {
+          maxH = sl.y + sl.height;
+        } else {
+          maxH = labelH - sl.y;
+        }
         newHeight = Math.min(newHeight, maxH);
         if (anchorIsTop) {
           update.y = Math.round(sl.y + sl.height - newHeight);

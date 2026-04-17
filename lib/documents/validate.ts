@@ -80,7 +80,7 @@ const VALID_OBJECT_POSITION: readonly ImageObjectPosition[] = [
   'bottom-left', 'bottom', 'bottom-right',
 ];
 const VALID_H_ANCHORS: readonly HorizontalAnchor[] = ['left', 'center', 'right'];
-const VALID_V_ANCHORS: readonly VerticalAnchor[] = ['top', 'bottom'];
+const VALID_V_ANCHORS: readonly VerticalAnchor[] = ['top', 'center', 'bottom'];
 const VALID_CONDITION_OPS: readonly ConditionOperator[] = ['==', '!=', 'isEmpty', 'isNotEmpty'];
 const VALID_VARIABLE_TYPES: readonly VariableType[] = ['text', 'date', 'counter'];
 const VALID_RFID_WRITE_MODES: readonly RfidWriteMode[] = ['epc', 'raw'];

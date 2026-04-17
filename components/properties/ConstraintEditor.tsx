@@ -22,6 +22,9 @@ const ANCHOR_CORNERS: {
   { horizontal: 'left', vertical: 'top', position: 'top-left' },
   { horizontal: 'center', vertical: 'top', position: 'top-center' },
   { horizontal: 'right', vertical: 'top', position: 'top-right' },
+  { horizontal: 'left', vertical: 'center', position: 'middle-left' },
+  { horizontal: 'center', vertical: 'center', position: 'middle-center' },
+  { horizontal: 'right', vertical: 'center', position: 'middle-right' },
   { horizontal: 'left', vertical: 'bottom', position: 'bottom-left' },
   { horizontal: 'center', vertical: 'bottom', position: 'bottom-center' },
   { horizontal: 'right', vertical: 'bottom', position: 'bottom-right' },
@@ -31,6 +34,9 @@ const DOT_POSITIONS: Record<string, string> = {
   'top-left': 'top-0 left-0 -translate-x-1/2 -translate-y-1/2',
   'top-center': 'top-0 left-1/2 -translate-x-1/2 -translate-y-1/2',
   'top-right': 'top-0 right-0 translate-x-1/2 -translate-y-1/2',
+  'middle-left': 'top-1/2 left-0 -translate-x-1/2 -translate-y-1/2',
+  'middle-center': 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
+  'middle-right': 'top-1/2 right-0 translate-x-1/2 -translate-y-1/2',
   'bottom-left': 'bottom-0 left-0 -translate-x-1/2 translate-y-1/2',
   'bottom-center': 'bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2',
   'bottom-right': 'bottom-0 right-0 translate-x-1/2 translate-y-1/2',
@@ -111,18 +117,16 @@ export function ConstraintEditor({ component }: Props) {
     <CollapsibleSection title="Position & Anchor">
       <div className="px-3 pb-3">
       {/* Spatial layout: inputs on the anchored edges */}
-      <div className="flex flex-col items-center gap-1.5 mb-4">
+      <div className="flex flex-col items-center gap-1 mb-3">
         {/* Top offset — only shown when top-anchored */}
-        <div className="h-6 flex items-center">
-          {vAnchor === 'top' && (
-            <div className="relative flex items-center">
-              {offsetInput(layout.y, setY)}
-              <div className="absolute -right-5 top-1/2 -translate-y-1/2">
-                <LockButton locked={!!layout.lockY} onClick={() => toggleLock(component.id, 'y')} />
-              </div>
+        {vAnchor === 'top' && (
+          <div className="relative flex items-center">
+            {offsetInput(layout.y, setY)}
+            <div className="absolute -right-5 top-1/2 -translate-y-1/2">
+              <LockButton locked={!!layout.lockY} onClick={() => toggleLock(component.id, 'y')} />
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Middle row: left offset — rectangle — right offset */}
         <div className="flex items-center gap-1.5">
@@ -143,10 +147,6 @@ export function ConstraintEditor({ component }: Props) {
             </div>
             <div className="absolute inset-0 flex justify-center">
               <div className="h-full w-px bg-gray-200" />
-            </div>
-            {/* Size display in center */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span data-testid="size-display" className="text-[9px] text-gray-400 font-mono">{w}×{h}</span>
             </div>
             {/* Corner dots */}
             {ANCHOR_CORNERS.map((corner) => {
@@ -179,16 +179,17 @@ export function ConstraintEditor({ component }: Props) {
         </div>
 
         {/* Bottom offset — only shown when bottom-anchored */}
-        <div className="h-6 flex items-center">
-          {vAnchor === 'bottom' && (
-            <div className="relative flex items-center">
-              {offsetInput(layout.y, setY)}
-              <div className="absolute -right-5 top-1/2 -translate-y-1/2">
-                <LockButton locked={!!layout.lockY} onClick={() => toggleLock(component.id, 'y')} />
-              </div>
+        {vAnchor === 'bottom' && (
+          <div className="relative flex items-center">
+            {offsetInput(layout.y, setY)}
+            <div className="absolute -right-5 top-1/2 -translate-y-1/2">
+              <LockButton locked={!!layout.lockY} onClick={() => toggleLock(component.id, 'y')} />
             </div>
-          )}
-        </div>
+          </div>
+        )}
+
+        {/* Size display below grid */}
+        <span data-testid="size-display" className="text-[10px] text-gray-400 font-mono">{w}×{h}</span>
       </div>
 
       {/* Size — separate section for editable components */}
