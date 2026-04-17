@@ -74,9 +74,11 @@ export interface BarcodeProperties {
   content: string;
   encoding: BarcodeEncoding;
   height: number;
-  moduleWidth?: number;  // narrow bar width in dots (default: 2)
+  moduleWidth?: number;  // narrow bar width in dots (default: 2). Ignored when sizingMode === 'fit'.
   showText: boolean;
   rotation: Rotation;
+  sizingMode?: 'auto' | 'fit';  // auto (default): content+moduleWidth drive size. fit: bounds drive moduleWidth.
+  alignment?: 'left' | 'center' | 'right';  // horizontal alignment within bounds in fit mode (default 'left')
 }
 
 export interface QrCodeProperties {

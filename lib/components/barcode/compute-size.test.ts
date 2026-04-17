@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeBarcodeSize } from './compute-size';
+import { computeBarcodeSize, computeTotalModules, deriveFitModuleWidth } from './compute-size';
 import type { BarcodeProperties } from '@/lib/types';
 
 function makeBarcodeProps(overrides: Partial<BarcodeProperties> = {}): BarcodeProperties {
@@ -99,5 +99,27 @@ describe('computeBarcodeSize', () => {
     const unrotated = computeBarcodeSize({ ...props, rotation: 0 });
     const size = computeBarcodeSize(props);
     expect(size).toEqual(unrotated);
+  });
+});
+
+describe('deriveFitModuleWidth', () => {
+  it('floors toward smaller module width for exact fit', () => {
+    // Code128 "12345": 11*5+35 = 90 modules. Box 200 / 90 = 2.22 → 2
+    const total = computeTotalModules('code128', 5, false);
+    expect(deriveFitModuleWidth(200, total)).toBe(2);
+  });
+
+  it('returns 0 when content cannot fit at mw=1', () => {
+    const total = computeTotalModules('code128', 20, false); // 255 modules
+    expect(deriveFitModuleWidth(100, total)).toBe(0);
+  });
+
+  it('clamps to max module width of 10', () => {
+    const total = computeTotalModules('code128', 1, false); // 46 modules
+    expect(deriveFitModuleWidth(1000, total)).toBe(10);
+  });
+
+  it('returns 0 when total modules is zero', () => {
+    expect(deriveFitModuleWidth(200, 0)).toBe(0);
   });
 });

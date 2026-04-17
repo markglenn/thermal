@@ -23,4 +23,8 @@ export const barcodeComponent: ComponentDefinition<BarcodeProperties> = {
   PropertiesPanel: BarcodePropertiesPanel,
   generateZpl: barcodeCommand,
   computeContentSize: computeBarcodeSize,
+  getSizingMode: (component) => {
+    if (component.typeData.type !== 'barcode') return 'auto';
+    return component.typeData.props.sizingMode === 'fit' ? 'fixed' : 'auto';
+  },
 };

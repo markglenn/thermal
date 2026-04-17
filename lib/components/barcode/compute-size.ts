@@ -7,7 +7,7 @@ const DEFAULT_MODULE_WIDTH = 2;
  * When showText is true, JsBarcode adds extra padding modules for the human-readable
  * digits that sit outside the guard bars (EAN-13 leading digit, UPC-A first/last digits).
  */
-function computeTotalModules(encoding: BarcodeEncoding, contentLength: number, showText: boolean): number {
+export function computeTotalModules(encoding: BarcodeEncoding, contentLength: number, showText: boolean): number {
   switch (encoding) {
     case 'code128':
       // Code 128B: start (11) + data (11 per char) + checksum (11) + stop (13)
@@ -50,4 +50,16 @@ export function computeBarcodeSize(props: BarcodeProperties): { width: number; h
   }
 
   return { width: w, height: h };
+}
+
+/**
+ * Derive an integer module width from a target box width and the total module
+ * count. ZPL `^BY` accepts integer module widths 1-10. Returns 0 when content
+ * cannot fit at mw=1 — caller should surface this as an error state.
+ */
+export function deriveFitModuleWidth(targetWidth: number, totalModules: number): number {
+  if (totalModules <= 0) return 0;
+  const raw = Math.floor(targetWidth / totalModules);
+  if (raw < 1) return 0;
+  return Math.min(raw, 10);
 }

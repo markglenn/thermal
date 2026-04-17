@@ -59,27 +59,65 @@ export function BarcodeProperties({ componentId, props }: Props) {
             <option value="itf">ITF</option>
           </select>
         </label>
-        <div className="flex gap-2">
-          <label className="flex-1">
-            <span className="text-xs text-gray-500">Height</span>
-            <NumberInput value={props.height} onChange={(v) => update({ height: v })} min={20} max={300} fallback={80} />
-          </label>
-          <label className="flex-1">
-            <span className="text-xs text-gray-500">Bar Width</span>
-            <select
-              value={props.moduleWidth ?? 2}
-              onChange={(e) => {
-                const v = parseInt(e.target.value);
-                update({ moduleWidth: v === 2 ? undefined : v });
-              }}
-              className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm"
-            >
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((v) => (
-                <option key={v} value={v}>{v}{v === 2 ? ' (default)' : ''}</option>
-              ))}
-            </select>
-          </label>
-        </div>
+        <label>
+          <span className="text-xs text-gray-500">Sizing</span>
+          <select
+            value={props.sizingMode ?? 'auto'}
+            onChange={(e) => {
+              const mode = e.target.value as 'auto' | 'fit';
+              update({ sizingMode: mode === 'auto' ? undefined : mode });
+            }}
+            className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm"
+          >
+            <option value="auto">Auto (content drives size)</option>
+            <option value="fit">Fit to container</option>
+          </select>
+        </label>
+        {props.sizingMode !== 'fit' && (
+          <div className="flex gap-2">
+            <label className="flex-1">
+              <span className="text-xs text-gray-500">Height</span>
+              <NumberInput value={props.height} onChange={(v) => update({ height: v })} min={20} max={300} fallback={80} />
+            </label>
+            <label className="flex-1">
+              <span className="text-xs text-gray-500">Bar Width</span>
+              <select
+                value={props.moduleWidth ?? 2}
+                onChange={(e) => {
+                  const v = parseInt(e.target.value);
+                  update({ moduleWidth: v === 2 ? undefined : v });
+                }}
+                className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm"
+              >
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((v) => (
+                  <option key={v} value={v}>{v}{v === 2 ? ' (default)' : ''}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+        )}
+        {props.sizingMode === 'fit' && (
+          <>
+            <label>
+              <span className="text-xs text-gray-500">Alignment</span>
+              <select
+                value={props.alignment ?? 'left'}
+                onChange={(e) => {
+                  const a = e.target.value as 'left' | 'center' | 'right';
+                  update({ alignment: a === 'left' ? undefined : a });
+                }}
+                className="w-full mt-0.5 px-2 py-1 border border-gray-300 rounded text-sm"
+              >
+                <option value="left">Left</option>
+                <option value="center">Center</option>
+                <option value="right">Right</option>
+              </select>
+            </label>
+            <p className="text-[10px] text-gray-500">
+              Bar width is derived from the container size. Resize handles control bounds.
+            </p>
+          </>
+        )}
         <div className="flex gap-2">
           <label className="flex-1">
             <span className="text-xs text-gray-500">Rotation</span>
