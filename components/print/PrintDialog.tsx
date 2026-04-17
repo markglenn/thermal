@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Printer, Circle, MapPin, AlertCircle, Plus, Trash2 } from 'lucide-react';
+import { Printer, Circle, MapPin, AlertCircle, Plus, Minus, Trash2, ChevronDown, Search, RefreshCw } from 'lucide-react';
 import { usePrinters } from '@/hooks/use-printers';
 import { fetchJson } from '@/lib/client/fetch';
 import { toast } from '@/lib/toast-store';
 import type { LabelDocument } from '@/lib/types';
-import type { Site } from '@/hooks/use-printers';
+import type { Site, Printer as PrinterInfo } from '@/hooks/use-printers';
 
 interface Props {
   labelId?: string;
@@ -23,47 +23,169 @@ const stateColor: Record<string, string> = {
   unknown: 'text-gray-400',
 };
 
-function SiteSection({ site, selectedPrinter, onSelect }: {
-  site: Site;
-  selectedPrinter: string | null;
-  onSelect: (printer: string) => void;
+function PrinterRow({ printer, selected, onSelect }: {
+  printer: PrinterInfo;
+  selected: boolean;
+  onSelect: () => void;
 }) {
   return (
-    <div className="space-y-1">
-      {site.printers.map((p) => (
-        <button
-          key={p.name}
-          onClick={() => onSelect(p.name)}
-          className={`w-full text-left px-3 py-2 rounded-lg border transition-colors ${
-            selectedPrinter === p.name
-              ? 'border-blue-400 bg-blue-50'
-              : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <Circle size={8} className={`fill-current ${stateColor[p.stateLabel]}`} />
-            <span className="text-sm font-medium">{p.name}</span>
-          </div>
-          {(p.info || p.location) && (
-            <div className="flex items-center gap-3 mt-0.5 ml-5">
-              {p.location && (
-                <span className="text-[11px] text-gray-400 flex items-center gap-0.5">
-                  <MapPin size={10} />
-                  {p.location}
-                </span>
-              )}
-              {p.info && (
-                <span className="text-[11px] text-gray-400">{p.info}</span>
-              )}
-            </div>
+    <button
+      onClick={onSelect}
+      className={`relative w-full text-left pl-6 pr-2 py-1.5 rounded-md transition-colors ${
+        selected ? 'bg-blue-50' : 'hover:bg-gray-50'
+      }`}
+    >
+      {selected && (
+        <span className="absolute left-2 top-1.5 bottom-1.5 w-0.5 bg-blue-500 rounded-full" />
+      )}
+      <div className="flex items-center gap-2">
+        <Circle size={7} className={`fill-current ${stateColor[printer.stateLabel]}`} />
+        <span className={`text-sm ${selected ? 'font-medium text-blue-900' : 'text-gray-800'}`}>
+          {printer.name}
+        </span>
+      </div>
+      {(printer.location || printer.info || printer.mediaDefault) && (
+        <div className="mt-0.5 ml-[22px] flex items-center gap-2 text-[11px] text-gray-400">
+          {printer.location && (
+            <span className="flex items-center gap-0.5">
+              <MapPin size={10} />
+              {printer.location}
+            </span>
           )}
-          {p.mediaDefault && (
-            <div className="mt-0.5 ml-5 text-[11px] text-gray-400">
-              Media: {p.mediaDefault}
-            </div>
-          )}
-        </button>
-      ))}
+          {printer.info && <span className="truncate">{printer.info}</span>}
+          {printer.mediaDefault && <span className="truncate">{printer.mediaDefault}</span>}
+        </div>
+      )}
+    </button>
+  );
+}
+
+function matchesQuery(haystacks: (string | null | undefined)[], q: string): boolean {
+  return haystacks.some((h) => h?.toLowerCase().includes(q));
+}
+
+interface SitePickerProps {
+  sites: Site[];
+  selectedSiteId: string | null;
+  selectedPrinter: string | null;
+  onSelect: (siteId: string, printerName: string) => void;
+  onRefresh: () => void;
+  refreshing: boolean;
+}
+
+function SitePicker({ sites, selectedSiteId, selectedPrinter, onSelect, onRefresh, refreshing }: SitePickerProps) {
+  const [query, setQuery] = useState('');
+  const [overrides, setOverrides] = useState<Record<string, boolean>>({});
+
+  const q = query.trim().toLowerCase();
+  const isSearching = q.length > 0;
+  const isSingleSite = sites.length === 1;
+
+  const results = useMemo(() => {
+    return sites.map((site) => {
+      const siteMatches = !isSearching || matchesQuery([site.siteName, site.siteId], q);
+      const filtered = (!isSearching || siteMatches)
+        ? site.printers
+        : site.printers.filter((p) => matchesQuery([p.name, p.location, p.info, p.mediaDefault], q));
+      return { site, filtered, siteMatches };
+    }).filter(({ filtered, siteMatches }) => !isSearching || siteMatches || filtered.length > 0);
+  }, [sites, q, isSearching]);
+
+  const isExpanded = (siteId: string): boolean => {
+    if (isSearching || isSingleSite) return true;
+    if (siteId in overrides) return overrides[siteId];
+    return siteId === selectedSiteId;
+  };
+
+  const toggle = (siteId: string) => {
+    if (isSearching || isSingleSite) return;
+    setOverrides((prev) => ({ ...prev, [siteId]: !isExpanded(siteId) }));
+  };
+
+  return (
+    <div>
+      <div className="sticky top-0 z-10 bg-white -mx-4 px-4 pt-px pb-3">
+        <div className="relative">
+          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search printers or facilities..."
+            className="w-full pl-8 pr-9 py-1.5 border border-gray-200 rounded-md text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400 [&::-webkit-search-cancel-button]:hidden"
+          />
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={refreshing}
+            title="Refresh facilities and printers"
+            className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed rounded"
+          >
+            <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
+          </button>
+        </div>
+      </div>
+
+      {results.length === 0 ? (
+        <div className="text-center text-xs text-gray-400 py-6">
+          No printers match &ldquo;{query}&rdquo;.
+        </div>
+      ) : (
+        <div>
+          {results.map(({ site, filtered }) => {
+            const expanded = isExpanded(site.siteId);
+            const containsSelected = selectedSiteId === site.siteId && selectedPrinter !== null;
+
+            return (
+              <div key={site.siteId}>
+                <button
+                  type="button"
+                  onClick={() => toggle(site.siteId)}
+                  disabled={isSingleSite || isSearching}
+                  className={`sticky top-[47px] z-[5] w-full flex items-center gap-1.5 -mx-4 px-4 py-2 bg-gray-50 border-b border-gray-100 text-left ${
+                    isSingleSite || isSearching ? 'cursor-default' : 'hover:bg-gray-100'
+                  }`}
+                >
+                  {!isSingleSite && (
+                    <ChevronDown
+                      size={14}
+                      className={`text-gray-400 transition-transform ${expanded ? '' : '-rotate-90'}`}
+                    />
+                  )}
+                  <span className={`text-sm font-medium flex-1 truncate ${isSingleSite ? 'ml-0.5' : ''}`}>
+                    {site.siteName}
+                  </span>
+                  {containsSelected && !expanded && (
+                    <span className="h-1.5 w-1.5 rounded-full bg-blue-500" aria-label="selected printer in this site" />
+                  )}
+                  <span className="text-[11px] text-gray-400 tabular-nums">
+                    {isSearching && filtered.length !== site.printers.length
+                      ? `${filtered.length} / ${site.printers.length}`
+                      : site.printers.length}
+                  </span>
+                </button>
+
+                {expanded && (
+                  <div className="pb-2 space-y-px">
+                    {filtered.length === 0 ? (
+                      <div className="text-xs text-gray-400 py-2 pl-6">No printers at this site</div>
+                    ) : (
+                      filtered.map((p) => (
+                        <PrinterRow
+                          key={p.name}
+                          printer={p}
+                          selected={selectedSiteId === site.siteId && selectedPrinter === p.name}
+                          onSelect={() => onSelect(site.siteId, p.name)}
+                        />
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -209,7 +331,7 @@ export function PrintDialog({ labelId, labelName, document: doc, onClose }: Prop
           </button>
         </div>
 
-        <div className="p-4 overflow-y-auto flex-1 space-y-4">
+        <div className="p-4 overflow-y-auto flex-1 space-y-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {printers.loading ? (
             <div className="text-center text-sm text-gray-400 py-8">Loading printers...</div>
           ) : printers.sites.length === 0 ? (
@@ -220,56 +342,33 @@ export function PrintDialog({ labelId, labelName, document: doc, onClose }: Prop
             </div>
           ) : (
             <>
-              {/* Site picker (only if multiple) */}
-              {printers.sites.length > 1 && (
-                <div>
-                  <span className="text-xs text-gray-500 block mb-1">Site</span>
-                  <select
-                    value={printers.selectedSiteId ?? ''}
-                    onChange={(e) => printers.setSelectedSiteId(e.target.value || null)}
-                    className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
-                  >
-                    <option value="">Select a site...</option>
-                    {printers.sites.map((s) => (
-                      <option key={s.siteId} value={s.siteId}>{s.siteName}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {/* Printer list */}
-              {printers.selectedSite && (
-                <div>
-                  <span className="text-xs text-gray-500 block mb-1">
-                    Printer
-                    {printers.selectedSite.printers.length > 0 && (
-                      <span className="text-gray-400"> ({printers.selectedSite.printers.length})</span>
-                    )}
-                  </span>
-                  {printers.selectedSite.printers.length === 0 ? (
-                    <div className="text-sm text-gray-400 py-4 text-center">No printers available at this site</div>
-                  ) : (
-                    <SiteSection
-                      site={printers.selectedSite}
-                      selectedPrinter={printers.selectedPrinter}
-                      onSelect={(name) => printers.selectPrinter(printers.selectedSite!.siteId, name)}
-                    />
-                  )}
-                </div>
-              )}
+              <SitePicker
+                sites={printers.sites}
+                selectedSiteId={printers.selectedSiteId}
+                selectedPrinter={printers.selectedPrinter}
+                onSelect={printers.selectPrinter}
+                onRefresh={() => printers.refresh(true)}
+                refreshing={printers.loading}
+              />
 
               {/* Variable fields */}
               {printers.selectedPrinter && hasFields && (
                 <div>
-                  <span className="text-xs text-gray-500 block mb-1">
-                    Data
-                    {dataRows.length > 1 && <span className="text-gray-400"> ({dataRows.length} labels)</span>}
+                  <div className="flex items-baseline justify-between mb-2">
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                      Data
+                      {dataRows.length > 1 && (
+                        <span className="ml-1.5 normal-case font-normal tracking-normal text-gray-400">
+                          · {dataRows.length} labels
+                        </span>
+                      )}
+                    </span>
                     {requiredFields.size > 0 && (
-                      <span className="text-gray-400 ml-1">
-                        — <span className="text-red-500">*</span> required
+                      <span className="text-[11px] text-gray-400">
+                        <span className="text-red-500">*</span> required
                       </span>
                     )}
-                  </span>
+                  </div>
                   <div className="space-y-2">
                     {dataRows.map((row, rowIndex) => (
                       <div key={rowIndex} className={`space-y-1.5 ${dataRows.length > 1 ? 'border border-gray-200 rounded-lg p-2.5' : ''}`}>
@@ -321,16 +420,42 @@ export function PrintDialog({ labelId, labelName, document: doc, onClose }: Prop
 
               {/* Copies */}
               {printers.selectedPrinter && (
-                <div>
-                  <label className="text-xs text-gray-500 block mb-1">Copies{hasFields && dataRows.length > 1 ? ' (per label)' : ''}</label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={1000}
-                    value={copies}
-                    onChange={(e) => setCopies(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-20 px-2 py-1.5 border border-gray-300 rounded text-sm"
-                  />
+                <div className="flex items-center justify-between">
+                  <label className="text-xs text-gray-500">
+                    Copies{hasFields && dataRows.length > 1 ? ' (per label)' : ''}
+                  </label>
+                  <div className="inline-flex items-stretch border border-gray-200 rounded-md bg-gray-50 overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setCopies((c) => Math.max(1, c - 1))}
+                      disabled={copies <= 1}
+                      aria-label="Decrease copies"
+                      className="px-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                    >
+                      <Minus size={13} />
+                    </button>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={copies}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/\D/g, '');
+                        if (raw === '') { setCopies(1); return; }
+                        const n = parseInt(raw, 10);
+                        setCopies(Math.min(1000, Math.max(1, n)));
+                      }}
+                      className="w-10 text-center text-sm bg-transparent py-1 focus:outline-none focus:bg-white tabular-nums"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setCopies((c) => Math.min(1000, c + 1))}
+                      disabled={copies >= 1000}
+                      aria-label="Increase copies"
+                      className="px-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                    >
+                      <Plus size={13} />
+                    </button>
+                  </div>
                 </div>
               )}
 

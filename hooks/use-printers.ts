@@ -47,9 +47,10 @@ export function usePrinters() {
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
   const [selectedPrinter, setSelectedPrinter] = useState<string | null>(null);
 
-  const fetch_ = useCallback(async () => {
+  const fetch_ = useCallback(async (forceRefresh = false) => {
     setLoading(true);
-    const data = await fetchJson<PrintersResponse>('/api/printers');
+    const url = forceRefresh ? '/api/printers?refresh=1' : '/api/printers';
+    const data = await fetchJson<PrintersResponse>(url);
     if (data) {
       setSites(data.sites);
 

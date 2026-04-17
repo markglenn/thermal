@@ -1,13 +1,15 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { listSites, printerStateLabel } from '@/lib/print/discovery';
 import { requireRole, isAuthError } from '@/lib/auth/require-role';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const session = await requireRole('viewer');
   if (isAuthError(session)) return session;
 
+  const forceRefresh = request.nextUrl.searchParams.get('refresh') === '1';
+
   try {
-    const sites = await listSites();
+    const sites = await listSites(forceRefresh);
 
     return NextResponse.json({
       sites: sites.map((site) => ({
