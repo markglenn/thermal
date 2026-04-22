@@ -11,10 +11,10 @@ const JOB_TIMEOUT_MS = 5 * 60_000;
 const JOB_TIMEOUT_ERROR = 'Print server did not respond within 5 minutes.';
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await requireRole('viewer');
+  const session = await requireRole('viewer', request);
   if (isAuthError(session)) return session;
 
   try {

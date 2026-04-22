@@ -5,6 +5,7 @@ import '@/lib/components'; // Register all component plugins
 import { useTabStore } from '@/lib/store/tab-store';
 import { useRole } from '@/lib/auth/use-session';
 import { EditorStoreProvider } from '@/lib/store/editor-context';
+import { createEditorStore, type EditorStoreApi } from '@/lib/store/editor-store';
 import { TabBar } from './TabBar';
 import { ComponentPalette } from '../palette/ComponentPalette';
 import { Canvas } from './Canvas';
@@ -21,7 +22,7 @@ import { ContextMenuProvider } from '../ui/ContextMenu';
 import { Toasts } from '../ui/Toasts';
 import { ReadOnlyBanner } from './ReadOnlyBanner';
 import { LabelBrowserModal } from '../documents/LabelBrowserModal';
-import { PanelLeftOpen, PanelBottomClose, PanelBottomOpen, FilePlus, FolderOpen, Flame, Upload, SlidersHorizontal, Database, Tag } from 'lucide-react';
+import { PanelLeftOpen, PanelBottomClose, PanelBottomOpen, FilePlus, FolderOpen, Upload, SlidersHorizontal, Database, Tag } from 'lucide-react';
 import type { PropertiesView } from '../properties/PropertiesPanel';
 import { fetchJson } from '@/lib/client/fetch';
 import { importNlblDocument } from '@/lib/documents/file-io';
@@ -51,16 +52,7 @@ export function Editor() {
 
   if (!activeStore) {
     return (
-      <div className="h-screen flex flex-col bg-white text-gray-900">
-        <div className="h-10 border-b border-gray-200 bg-white flex items-center px-3">
-          <div className="flex items-center gap-1.5">
-            <Flame size={18} className="text-orange-500" />
-            <span className="font-bold text-base tracking-tight text-gray-900">Thermal</span>
-          </div>
-        </div>
-        <TabBar />
-        <EmptyState />
-      </div>
+      <EmptyStateShell />
     );
   }
 
@@ -238,6 +230,27 @@ function RightPanel() {
         })}
       </div>
     </>
+  );
+}
+
+/**
+ * Render the full chrome (Toolbar + TabBar + EmptyState) when no tab is
+ * open. Toolbar hooks require an EditorStoreProvider, so we provide a
+ * sentinel empty store — Toolbar itself gates document-dependent items
+ * on `activeTabId == null` from the tab store, not on the sentinel's
+ * contents.
+ */
+function EmptyStateShell() {
+  const [sentinelStore] = useState<EditorStoreApi>(() => createEditorStore());
+
+  return (
+    <EditorStoreProvider store={sentinelStore}>
+      <div className="h-screen flex flex-col bg-white text-gray-900">
+        <Toolbar />
+        <TabBar />
+        <EmptyState />
+      </div>
+    </EditorStoreProvider>
   );
 }
 

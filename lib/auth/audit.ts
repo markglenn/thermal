@@ -18,7 +18,9 @@ export type AuditAction =
   | 'label_size.deleted'
   | 'variable_bank.created'
   | 'variable_bank.updated'
-  | 'variable_bank.deleted';
+  | 'variable_bank.deleted'
+  | 'api_key.created'
+  | 'api_key.revoked';
 
 /**
  * Log an audit event. Fire-and-forget — errors are logged but don't propagate.

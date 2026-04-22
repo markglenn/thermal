@@ -3,8 +3,8 @@ import { eq } from 'drizzle-orm';
 import { getDatabase } from '@/lib/db';
 import { requireRole, isAuthError } from '@/lib/auth/require-role';
 
-export async function GET() {
-  const session = await requireRole('viewer');
+export async function GET(request: Request) {
+  const session = await requireRole('viewer', request);
   if (isAuthError(session)) return session;
 
   try {
@@ -25,7 +25,7 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const session = await requireRole('admin');
+  const session = await requireRole('admin', request);
   if (isAuthError(session)) return session;
 
   let body: Record<string, unknown>;
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  const session = await requireRole('admin');
+  const session = await requireRole('admin', request);
   if (isAuthError(session)) return session;
 
   let body: Record<string, unknown>;
@@ -116,7 +116,7 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const session = await requireRole('admin');
+  const session = await requireRole('admin', request);
   if (isAuthError(session)) return session;
 
   const { searchParams } = new URL(request.url);

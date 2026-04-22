@@ -9,7 +9,7 @@ import { logger } from '@/lib/logger';
 import type { LabelDocument } from '@/lib/types';
 
 export async function POST(request: NextRequest) {
-  const session = await requireRole('editor');
+  const session = await requireRole('service', request);
   if (isAuthError(session)) return session;
 
   let body: unknown;

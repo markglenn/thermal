@@ -3,8 +3,8 @@ import { applyJobStatus, pollEvents } from '@/lib/print/events';
 import { requireRole, isAuthError } from '@/lib/auth/require-role';
 import { logger } from '@/lib/logger';
 
-export async function POST() {
-  const session = await requireRole('editor');
+export async function POST(request: Request) {
+  const session = await requireRole('service', request);
   if (isAuthError(session)) return session;
 
   try {

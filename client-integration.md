@@ -38,23 +38,45 @@ There is no webhook-back-to-the-client mechanism. Clients poll.
 
 ## 2. Authentication
 
-**Thermal has no API-key / bearer-token mechanism today.** All endpoints are
-gated by a NextAuth v5 **session cookie** issued after Okta OIDC sign-in.
+Thermal supports two authentication modes. Every endpoint accepts either.
+
+### 2.1 API keys (recommended for headless callers)
+
+Send the key as a Bearer token on every request:
+
+```
+Authorization: Bearer thrml_{prefix}_{secret}
+```
+
+- Keys are created and revoked by **admins** through the **File → API Keys…** menu in the Thermal UI.
+- The full key is shown **exactly once** at creation time. If lost, revoke it and issue a new one — the server only stores a scrypt hash.
+- Keys are restricted to two roles — `editor` and `admin` keys cannot be created:
+  - **`viewer`** — read-only. List labels, read documents, fetch thumbnails, poll print-job status, list sites/printers. Cannot submit print jobs.
+  - **`service`** — everything `viewer` can do, **plus** submit print jobs (`POST /api/labels/{id}/print`, `POST /api/print`) and drain reply events (`POST /api/print-events`). This is the typical role for a print-integration client.
+- Keys explicitly *cannot* edit labels, create versions, import documents, or manage label sizes / variable banks / other API keys. Those stay gated by `editor` or `admin` roles, which are reserved for humans signing in through Okta.
+- Revocation is immediate. `DELETE /api/api-keys/{id}` flips `revokedAt`, and the next authenticated request with that key falls through to session auth (which typically 401s for a headless caller).
+- `lastUsedAt` updates on successful auth so admins can spot stale keys in the UI.
+- Key format: `thrml_` + 12-hex-char prefix (shown in the admin UI for identification) + `_` + 48-hex-char secret. The prefix alone is *not* a credential — it's the lookup index.
+- `Authorization` headers that don't start with `thrml_` are ignored by the key path and fall through to session auth, so pasting a GitHub PAT or unrelated token by accident is harmless.
+- All audit events from key-authenticated requests record `userId: "apikey:{keyId}"` so you can tie actions back to a specific integration.
+
+### 2.2 NextAuth session cookies (for browser users)
+
+Used by the Thermal UI itself and any client willing to run a full OIDC flow.
 
 - Provider: `okta` (scopes `openid email profile groups`).
 - Cookie: `authjs.session-token` (HTTP) / `__Secure-authjs.session-token` (HTTPS). HttpOnly — not readable from JS.
 - Sign-in URL: `/auth/signin`. Handler: `/api/auth/[...nextauth]`.
 - Roles come from Okta groups: `thermal-admins → admin`, `thermal-editors → editor`, `thermal-viewers → viewer`. Unmatched authenticated users default to `viewer`.
-- Failure shapes: `401 {"error": "Unauthorized"}` (no session), `403 {"error": "Forbidden"}` (role too low).
 
-### Dev-mode stub
-When `AUTH_OKTA_ISSUER` / `AUTH_OKTA_ID` / `AUTH_OKTA_SECRET` are unset, every request is treated as authenticated admin (`sub: 'dev'`). Useful for local integration testing; **do not rely on this in any deployed environment.**
+### 2.3 Failure shapes
 
-### Practical options for a service-to-service caller
-Because every endpoint requires a browser-style session, a headless client has three options:
-1. **Run through Thermal itself.** If the upstream caller can host a browser-based workflow (service account in Okta, then drive the sign-in flow once to capture the cookie), the cookie can be reused for subsequent requests until it expires.
-2. **Deploy a forward-proxy or BFF** that terminates NextAuth and re-exposes the endpoints to trusted callers with a simpler token scheme.
-3. **Add an API-key path on the server** (not implemented yet). If this becomes a real need, open an issue — it's a small `requireRole()` change plus a per-key roles table.
+- `401 {"error": "Unauthorized"}` — no Bearer key and no session.
+- `403 {"error": "Forbidden"}` — key or session authenticated, but role too low for this endpoint.
+
+### 2.4 Dev-mode stub
+
+When `AUTH_OKTA_ISSUER` / `AUTH_OKTA_ID` / `AUTH_OKTA_SECRET` are unset, every request is treated as authenticated admin (`sub: 'dev'`). Useful for local integration testing; **do not rely on this in any deployed environment.** API keys still work when dev-mode is on and take precedence if sent.
 
 ---
 
@@ -62,7 +84,7 @@ Because every endpoint requires a browser-style session, a headless client has t
 
 ### 3.1 Submit the job — `POST /api/labels/{id}/print`
 
-- **Role required:** `editor`
+- **Role required:** `service`
 - **Query params:** `?version=N` to pin a specific version (otherwise the published version is used, falling back to the latest).
 - **Content-Type:** `application/json`
 - **Body:**
@@ -131,7 +153,7 @@ Because every endpoint requires a browser-style session, a headless client has t
 
 ### 3.3 (Operator responsibility) Drain the reply queue — `POST /api/print-events`
 
-- **Role required:** `editor`
+- **Role required:** `service`
 - **Body:** none
 - **Response 200:**
   ```json
@@ -145,7 +167,7 @@ Because every endpoint requires a browser-style session, a headless client has t
 ```python
 import requests, time
 s = requests.Session()
-s.cookies.update({"authjs.session-token": SESSION_TOKEN})
+s.headers["Authorization"] = f"Bearer {THERMAL_API_KEY}"
 
 r = s.post(f"{BASE}/api/labels/{LABEL_ID}/print", json={
     "data": [{"sku": "ABCD1234"}],
@@ -167,6 +189,15 @@ while time.time() < deadline:
 print(status["status"], status.get("error"))
 ```
 
+Or with curl:
+
+```bash
+curl -sS -X POST "https://thermal.example.com/api/labels/$LABEL_ID/print" \
+  -H "Authorization: Bearer $THERMAL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"data":[{"sku":"ABCD1234"}],"printer":"zebra-zd621-shipping","siteId":"warehouse-chicago"}'
+```
+
 ---
 
 ## 4. Ad-hoc print without a saved label — `POST /api/print`
@@ -174,7 +205,7 @@ print(status["status"], status.get("error"))
 Use when the caller has a `LabelDocument` in hand and does not want it
 persisted in Thermal.
 
-- **Role required:** `editor`
+- **Role required:** `service`
 - **Body:**
   ```json
   {
@@ -295,6 +326,14 @@ Reusable named field sets.
 - `PUT` — role **admin**. Body `{ id, name, fields }`.
 - `DELETE` — role **admin**. Query: `id=<uuid>`.
 
+### 8.3 API keys — `/api/api-keys` and `/api/api-keys/{id}`
+
+Admins can manage keys via these endpoints or through the **File → API Keys…** menu in the UI. An integration typically never calls these — an admin provisions a key once and hands it to the integrator.
+
+- `GET /api/api-keys` — role **admin**. Query: `includeRevoked=true` to include revoked rows. Returns `Array<{ id, name, prefix, role, createdBy, createdAt, lastUsedAt, revokedAt }>`. Secrets are never returned.
+- `POST /api/api-keys` — role **admin**. Body: `{ name: string, role: "viewer"|"service" }`. Requesting `editor` or `admin` returns `400` — API keys are intentionally capped below the roles that can mutate labels or manage infrastructure. Response `201` includes an extra **`secret`** field with the full key — this is the only time it's returned. Store it immediately; the server keeps only a scrypt hash.
+- `DELETE /api/api-keys/{id}` — role **admin**. Revokes the key (sets `revokedAt`). Subsequent requests using that key fall through to session auth and will typically 401.
+
 ---
 
 ## 9. Utility / internal-facing endpoints
@@ -376,10 +415,12 @@ A client doesn't set these, but their values affect behavior:
 
 ## 13. Checklist: integrating a headless upstream system
 
-1. Get a NextAuth session cookie (or accept that dev-mode is admin-everywhere until Okta is wired up).
-2. Discover printers via `GET /api/printers` → pick `siteId` + `printer.name`.
-3. Optional: list available labels via `GET /api/labels` to let users choose.
-4. Submit with `POST /api/labels/{id}/print` → keep the `jobId`.
-5. Ensure **someone** calls `POST /api/print-events` on a cadence (every few seconds is fine — it long-polls, so it's cheap).
-6. Poll `GET /api/print-jobs/{jobId}` until `status !== "queued"`. Treat the 5-minute timeout as your hard ceiling.
-7. Surface `error` on `failed` jobs — it will contain either the print server's message or the Thermal timeout message.
+1. Ask a Thermal admin to create an API key (File → API Keys…) with the lowest role that covers your needs — usually `editor`. Save the full secret; it's only shown once.
+2. Send `Authorization: Bearer thrml_...` on every request.
+3. Discover printers via `GET /api/printers` → pick `siteId` + `printer.name`.
+4. Optional: list available labels via `GET /api/labels` to let users choose.
+5. Submit with `POST /api/labels/{id}/print` → keep the `jobId`.
+6. Ensure **someone** calls `POST /api/print-events` on a cadence (every few seconds is fine — it long-polls, so it's cheap).
+7. Poll `GET /api/print-jobs/{jobId}` until `status !== "queued"`. Treat the 5-minute timeout as your hard ceiling.
+8. Surface `error` on `failed` jobs — it will contain either the print server's message or the Thermal timeout message.
+9. If the key is ever exposed (committed to git, leaked in logs, etc.), ask the admin to revoke it in the UI and issue a new one. Revocation takes effect on the next request.

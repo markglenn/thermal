@@ -1,11 +1,20 @@
-export const ROLES = ['viewer', 'editor', 'admin'] as const;
+export const ROLES = ['viewer', 'service', 'editor', 'admin'] as const;
 export type Role = (typeof ROLES)[number];
+
+/**
+ * Roles permitted for API keys. Keys are scoped to print + read only —
+ * `editor`/`admin` are reserved for humans because they allow mutating
+ * labels and managing infrastructure (label sizes, variable banks,
+ * API keys themselves).
+ */
+export const ALLOWED_API_KEY_ROLES: readonly Role[] = ['viewer', 'service'];
 
 /** Role hierarchy — higher index = more privilege. */
 const ROLE_RANK: Record<Role, number> = {
   viewer: 0,
-  editor: 1,
-  admin: 2,
+  service: 1,
+  editor: 2,
+  admin: 3,
 };
 
 /** Map Okta group names to app roles. Highest role wins. */

@@ -4,10 +4,10 @@ import { getDatabase } from '@/lib/db';
 import { requireRole, isAuthError } from '@/lib/auth/require-role';
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await requireRole('viewer');
+  const session = await requireRole('viewer', request);
   if (isAuthError(session)) return session;
 
   try {

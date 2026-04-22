@@ -62,6 +62,18 @@ export const auditEvents = pgTable('audit_events', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
+export const apiKeys = pgTable('api_keys', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  prefix: text('prefix').notNull(),
+  keyHash: text('key_hash').notNull(),
+  role: text('role').notNull(),
+  createdBy: text('created_by').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  lastUsedAt: timestamp('last_used_at'),
+  revokedAt: timestamp('revoked_at'),
+});
+
 export const printJobs = pgTable('print_jobs', {
   id: text('id').primaryKey(),
   labelId: text('label_id')

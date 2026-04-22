@@ -6,7 +6,7 @@ import { requireRole, isAuthError } from '@/lib/auth/require-role';
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 export async function POST(request: NextRequest) {
-  const session = await requireRole('editor');
+  const session = await requireRole('editor', request);
   if (isAuthError(session)) return session;
 
   try {

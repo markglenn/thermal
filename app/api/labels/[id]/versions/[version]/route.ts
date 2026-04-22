@@ -4,10 +4,10 @@ import { findLabel, getDatabase } from '@/lib/server/labels';
 import { requireRole, isAuthError } from '@/lib/auth/require-role';
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string; version: string }> }
 ) {
-  const session = await requireRole('viewer');
+  const session = await requireRole('viewer', request);
   if (isAuthError(session)) return session;
 
   try {
@@ -63,7 +63,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; version: string }> }
 ) {
-  const session = await requireRole('editor');
+  const session = await requireRole('editor', request);
   if (isAuthError(session)) return session;
 
   let body: Record<string, unknown>;

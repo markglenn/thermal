@@ -16,7 +16,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await requireRole('viewer');
+  const session = await requireRole('viewer', request);
   if (isAuthError(session)) return session;
 
   try {
@@ -41,7 +41,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await requireRole('editor');
+  const session = await requireRole('editor', request);
   if (isAuthError(session)) return session;
 
   let body: Record<string, unknown>;

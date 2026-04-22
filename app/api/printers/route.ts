@@ -4,7 +4,7 @@ import { requireRole, isAuthError } from '@/lib/auth/require-role';
 import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
-  const session = await requireRole('viewer');
+  const session = await requireRole('viewer', request);
   if (isAuthError(session)) return session;
 
   const forceRefresh = request.nextUrl.searchParams.get('refresh') === '1';

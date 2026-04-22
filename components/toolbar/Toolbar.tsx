@@ -20,6 +20,7 @@ import { VersionHistoryPanel } from '@/components/documents/VersionHistoryPanel'
 import { KeyboardShortcutsModal } from '@/components/editor/KeyboardShortcutsModal';
 import { ManageLabelSizesModal } from '@/components/label-sizes/ManageLabelSizesModal';
 import { ManageVariableBanksModal } from '@/components/variable-banks/ManageVariableBanksModal';
+import { ManageApiKeysModal } from '@/components/api-keys/ManageApiKeysModal';
 import { PrintDialog } from '@/components/print/PrintDialog';
 import { PrintHistory } from '@/components/print/PrintHistory';
 import type { LabelComponent, LabelDocument } from '@/lib/types';
@@ -48,9 +49,15 @@ export function Toolbar() {
   const showRulers = useEditorStoreContext((s) => s.showRulers);
   const toggleRulers = useEditorStoreContext((s) => s.toggleRulers);
   const currentLabelName = useEditorStoreContext((s) => s.currentLabelName);
+  const hasDocument = useTabStore((s) => s.tabs.some((t) => t.id === s.activeTabId));
   const activeTabName = useTabStore((s) => s.tabs.find((t) => t.id === s.activeTabId)?.name);
   const zoom = useEditorStoreContext((s) => s.viewport.zoom);
   const storeApi = useEditorStoreApi();
+
+  // When no tab is open the Toolbar renders above a sentinel store (see
+  // EmptyStateShell in Editor.tsx) so document-dependent menu items must
+  // disable themselves via `hasDocument` rather than crashing or silently
+  // operating on the sentinel.
 
   const readOnly = useEditorStoreContext((s) => s.readOnly);
   const roleReadOnly = useEditorStoreContext((s) => s.roleReadOnly);
@@ -71,6 +78,7 @@ export function Toolbar() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showLabelSizes, setShowLabelSizes] = useState(false);
   const [showVariableBanks, setShowVariableBanks] = useState(false);
+  const [showApiKeys, setShowApiKeys] = useState(false);
   const [showPrintDialog, setShowPrintDialog] = useState(false);
   const [showPrintHistory, setShowPrintHistory] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -258,15 +266,15 @@ export function Toolbar() {
                   <>
                     <Menubar.Separator className={separatorClass} />
                     {isPublished && !readOnly ? (
-                      <Menubar.Item className={`${itemClass} text-blue-600`} disabled={isSaving} onSelect={createNewDraft}>
+                      <Menubar.Item className={`${itemClass} text-blue-600`} disabled={isSaving || !hasDocument} onSelect={createNewDraft}>
                         {isSaving ? 'Creating...' : 'New Version'}
                       </Menubar.Item>
                     ) : (
-                      <Menubar.Item className={itemClass} disabled={isSaving} onSelect={handleSaveClick}>
+                      <Menubar.Item className={itemClass} disabled={isSaving || !hasDocument} onSelect={handleSaveClick}>
                         Save<Shortcut keys="⌘S" />
                       </Menubar.Item>
                     )}
-                    <Menubar.Item className={itemClass} onSelect={() => setShowSaveAsModal(true)}>
+                    <Menubar.Item className={itemClass} disabled={!hasDocument} onSelect={() => setShowSaveAsModal(true)}>
                       Save As...<Shortcut keys="⌘⇧S" />
                     </Menubar.Item>
                     {currentLabelId && (
@@ -277,17 +285,7 @@ export function Toolbar() {
                   </>
                 )}
                 <Menubar.Separator className={separatorClass} />
-                <Menubar.Item className={itemClass} onSelect={() => setShowLabelSizes(true)}>
-                  Label Sizes...
-                </Menubar.Item>
-                <Menubar.Item className={itemClass} onSelect={() => setShowVariableBanks(true)}>
-                  Variable Banks...
-                </Menubar.Item>
-                <Menubar.Item className={itemClass} onSelect={() => setShowPrintHistory(true)}>
-                  Print History...
-                </Menubar.Item>
-                <Menubar.Separator className={separatorClass} />
-                <Menubar.Item className={itemClass} onSelect={() => {
+                <Menubar.Item className={itemClass} disabled={!hasDocument} onSelect={() => {
                   const store = storeApi.getState();
                   exportDocument(store.document, store.currentLabelName || activeTabName || 'Untitled Label');
                 }}>
@@ -324,7 +322,7 @@ export function Toolbar() {
                   </>
                 )}
                 <Menubar.Separator className={separatorClass} />
-                <Menubar.Item className={itemClass} onSelect={() => {
+                <Menubar.Item className={itemClass} disabled={!hasDocument} onSelect={() => {
                   const state = useTabStore.getState();
                   const tab = state.tabs.find((t) => t.id === state.activeTabId);
                   if (tab?.dirty) {
@@ -338,9 +336,9 @@ export function Toolbar() {
             </Menubar.Portal>
           </Menubar.Menu>
 
-          {/* Edit — hidden for viewers */}
+          {/* Edit — hidden for viewers; disabled when no document is open */}
           {!roleReadOnly && <Menubar.Menu>
-            <Menubar.Trigger className={triggerClass}>Edit</Menubar.Trigger>
+            <Menubar.Trigger className={`${triggerClass} data-[disabled]:opacity-40 data-[disabled]:cursor-not-allowed`} disabled={!hasDocument}>Edit</Menubar.Trigger>
             <Menubar.Portal>
               <Menubar.Content className={contentClass} align="start" sideOffset={4}>
                 <Menubar.Item className={itemClass} onSelect={() => storeApi.temporal.getState().undo()}>
@@ -402,27 +400,27 @@ export function Toolbar() {
             <Menubar.Trigger className={triggerClass}>View</Menubar.Trigger>
             <Menubar.Portal>
               <Menubar.Content className={`${contentClass} min-w-56`} align="start" sideOffset={4}>
-                <Menubar.CheckboxItem className={itemClass} checked={showGrid} onCheckedChange={toggleGrid}>
+                <Menubar.CheckboxItem className={itemClass} disabled={!hasDocument} checked={showGrid} onCheckedChange={toggleGrid}>
                   <CheckIndicator checked={showGrid} />
                   Grid
                 </Menubar.CheckboxItem>
-                <Menubar.CheckboxItem className={itemClass} checked={showRulers} onCheckedChange={toggleRulers}>
+                <Menubar.CheckboxItem className={itemClass} disabled={!hasDocument} checked={showRulers} onCheckedChange={toggleRulers}>
                   <CheckIndicator checked={showRulers} />
                   Rulers<Shortcut keys="⇧R" />
                 </Menubar.CheckboxItem>
                 <Menubar.Separator className={separatorClass} />
-                <Menubar.Item className={itemClass} onSelect={() => storeApi.getState().setZoom(Math.min(zoom * 1.25, MAX_ZOOM))}>
+                <Menubar.Item className={itemClass} disabled={!hasDocument} onSelect={() => storeApi.getState().setZoom(Math.min(zoom * 1.25, MAX_ZOOM))}>
                   Zoom In<Shortcut keys="⌘+" />
                 </Menubar.Item>
-                <Menubar.Item className={itemClass} onSelect={() => storeApi.getState().setZoom(Math.max(zoom / 1.25, MIN_ZOOM))}>
+                <Menubar.Item className={itemClass} disabled={!hasDocument} onSelect={() => storeApi.getState().setZoom(Math.max(zoom / 1.25, MIN_ZOOM))}>
                   Zoom Out<Shortcut keys="⌘−" />
                 </Menubar.Item>
-                <Menubar.Item className={itemClass} onSelect={() => window.dispatchEvent(new Event(EDITOR_EVENTS.FIT_TO_VIEW))}>
+                <Menubar.Item className={itemClass} disabled={!hasDocument} onSelect={() => window.dispatchEvent(new Event(EDITOR_EVENTS.FIT_TO_VIEW))}>
                   Fit to View<Shortcut keys="⌘0" />
                 </Menubar.Item>
                 <Menubar.Separator className={separatorClass} />
                 {[50, 100, 200].map((pct) => (
-                  <Menubar.CheckboxItem key={pct} className={itemClass} checked={Math.round(zoom * 100) === pct} onSelect={() => storeApi.getState().setZoom(pct / 100)}>
+                  <Menubar.CheckboxItem key={pct} className={itemClass} disabled={!hasDocument} checked={Math.round(zoom * 100) === pct} onSelect={() => storeApi.getState().setZoom(pct / 100)}>
                     <CheckIndicator checked={Math.round(zoom * 100) === pct} />
                     {pct}%
                   </Menubar.CheckboxItem>
@@ -434,16 +432,39 @@ export function Toolbar() {
               </Menubar.Content>
             </Menubar.Portal>
           </Menubar.Menu>
+
+          {/* Tools — cross-document management */}
+          <Menubar.Menu>
+            <Menubar.Trigger className={triggerClass}>Tools</Menubar.Trigger>
+            <Menubar.Portal>
+              <Menubar.Content className={contentClass} align="start" sideOffset={4}>
+                <Menubar.Item className={itemClass} onSelect={() => setShowLabelSizes(true)}>
+                  Label Sizes...
+                </Menubar.Item>
+                <Menubar.Item className={itemClass} onSelect={() => setShowVariableBanks(true)}>
+                  Variable Banks...
+                </Menubar.Item>
+                <Menubar.Item className={itemClass} onSelect={() => setShowApiKeys(true)}>
+                  API Keys...
+                </Menubar.Item>
+                <Menubar.Separator className={separatorClass} />
+                <Menubar.Item className={itemClass} onSelect={() => setShowPrintHistory(true)}>
+                  Print History...
+                </Menubar.Item>
+              </Menubar.Content>
+            </Menubar.Portal>
+          </Menubar.Menu>
         </Menubar.Root>
 
         {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Print — hidden for viewers */}
+        {/* Print — hidden for viewers, disabled when no document is open */}
         {!roleReadOnly && (
           <button
             onClick={() => setShowPrintDialog(true)}
-            className="flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 text-xs"
+            disabled={!hasDocument}
+            className="flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 text-xs disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
             title="Print"
           >
             <Printer size={14} />
@@ -471,7 +492,8 @@ export function Toolbar() {
             });
             setShowVersionHistory(true);
           }}
-          className="flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 text-xs"
+          disabled={!hasDocument}
+          className="flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 text-xs disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
           title="Version History"
         >
           <History size={14} />
@@ -537,6 +559,12 @@ export function Toolbar() {
       {showVariableBanks && (
         <ManageVariableBanksModal
           onClose={() => setShowVariableBanks(false)}
+        />
+      )}
+
+      {showApiKeys && (
+        <ManageApiKeysModal
+          onClose={() => setShowApiKeys(false)}
         />
       )}
 
